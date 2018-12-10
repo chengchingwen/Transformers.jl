@@ -63,10 +63,10 @@ TransformerDecoder(size, head, hs, ps) = device(TransformerDecoder(
     LayerNorm(size)
 ))
 
-function (td::TransformerDecoder)(x, mask=nothing)
+function (td::TransformerDecoder)(x, m, mask=nothing)
     a1 = td.mhm(x,x,x)
     n1 = td.LN1(x+a1) # residual
-    a = td.mh(n1, a1, a1, mask=mask)
+    a = td.mh(n1, m, m, mask=mask)
     n2 = td.LN2(a+n1) # residual
     p = td.pw(n2)
     n3 = td.LN3(p+n2) # residual
