@@ -1,82 +1,3 @@
-
-function _regex_escape(s::AbstractString)
-    res = replace(s, r"([()[\]{}?*+\-|^\$\\.&~#\s=!<>|:])" => s"\\\1")
-    Regex(replace(res, "\0" => "\\0"))
-end
-
-
-is_sublayer(x, ex) = startswith(String(ex), string(x, "_"))
-
-const lr = :←
-const rr = :→
-
-
-lpass(name, arg::Symbol, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), arg))
-lpass(name, args::Expr, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), args.args...))
-
-macro topology(m, pattern)
-    @show m, pattern
-    # for i in ins.args
-    #     is_sublayer(m, i) && @show i
-    # end
-
-    code = to_code(pattern)
-
-    if isa(code.in, Symbol)
-        fname = Expr(:call, m, code.in)
-    else
-        fname = Expr(:call, m, code.in.args...)
-    end
-
-    fbody = Any[:block]
-    for (i, l) ∈ enumerate(code.lines)
-        push!(fbody, lpass(l..., m, i))
-    end
-
-    push!(fbody, code.out)
-    Expr(:function, fname, Expr(fbody...))
-end
-
-
-const legalsym = (:→,)# :←)
-const fcache = Dict{String, Function}()
-
-islegaltopo(ex) = false
-islegaltopo(ex::Int) = true
-islegaltopo(ex::Symbol) = true
-islegaltopo(ex::Expr) = (@show ex; ex.head == :call ?
-                         ex.args[1] ∈ legalsym &&
-                         length(ex.args) == 3 &&
-                         islegaltopo(ex.args[2]) &&
-                         islegaltopo(ex.args[3]) : ex.head == :tuple &&
-                         length(ex.args) == 2 &&
-                         (isa(ex.args[1], Symbol) || isa(ex.args[1], Int)) &&
-                         (isa(ex.args[2], Symbol) || isa(ex.args[2], Int))
-)
-struct NetTopo
-    fs::String
-    NetTopo(s::String) = (tofunc(s); new(s))
-end
-
-(nt::NetTopo)(xs...) = (global cache; cache[nt.fs](xs...))
-
-
-macro nettopo_str(str)
-    NetTopo(str)
-end
-
-
-
-function tofunc(sf::String)
-    # global cache
-    # haskey(cache, sf) && (println("cache found"); return cache[sf])
-
-    ex = Meta.parse(sf)
-    code = to_code(ex)
-    
-
-end
-
 #=
 x => b => c  ==> b = m[1](x) ; c = m[2](b)
 x => 3 ==> x => a => a => a ==> x = m[1](a); a = m[1](a); a = m[1](a)
@@ -85,6 +6,98 @@ x => 3 ==> x => a => a => a ==> x = m[1](a); a = m[1](a); a = m[1](a)
 
 
 =#
+
+
+is_sublayer(x, ex) = startswith(String(ex), string(x, "_"))
+
+
+genline(name, arg::Symbol, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), arg))
+genline(name, args::Expr, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), args.args...))
+
+macro topology(pattern)
+    @show pattern
+    # for i in ins.args
+    #     is_sublayer(m, i) && @show i
+    # end
+    !islegal(pattern) && error("topo pattern illegal")
+
+    m = gensym(:model)
+    fname = gensym(:topo_func)
+
+    code = to_code(pattern)
+
+    if isa(code.in, Symbol)
+        fname = Expr(:call, fname, m, code.in)
+    else
+        fname = Expr(:call, fname, m, code.in.args...)
+    end
+
+    fbody = Any[:block]
+    for (i, l) ∈ enumerate(code.lines)
+        push!(fbody, genline(l..., m, i))
+    end
+
+    push!(fbody, code.out)
+    Expr(:function, fname, Expr(fbody...))
+end
+
+
+const legalsym = (:(=>),:→,:(:))
+
+islegal(ex) = false
+islegal(ex::Symbol) = true
+islegal(ex::Int) = true
+islegal(ex::Expr) = (@show ex; istuple(ex) ?
+    all(x->x isa Symbol, ex.args) :
+    iscolon(ex) ?
+    length(ex.args) == 3 &&
+    (ex.args[2] isa Symbol || istuple(ex.args[2])) &&
+    (ex.args[3] isa Symbol || istuple(ex.args[3])) :
+    ex.head == :call && ex.args[1] ∈ legalsym &&
+    length(ex.args) == 3 && islegal(ex.args[2]) && islegal(ex.args[3])
+)
+
+struct NNTopo{F}
+    fs::String
+    f::F
+end
+
+NNTopo(s::String) = NNTopo(s, tofunc(s))
+(nt::NNTopo)(xs...) = nt.f(xs...)
+
+
+macro nntopo_str(str)
+    NNTopo(str)
+end
+
+
+
+function tofunc(sf::String)
+    pattern = Meta.parse(sf)
+    !islegal(pattern) && error("topo pattern illegal")
+
+    m = gensym(:model)
+    fname = gensym(:topo_func)
+
+    code = to_code(pattern)
+
+    if isa(code.in, Symbol)
+        fname = Expr(:call, fname, m, code.in)
+    else
+        fname = Expr(:call, fname, m, code.in.args...)
+    end
+
+    fbody = Any[:block]
+    for (i, l) ∈ enumerate(code.lines)
+        push!(fbody, genline(l..., m, i))
+    end
+
+    push!(fbody, code.out)
+    @show func = Expr(:function, fname, Expr(fbody...))
+
+    eval(func)
+end
+
 
 struct Code
     in
@@ -126,10 +139,12 @@ function add(left, right)
     Code(in, out)
 end
 
+iscolon(ex::Expr) = ex.head == :call && ex.args[1] == :(:)
+iscolon(x) = false
+istuple(ex::Expr) = ex.head == :tuple
+istuple(ex) = false
 
-
-
-isleaf(ex::Expr) = ex.head == :tuple || ex.head == Symbol("'")
+isleaf(ex::Expr) = istuple(ex) || iscolon(ex)
 isleaf(ex::Symbol) = true
 isleaf(ex::Int) = true
 
@@ -141,7 +156,6 @@ function duplicate(code::Code, n::Int)
     in = code.in
     out = code.out
     n <= 0 && error("n should > 0")
-    typeof(in) != typeof(out) && error("input number inconsistent")
 
     tp_cls = [(first(code.lines)[1], out), code.lines[2:end]...]
     tp_cls = [tp_cls for i = 1:(n-1)]
@@ -156,22 +170,25 @@ function duplicate(c, n::Int)
     Code(in, out, lines)
 end
 
+getleft(ex::Expr) = ex.args[2]
+getright(ex::Expr) = ex.args[3]
 
-function to_code(node)
-    if !isleaf(node.args[2])
-        pre_code = to_code(node.args[2])
+function _to_code(node)
+    @show node
+    if !isleaf(getleft(node))
+        pre_code = _to_code(getleft(node))
     else
-        pre_code = node.args[2]
+        pre_code = getleft(node)
     end
 
-    rL = leftmost(node.args[3]) #Symbol(or tuple) or Int
-    if isa(rL, Int)
-        if isa(node.args[3], Int)
+    rL = leftmost(getright(node)) #Symbol(or tuple) or Int
+    if rL isa Int
+        if getright(node) isa Int
             node.args[3] = out(pre_code)
         else
-            leftmostnode(node.args[3]).args[2] = out(pre_code)
+            leftmostnode(getright(node)).args[2] = out(pre_code)
         end
-        if rL == 1
+        if rL == 1 #don't need duplicate
             code = pre_code
         else
             code = duplicate(pre_code, rL)
@@ -180,10 +197,29 @@ function to_code(node)
         code = add(pre_code, rL)
     end
 
-    if !isleaf(node.args[3])
-        next_code = to_code(node.args[3])
+    if !isleaf(getright(node))
+        next_code = _to_code(getright(node))
         code = add(code, next_code)
     end
 
     code
+end
+
+getin(ex::Expr) = iscolon(ex) ? getleft(ex) : ex
+getin(x::Symbol) = x
+getout(ex::Expr) = iscolon(ex) ? getright(ex) : ex
+getout(x::Symbol) = x
+
+function _postcode(code::Code)
+    in = getin(code.in)
+    out = getin(code.out)
+    lines = map(code.lines) do (vab, farg)
+        (getin(vab), getout(farg))
+    end
+    Code(in, out, lines)
+end
+
+function to_code(ex::Expr)
+    code = _to_code(ex)
+    _postcode(code)
 end
