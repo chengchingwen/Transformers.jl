@@ -42,6 +42,16 @@ function (t::Transformer)(x, mask=nothing)
     n2
 end
 
+function Base.show(io::IO, t::Transformer)
+    hs = div(size(t.mh.iqproj.W)[1], t.mh.head)
+    h, ps = size(t.pw.dout.W)
+
+    print(io, "Transformer(")
+    print(io, "head=$(t.mh.head), ")
+    print(io, "head_size=$(hs), ")
+    print(io, "pwffn_size=$(ps), ")
+    print(io, "size=$(h))")
+end
 
 struct TransformerDecoder
     mhm::MultiheadAttention
@@ -71,4 +81,15 @@ function (td::TransformerDecoder)(x, m, mask=nothing)
     p = td.pw(n2)
     n3 = td.LN3(p+n2) # residual
     n3
+end
+
+function Base.show(io::IO, t::TransformerDecoder)
+    hs = div(size(t.mh.iqproj.W)[1], t.mh.head)
+    h, ps = size(t.pw.dout.W)
+
+    print(io, "TransformerDecoder(")
+    print(io, "head=$(t.mhm.head), ")
+    print(io, "head_size=$(hs), ")
+    print(io, "pwffn_size=$(ps), ")
+    print(io, "size=$(h))")
 end

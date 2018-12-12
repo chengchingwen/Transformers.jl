@@ -27,3 +27,5 @@ function (pe::PositionEmbedding)(x)
     len = size(x)[2]
     selectdim(pe.embedding, 2, 1:len)
 end
+
+Base.show(io::IO, pe::PositionEmbedding) = print(io, "PositionEmbedding($(size(pe.embedding)[1]))")

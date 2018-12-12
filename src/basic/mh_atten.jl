@@ -24,6 +24,19 @@ MultiheadAttention(head::Int,
                                                                     Dense(is, hs*head),
                                                                     Dense(hs*head, os))
 
+
+function Base.show(io::IO, mh::MultiheadAttention)
+    hs = div(size(mh.iqproj.W)[1], mh.head)
+    is = size(mh.iqproj.W)[end]
+    os = size(mh.oproj.W)[1]
+
+    print(io, "MultiheadAttention(")
+    print(io, "head=$(mh.head), ")
+    print(io, "head_size=$(hs), ")
+    print(io, "$(is)=>$(os))")
+end
+
+
 function (mh::MultiheadAttention)(query::AbstractArray{T, 3},
                                   key::AbstractArray{T, 3},
                                   value::AbstractArray{T, 3};
