@@ -6,7 +6,9 @@ using LinearAlgebra: LowerTriangular
 struct MultiheadAttention
     head::Int
     future::Bool
-    iproj::Dense
+    iqproj::Dense
+    ikproj::Dense
+    ivproj::Dense
     oproj::Dense
 end
 
@@ -15,11 +17,12 @@ end
 MultiheadAttention(head::Int,
                    is::Int,
                    hs::Int,
-                   os::Int; future::Bool=true) = (hs%head !=0 && error("hidden size can not be divide by head");
-                                                 MultiheadAttention(head,
+                   os::Int; future::Bool=true) = MultiheadAttention(head,
                                                                     future,
-                                                                    Dense(3is, 3hs*head),
-                                                                    Dense(hs*head, os)))
+                                                                    Dense(is, hs*head),
+                                                                    Dense(is, hs*head),
+                                                                    Dense(is, hs*head),
+                                                                    Dense(hs*head, os))
 
 function (mh::MultiheadAttention)(query::AbstractArray{T, 3},
                                   key::AbstractArray{T, 3},
@@ -48,11 +51,13 @@ function (mh::MultiheadAttention)(query::AbstractArray{T, 2},
     # size(query) == (dims, seq_len)
     # dim = size(query)[1]
 
-    ip = cat(query, key, value; dims=1)
-    ipj = mh.iproj(ip)
+    # q_seq_len can != k_seq_len
+    #ip = cat(query, key, value; dims=1)
+    #ipj = mh.iproj(ip)
 
-    h = div(size(ipj)[1], 3) #h == hs * head
-    hs = div(h, mh.head)
+    # ipq = ipj[1:h, :] # size(ipq) == (h, seq_len)
+    # ipk = ipj[h+1:2h, :]
+    # ipv = ipj[2h+1:3h, :]
 
     # selectdim/view break on gpu
     # ipq = selectdim(ipj, 1, 1:h) # size(ipq) == (h, seq_len)
@@ -63,9 +68,12 @@ function (mh::MultiheadAttention)(query::AbstractArray{T, 2},
     # hk = [Tracker.collect(selectdim(ipk, 1, (i-1)*hs+1:i*hs)) for i = 1:mh.head]
     # hv = [Tracker.collect(selectdim(ipv, 1, (i-1)*hs+1:i*hs)) for i = 1:mh.head]
 
-    ipq = ipj[1:h, :] # size(ipq) == (h, seq_len)
-    ipk = ipj[h+1:2h, :]
-    ipv = ipj[2h+1:3h, :]
+    ipq = mh.iqproj(query)
+    ipk = mh.ikproj(key)
+    ipv = mh.ivproj(value)
+
+    h = size(ipq)[1] #h == hs * head
+    hs = div(h, mh.head)
 
     hq = [ipq[(i-1)*hs+1:i*hs, :] for i = 1:mh.head] # head * size(hq[1]) == head * (hs, seq_len)
     hk = [ipk[(i-1)*hs+1:i*hs, :] for i = 1:mh.head]
