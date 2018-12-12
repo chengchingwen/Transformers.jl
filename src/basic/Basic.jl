@@ -6,6 +6,9 @@ export device, use_gpu
 export PositionEmbedding
 export Transformer, TransformerDecoder
 
+export NNTopo, @nntopo_str
+export Stack, show_stackfunc, stack
+
 device(x) = cpu(x)
 
 function use_gpu(use::Bool)
@@ -20,7 +23,7 @@ end
 include("./position_embed.jl")
 include("./mh_atten.jl")
 include("./transformer.jl")
-
-
+include("./topology.jl")
+include("./stack.jl")
 
 end
