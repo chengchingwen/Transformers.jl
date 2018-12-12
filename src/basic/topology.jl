@@ -1,61 +1,11 @@
 #=
+examples
 x => b => c  ==> b = m[1](x) ; c = m[2](b)
 x => 3 ==> x => a => a => a ==> x = m[1](a); a = m[1](a); a = m[1](a)
 (x, m) => a => b => c ==> a = m[1](x , m); b = m[2](b); c = m[3](b)
 ((x, m) => x) => 3 ==> (x = m[1](x, m)); (x = m[2](x, m)); (x = m[3](x, m))
-
-
+(((x, m) => x:(x, m)) => 3) ==> (x = m[1](x,m)); (x = m[2](x,m)) ;(x = m[3](x,m))
 =#
-
-
-is_sublayer(x, ex) = startswith(String(ex), string(x, "_"))
-
-
-genline(name, arg::Symbol, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), arg))
-genline(name, args::Expr, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), args.args...))
-
-macro topology(pattern)
-    @show pattern
-    # for i in ins.args
-    #     is_sublayer(m, i) && @show i
-    # end
-    !islegal(pattern) && error("topo pattern illegal")
-
-    m = gensym(:model)
-    fname = gensym(:topo_func)
-
-    code = to_code(pattern)
-
-    if isa(code.in, Symbol)
-        fname = Expr(:call, fname, m, code.in)
-    else
-        fname = Expr(:call, fname, m, code.in.args...)
-    end
-
-    fbody = Any[:block]
-    for (i, l) ∈ enumerate(code.lines)
-        push!(fbody, genline(l..., m, i))
-    end
-
-    push!(fbody, code.out)
-    Expr(:function, fname, Expr(fbody...))
-end
-
-
-const legalsym = (:(=>),:→,:(:))
-
-islegal(ex) = false
-islegal(ex::Symbol) = true
-islegal(ex::Int) = true
-islegal(ex::Expr) = (@show ex; istuple(ex) ?
-    all(x->x isa Symbol, ex.args) :
-    iscolon(ex) ?
-    length(ex.args) == 3 &&
-    (ex.args[2] isa Symbol || istuple(ex.args[2])) &&
-    (ex.args[3] isa Symbol || istuple(ex.args[3])) :
-    ex.head == :call && ex.args[1] ∈ legalsym &&
-    length(ex.args) == 3 && islegal(ex.args[2]) && islegal(ex.args[3])
-)
 
 struct NNTopo{F}
     fs::String
@@ -65,12 +15,9 @@ end
 NNTopo(s::String) = NNTopo(s, tofunc(s))
 (nt::NNTopo)(xs...) = nt.f(xs...)
 
-
 macro nntopo_str(str)
     NNTopo(str)
 end
-
-
 
 function tofunc(sf::String)
     pattern = Meta.parse(sf)
@@ -81,10 +28,10 @@ function tofunc(sf::String)
 
     code = to_code(pattern)
 
-    if isa(code.in, Symbol)
-        fname = Expr(:call, fname, m, code.in)
-    else
+    if istuple(code.in)
         fname = Expr(:call, fname, m, code.in.args...)
+    else
+        fname = Expr(:call, fname, m, code.in)
     end
 
     fbody = Any[:block]
@@ -93,11 +40,51 @@ function tofunc(sf::String)
     end
 
     push!(fbody, code.out)
-    @show func = Expr(:function, fname, Expr(fbody...))
+    func = Expr(:function, fname, Expr(fbody...))
 
     eval(func)
 end
 
+function Base.show(io::IO, nt::NNTopo)
+    println(io, "NNTopo{\"$(nt.fs)\"}")
+    print_topo(io, nt)
+    io
+end
+
+print_topo(nt::NNTopo; models=nothing) = print_topo(stdout, nt; models=models)
+function print_topo(io::IO, nt::NNTopo; models=nothing)
+    code = to_code(Meta.parse(nt.fs))
+    farg = istuple(code.in) ? join(code.in.args, ", ") : string(code.in)
+    println(io, "topo_func(model, $farg)")
+    for (i, l) ∈ enumerate(code.lines)
+        name = string(l[1])
+        args = istuple(l[2]) ? string(l[2]) : "($(l[2]))"
+        model = models === nothing ? "model[$i]" : string(models[i])
+        println(io, "\t$name = $model$args")
+    end
+    println(io, "\t$(code.out)")
+    println("end")
+end
+
+
+const legalsym = (:(=>),:→,:(:))
+
+islegal(ex) = false
+islegal(ex::Symbol) = true
+islegal(ex::Int) = true
+islegal(ex::Expr) = istuple(ex) ?
+    all(x->x isa Symbol, ex.args) :
+    iscolon(ex) ?
+    length(ex.args) == 3 &&
+    (ex.args[2] isa Symbol || istuple(ex.args[2])) &&
+    (ex.args[3] isa Symbol || istuple(ex.args[3])) :
+    ex.head == :call && ex.args[1] ∈ legalsym &&
+    length(ex.args) == 3 && islegal(ex.args[2]) && islegal(ex.args[3])
+
+
+
+genline(name, arg::Symbol, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), arg))
+genline(name, args::Expr, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), args.args...))
 
 struct Code
     in
@@ -174,7 +161,6 @@ getleft(ex::Expr) = ex.args[2]
 getright(ex::Expr) = ex.args[3]
 
 function _to_code(node)
-    @show node
     if !isleaf(getleft(node))
         pre_code = _to_code(getleft(node))
     else
@@ -223,3 +209,34 @@ function to_code(ex::Expr)
     code = _to_code(ex)
     _postcode(code)
 end
+
+
+# is_sublayer(x, ex) = startswith(String(ex), string(x, "_"))
+# macro topology(pattern)
+#     @show pattern
+#     # for i in ins.args
+#     #     is_sublayer(m, i) && @show i
+#     # end
+#     !islegal(pattern) && error("topo pattern illegal")
+
+#     m = gensym(:model)
+#     fname = gensym(:topo_func)
+
+#     code = to_code(pattern)
+
+#     if isa(code.in, Symbol)
+#         fname = Expr(:call, fname, m, code.in)
+#     else
+#         fname = Expr(:call, fname, m, code.in.args...)
+#     end
+
+#     fbody = Any[:block]
+#     for (i, l) ∈ enumerate(code.lines)
+#         push!(fbody, genline(l..., m, i))
+#     end
+
+#     push!(fbody, code.out)
+#     Expr(:function, fname, Expr(fbody...))
+# end
+
+
