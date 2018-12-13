@@ -6,5 +6,7 @@ version = "0.1.0"
 [deps]
 BytePairEncoding = "a4280ba5-8788-555a-8ca8-4a8c3d966a71"
 CuArrays = "3a865a2d-5b23-5a0f-bc46-62713ec82fae"
+DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+InternedStrings = "7d512f48-7fb1-5a58-b986-67e6dc259f01"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

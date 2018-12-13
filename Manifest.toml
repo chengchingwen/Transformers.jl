@@ -97,6 +97,12 @@ git-tree-sha1 = "50814c8f6de015f08a4fe2c01c87fb74f42c8a39"
 uuid = "3a865a2d-5b23-5a0f-bc46-62713ec82fae"
 version = "0.8.1"
 
+[[DataDeps]]
+deps = ["DelimitedFiles", "HTTP", "Reexport", "SHA", "Test"]
+git-tree-sha1 = "446eb89694d774bc55adcfec0ed0f85efda8857f"
+uuid = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
+version = "0.6.2"
+
 [[DataStructures]]
 deps = ["InteractiveUtils", "OrderedCollections", "Random", "Serialization", "Test"]
 git-tree-sha1 = "8fc6e166e24fda04b2b648d4260cdad241788c54"
@@ -163,6 +169,18 @@ git-tree-sha1 = "ff1d9b711533c00bb3eb800546e764e2035e6ed8"
 uuid = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
 version = "0.5.0"
 
+[[HTTP]]
+deps = ["Base64", "Dates", "Distributed", "IniFile", "MbedTLS", "Sockets", "Test"]
+git-tree-sha1 = "b881f69331e85642be315c63d05ed65d6fc8a05b"
+uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+version = "0.7.1"
+
+[[IniFile]]
+deps = ["Test"]
+git-tree-sha1 = "098e4d2c533924c921f9f9847274f2ad89e018b8"
+uuid = "83e8ac13-25f8-5344-8a64-a9f2b223428f"
+version = "0.5.0"
+
 [[InteractiveUtils]]
 deps = ["LinearAlgebra", "Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
@@ -213,6 +231,12 @@ version = "0.4.4"
 [[Markdown]]
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
+
+[[MbedTLS]]
+deps = ["BinaryProvider", "Dates", "Libdl", "Random", "Sockets", "Test"]
+git-tree-sha1 = "c93a87da4081a3de781f34e0540175795a2ce83d"
+uuid = "739be429-bea8-5141-9913-cc70e7f3736d"
+version = "0.6.6"
 
 [[Media]]
 deps = ["MacroTools", "Test"]
