@@ -72,14 +72,19 @@ const legalsym = (:(=>),:→,:(:))
 islegal(ex) = false
 islegal(ex::Symbol) = true
 islegal(ex::Int) = true
-islegal(ex::Expr) = istuple(ex) ?
-    all(x->x isa Symbol, ex.args) :
-    iscolon(ex) ?
-    length(ex.args) == 3 &&
-    (ex.args[2] isa Symbol || istuple(ex.args[2])) &&
-    (ex.args[3] isa Symbol || istuple(ex.args[3])) :
-    ex.head == :call && ex.args[1] ∈ legalsym &&
-    length(ex.args) == 3 && islegal(ex.args[2]) && islegal(ex.args[3])
+function islegal(ex::Expr)
+    if istuple(ex)
+        all(x->x isa Symbol, ex.args)
+    elseif iscolon(ex)
+        length(ex.args) == 3 && isdup(ex) ?
+            getsym(ex) isa Symbol || istuple(getsym(ex)) :
+            (ex.args[2] isa Symbol || istuple(ex.args[2])) &&
+            (ex.args[3] isa Symbol || istuple(ex.args[3]))
+    else
+        ex.head == :call && ex.args[1] ∈ legalsym &&
+            length(ex.args) == 3 && islegal(ex.args[2]) && islegal(ex.args[3])
+    end
+end
 
 
 
@@ -157,6 +162,15 @@ function duplicate(c, n::Int)
     Code(in, out, lines)
 end
 
+isdup(ex) = false
+isdup(ex::Int) = true
+isdup(ex::Expr) = iscolon(ex) && any(x-> x isa Int, ex.args) &&
+    any(x -> istuple(x) || x isa Symbol, ex.args)
+
+getint(ex::Int) = ex
+getint(ex::Expr) = getleft(ex) isa Int ? getleft(ex) : getright(ex)
+getsym(ex::Expr) = getleft(ex) isa Int ? getright(ex) : getleft(ex)
+
 getleft(ex::Expr) = ex.args[2]
 getright(ex::Expr) = ex.args[3]
 
@@ -168,16 +182,17 @@ function _to_code(node)
     end
 
     rL = leftmost(getright(node)) #Symbol(or tuple) or Int
-    if rL isa Int
-        if getright(node) isa Int
-            node.args[3] = out(pre_code)
+    if isdup(rL)#rL isa Int
+        rightnode = getright(node)
+        if isdup(rightnode)#getright(node) isa Int
+            node.args[3] = rL isa Int ? out(pre_code) : getsym(rL)
         else
-            leftmostnode(getright(node)).args[2] = out(pre_code)
+            leftmostnode(rightnode).args[2] = rL isa Int ? out(pre_code) : getsym(rL)
         end
-        if rL == 1 #don't need duplicate
+        if getint(rL) == 1 #don't need duplicate
             code = pre_code
         else
-            code = duplicate(pre_code, rL)
+            code = duplicate(pre_code, getint(rL))
         end
     else
         code = add(pre_code, rL)
