@@ -1,5 +1,8 @@
 module Datasets
 
+export Dataset, Train, Dev, Test
+export dataset, datafile, get_batch, get_vocab
+
 "drive.google.com"
 const dgdst = joinpath(dirname(@__FILE__), "download_gd_to.sh")
 
