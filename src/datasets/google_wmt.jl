@@ -1,4 +1,5 @@
-register(DataDep(
+
+googlewmt_init() = register(DataDep(
     "Google-WMT en-de",
     """
     \"\"\"shows in wmt14 of torchtext
