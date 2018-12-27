@@ -6,7 +6,7 @@ export device, use_gpu
 export PositionEmbedding
 export Transformer, TransformerDecoder
 
-export NNTopo, @nntopo_str
+export NNTopo, @nntopo_str, @nntopo
 export Stack, show_stackfunc, stack
 
 device(x) = cpu(x)

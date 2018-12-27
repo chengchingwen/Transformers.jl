@@ -19,8 +19,12 @@ macro nntopo_str(str)
     NNTopo(str)
 end
 
-function tofunc(sf::String)
-    pattern = Meta.parse(sf)
+macro nntopo(expr)
+    NNTopo(string(expr), tofunc(expr))
+end
+
+tofunc(sf::String) = tofunc(Meta.parse(sf))
+function tofunc(pattern)
     !islegal(pattern) && error("topo pattern illegal")
 
     m = gensym(:model)
