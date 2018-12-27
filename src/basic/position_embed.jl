@@ -1,6 +1,6 @@
 using Flux: @treelike
 
-struct PositionEmbedding
+mutable struct PositionEmbedding
     embedding
 end
 
@@ -24,7 +24,18 @@ end
 
 
 function (pe::PositionEmbedding)(x)
-    len = size(x)[2]
+    len = size(x, 2)
+
+    if len > size(pe.embedding, 2)
+        over = Matrix{Float64}(undef, size, len)
+        selectdim(over, 2, 1:size(pe.embedding, 2)) .= pe.embedding
+
+        for l = max_len+1:len
+            map!(i->PE(size(pe.embedding, 1), l, i), selectdim(over, 2, l), 1:size(pe.embedding, 1))
+        end
+
+        pe.embedding = device(over)
+    end
     selectdim(pe.embedding, 2, 1:len)
 end
 
