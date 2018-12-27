@@ -1,0 +1,13 @@
+* Transformers.jl
+Julia implementation of NLP models, that based on google [[https://arxiv.org/abs/1706.03762][transformer]], with [[https://github.com/FluxML/Flux.jl][Flux.jl]].
+
+* implemented model
++ [[https://arxiv.org/abs/1706.03762][Attention is all you need]]
+
+* Roadmap
++ optimize performance
++ text related util functions
++ better dataset API
++ more datasets
++ openai gpt model
++ google bert model
