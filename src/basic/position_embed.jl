@@ -7,7 +7,7 @@ end
 @treelike PositionEmbedding
 
 function PE(size, pos, i::Int)
-    if div(i, 2) == 0
+    if rem(i, 2) == 0
         sin(pos/1e4^(i/size))
     else
         cos(pos/1e4^((i-1)/size))
