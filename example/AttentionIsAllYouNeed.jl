@@ -8,7 +8,7 @@ using Flux.Tracker: back!
 
 using Transformers
 using Transformers.Basic: PositionEmbedding, NNTopo
-using Transformers.Datasets: WMT
+using Transformers.Datasets: WMT, Train
 
 using ArgParse
 
@@ -37,9 +37,9 @@ if args["task"] == "copy"
     const V = 10
     const Smooth = 1e-6
 
-    startsym = 11#"<s>"
-    endsym = 12#"</s>"
-    unksym = 0#"</unk>"
+    startsym = 11
+    endsym = 12
+    unksym = 0
     labels = [unksym, startsym, endsym, collect(1:V)...]
     embedding = device(param(randn(512, length(labels))))
 
