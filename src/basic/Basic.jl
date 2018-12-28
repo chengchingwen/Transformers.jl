@@ -3,7 +3,7 @@ module Basic
 using Flux
 
 export device, use_gpu
-export PositionEmbedding
+export PositionEmbedding, Embed, getmask
 export Transformer, TransformerDecoder
 
 export NNTopo, @nntopo_str, @nntopo
@@ -25,5 +25,6 @@ include("./mh_atten.jl")
 include("./transformer.jl")
 include("./topology.jl")
 include("./stack.jl")
+include("./embed.jl")
 
 end
