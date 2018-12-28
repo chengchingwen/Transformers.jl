@@ -36,26 +36,47 @@ function Base.show(io::IO, mh::MultiheadAttention)
     print(io, "$(is)=>$(os))")
 end
 
-
 function (mh::MultiheadAttention)(query::AbstractArray{T, 3},
                                   key::AbstractArray{T, 3},
                                   value::AbstractArray{T, 3};
                                   mask=nothing) where T
+    qs = size(query)
+    ks = size(key)
+    vs = size(value)
 
-    bnum = size(query)[end]
-    bqs = [query[:, :, b] for b = 1:bnum]
-    bks = [key[:, :, b] for b = 1:bnum]
-    bvs = [value[:, :, b] for b = 1:bnum]
+    #size(ipq) == (h, q_seq_len * batch)
+    ipq = mh.iqproj(reshape(query, qs[1], :))
+    ipk = mh.ikproj(reshape(key, ks[1], :))
+    ipv = mh.ivproj(reshape(value, vs[1], :))
 
-    if mask !== nothing
-        bms = [value[:, :, b] for b = 1:bnum]
-        atten = cat(map((q,k,v, m)->mh(q, k, v; mask=m), bqs, bks, bvs, bms)...; dims=3)
-    else
-        atten = cat(map((q,k,v)->mh(q, k, v; mask=nothing), bqs, bks, bvs)...; dims=3)
+    h = size(ipq, 1)
+    hs = div(h, mh.head)
+
+    #size(ipq) == (hs, q_seq_len, head, batch)
+    ipq = permutedims(reshape(ipq, :, mh.head, qs[2], qs[3]), [1, 3, 2, 4])
+    ipk = permutedims(reshape(ipk, :, mh.head, ks[2], ks[3]), [1, 3, 2, 4])
+    ipv = permutedims(reshape(ipv, :, mh.head, vs[2], vs[3]), [1, 3, 2, 4])
+
+    #size(ipq) == (hs, q_seq_len, head * batch)
+    ipq = reshape(ipq, size(ipq, 1), qs[2], :)
+    ipk = reshape(ipk, size(ipk, 1), ks[2], :)
+    ipv = reshape(ipv, size(ipv, 1), vs[2], :)
+
+    #wait for batch matmul in Flux
+    atten = map(1:size(ipq, 3)) do i
+        attention(ipq[:, :, i],
+                  ipk[:, :, i],
+                  ipv[:, :, i];
+                  mask= mask === nothing ? mask : mask[:, :, div(i-1, qs[3])+1]
+                  )
     end
-    atten
-end
+    atten = cat(atten...; dims=3) #size(atten) == (hs, q_seq_len, head * batch)
+    atten = permutedims(reshape(atten, hs, qs[2], mh.head, qs[3]), [1, 3, 2, 4]) #size(atten) == (hs, head, ql, b)
+    atten = reshape(atten, h, :) #size(atten) == (h, ql*b)
 
+    out = mh.oproj(atten)
+    reshape(out, :, qs[2], qs[3]) #size(out) == (h, q_seq_len, batch)
+end
 
 function (mh::MultiheadAttention)(query::AbstractArray{T, 2},
                                   key::AbstractArray{T, 2},
@@ -112,7 +133,7 @@ function attention(query::AbstractArray{T, 2},
 
     if mask !== nothing
         @. mask = (1 - mask) * -1e9
-        score += mask
+        score = score + mask
     end
 
     if !future
@@ -120,10 +141,9 @@ function attention(query::AbstractArray{T, 2},
         fmask .-= one(fmask)
         fmask .= -1e9 .* collect(LowerTriangular(fmask))
         fmask = device(fmask)
-        score += fmask
+        score = score + fmask
     end
 
     score = softmax(score)
     value * score #size(return) == (dims, q_seq_len)
 end
-

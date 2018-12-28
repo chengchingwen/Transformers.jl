@@ -1,6 +1,12 @@
 using Flux
 using Flux: @treelike
 
+#extend Flux LayerNorm for 3-dims input
+function (a::LayerNorm)(x::AbstractArray{T, 3}) where T
+    s = size(x)
+    reshape(a(reshape(x, s[1], :)), s)
+end
+
 struct Positionwise
     din::Dense
     dout::Dense
@@ -16,6 +22,11 @@ Positionwise(size::Int, h::Int) = Positionwise(
 function (pw::Positionwise)(x)
     # size(x) == (dims, seq_len)
     pw.dout(pw.din(x))
+end
+
+function (pw::Positionwise)(x::AbstractArray{T, 3}) where T
+    s = size(x)
+    reshape(pw.dout(pw.din(reshape(x, s[1], :))), s)
 end
 
 struct Transformer
