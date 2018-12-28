@@ -12,6 +12,7 @@ struct NNTopo{F}
     f::F
 end
 
+NNTopo(ex::Expr) = NNTopo(string(ex), tofunc(ex))
 NNTopo(s::String) = NNTopo(s, tofunc(s))
 (nt::NNTopo)(xs...) = nt.f(xs...)
 
