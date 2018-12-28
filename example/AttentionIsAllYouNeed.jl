@@ -2,15 +2,16 @@
 Reference: The Annotated Transformer (http://nlp.seas.harvard.edu/2018/04/03/attention.html)
 """
 
+using ArgParse
+
 using Flux
-using Flux: onehotbatch, onecold, onehot, crossentropy
+using Flux: onecold
 using Flux.Tracker: back!
 
 using Transformers
-using Transformers.Basic: PositionEmbedding, NNTopo
+using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot, NNTopo
 using Transformers.Datasets: WMT, Train
 
-using ArgParse
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -32,16 +33,28 @@ args = parse_commandline()
 
 use_gpu(args["gpu"])
 
+
+function batched(xs)
+    sx = length(xs[1])
+    res = [[] for i = 1:sx]
+    for x ∈ xs
+        for (i, xi) ∈ enumerate(x)
+            push!(res[i], xi)
+        end
+    end
+    res
+end
+
 if args["task"] == "copy"
     const N = 2
     const V = 10
     const Smooth = 1e-6
+    const Batch = 32
 
     startsym = 11
     endsym = 12
     unksym = 0
     labels = [unksym, startsym, endsym, collect(1:V)...]
-    embedding = device(param(randn(512, length(labels))))
 
     function gen_data()
         global V
@@ -50,12 +63,14 @@ if args["task"] == "copy"
     end
 
     function train!()
+        global Batch
         println("start training")
         i = 1
-        for i = 1:10000
-            l = loss(gen_data())
+        for i = 1:300
+            data = batched([gen_data() for i = 1:Batch])
+            l = loss(data)
             back!(l)
-            i%500 == 0 && (@show l; opt())
+            i%5 == 0 && (@show l; opt())
         end
     end
 
@@ -63,6 +78,7 @@ if args["task"] == "copy"
 elseif args["task"] == "wmt14"
     const N = 6
     const Smooth = 0.4
+    const Batch = 16
 
     wmt14 = WMT.GoogleWMT()
 
@@ -73,16 +89,17 @@ elseif args["task"] == "wmt14"
     endsym = "</s>"
     unksym = "</unk>"
     labels = [unksym, startsym, endsym, collect(keys(vocab))...]
-    embedding = device(param(randn(512, length(labels))))
 
     function train!()
+        global Batch
         println("start training")
         i = 1
-        while (batch = get_batch(datas)) != []
-            l = loss(batch[1])
+        while (batch = get_batch(datas, Batch)) != []
+            batch = batched(batch)
+            l = loss(batch)
             back!(l)
             i+=1
-            i%64 == 0 && (@show l; opt())
+            i%5 == 0 && (@show l; opt())
         end
     end
 
@@ -91,7 +108,25 @@ else
     error("task not define")
 end
 
-embed(x) = (embedding * x) ./ sqrt(512)
+
+#extend for 3d op
+function (d::Dense)(x::AbstractArray{T, 3}) where T
+    s = size(x)
+    reshape(d(reshape(x, s[1], :)), size(d.W, 1), s[2], s[3])
+end
+
+function logsoftmax3d(x::AbstractArray{T, 3}) where T
+    s = size(x)
+    reshape(logsoftmax(reshape(x, s[1], :)), s)
+end
+
+embed = Embed(512, labels, unksym)
+
+function embedding(x)
+    em, ma = embed(x)
+    #sqrt(512) makes type unstable
+    em ./ convert(typeof(em.data[1]),sqrt(512)), ma
+end
 
 encoder = device(Stack(
     NNTopo("e → pe:(e, pe) → x → $N"),
@@ -105,48 +140,59 @@ decoder = device(Stack(
     PositionEmbedding(512),
     (e, pe) -> (e .+ pe),
     [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
-    Chain(Dense(512, length(labels)), logsoftmax)
+    Chain(Dense(512, length(labels)), logsoftmax3d)
 ))
 
-opt = ADAM(params(embedding, encoder, decoder), 1e-4; β2=0.98)
 
+kl_div(q::AbstractArray{T, 3}, logp::AbstractArray{T, 3}) where T =
+    kl_div(reshape(q, size(q, 1), :), reshape(logp, size(logp, 1), :))
+
+opt = ADAM(params(embed, encoder, decoder), 1e-4; β2=0.98)
 kl_div(q, logp) = sum(q .* (log.(q .+ eps(q[1])) .- logp)) / size(q, 2)
+
+
+kl_div(q::AbstractArray{T, 3},
+       logp::AbstractArray{T, 3},
+       mask) where T =
+           kl_div(reshape(q, size(q, 1), :), reshape(logp, size(logp, 1), :), reshape(mask, 1, :))
+
+function kl_div(q, logp, mask)
+    kld = (q .* (log.(q .+ eps(q[1])) .- logp)) #handle gpu broadcast error
+    sum(kld .* mask) / (size(q, 2) + sum(mask))
+end
 
 loss((x,t)) = loss(x, t)
 function loss(x, t)
     global Smooth
-    ix = [startsym, mkline(x)..., endsym]
-    iy = [startsym, mkline(t)..., endsym]
-    ex = onehotbatch(ix, labels, unksym)
-    et = onehotbatch(iy, labels, unksym)
-    src = embed(ex)
-    trg = embed(et)
+    ix = mkline.(x)
+    iy = mkline.(t)
+    et = onehot(embed, iy)
+
+    src, src_mask = embedding(ix)
+    trg, trg_mask = embedding(iy)
+
+    mask = getmask(src_mask, trg_mask)
 
     enc = encoder(src)
-    dec = decoder(trg, enc, nothing)
+    dec = decoder(trg, enc, mask)
 
     #label smoothing
-    label = device((fill(Smooth, size(et)) .+ et .* (1 - 2*Smooth))[:, 2:end])
+    label = device((fill(Smooth/length(embed.vocab), size(et)) .* (1 .- et) .+ et .* (1 - Smooth))[:, 2:end, :])
 
-    loss = kl_div(label, dec[:, 1:end-1])
+    loss = kl_div(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
 end
 
 function translate(x)
-    ex = onehotbatch([startsym, mkline(x)..., endsym], labels, unksym)
-    et = onehotbatch([startsym], labels, unksym)
-
-    len = size(ex)[end]
-
-    src = embed(ex)
-    trg = embed(et)
-
-
-    enc = encoder(src)
-
+    ix = mkline(x)
     seq = [startsym]
 
+    src, _ = embedding(ix)
+    trg, _ = embedding(seq)
+    enc = encoder(src)
+
+    len = length(ix)
     for i = 1:2len
-        trg = embed(onehotbatch(seq, labels, unksym))
+        trg, _ = embedding(seq)
         dec = decoder(trg, enc, nothing)
         @show ntok = onecold(dec, labels)
         push!(seq, ntok[end])
