@@ -1,5 +1,7 @@
 using Flux: @treelike, onehotbatch
 
+const Container = Union{NTuple{N, Vector{T}}, Vector{Vector{T}}} where N where T
+
 function getmask(ls)
     lens = map(length, ls)
     m = zeros(maximum(lens), length(lens))
@@ -29,13 +31,13 @@ function Embed(size::Int, vocab, unk="</unk>")
 end
 
 (e::Embed)(x) = e.embedding * onehotbatch(x, e.vocab, e.unk), device(fill(1.0, (1, length(x))))
-function (e::Embed)(xs::C) where C <: Union{NTuple{N, Vector{T}}, Vector{Vector{T}}} where N where T
+function (e::Embed)(xs::Container)
     maxlen = maximum(map(length, xs))
     cat([e.embedding * onehotbatch([x; fill(e.unk, max(maxlen - length(x)))], e.vocab, e.unk) for x ∈ xs]...;dims=3), device(getmask(xs))
 end
 
 onehot(e::Embed, x) = onehotbatch(x, e.vocab, e.unk)
-function onehot(e::Embed, xs::C) where C <: Union{NTuple{N, Vector{T}}, Vector{Vector{T}}} where N where T
+function onehot(e::Embed, xs::Container)
     maxlen = maximum(map(length, xs))
     cat([onehotbatch([x; fill(e.unk, max(maxlen - length(x)))], e.vocab, e.unk) for x ∈ xs]...;dims=3)
 end
