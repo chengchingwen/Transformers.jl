@@ -3,7 +3,7 @@ module Basic
 using Flux
 
 export device, use_gpu
-export PositionEmbedding, Embed, getmask
+export PositionEmbedding, Embed, getmask, broadcast_add
 export Transformer, TransformerDecoder
 
 export NNTopo, @nntopo_str, @nntopo

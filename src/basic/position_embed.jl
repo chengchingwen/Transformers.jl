@@ -1,5 +1,12 @@
 using Flux: @treelike
 
+broadcast_add(e, pe) = e .+ pe
+function broadcast_add(e::ThreeDimArray{T}, pe) where T
+    #for Flux gpu issue 530 https://github.com/FluxML/Flux.jl/issues/530
+    s = size(e)
+    reshape(reshape(e, :, s[end]) .+ reshape(pe, :, 1), s)
+end
+
 mutable struct PositionEmbedding
     trainable::Bool
     embedding
