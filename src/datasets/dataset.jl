@@ -29,13 +29,25 @@ function reader(file)
     ch
 end
 
+function batched(xs)
+    s = length(xs)
+    sx = s != 0 ? length(xs[1]) : 0
+    res = [[] for i = 1:sx]
+    for x ∈ xs
+        for (i, xi) ∈ enumerate(x)
+            push!(res[i], xi)
+        end
+    end
+    res
+end
+
 function get_batch(c::Channel, n=1)
     res = Vector()
     for (i, x) ∈ enumerate(c)
         push!(res, x)
         i >= n && break
     end
-    res
+    batched(res)
 end
 
 function get_batch(cs::NTuple{N}{Channel}, n=1) where N
@@ -44,7 +56,7 @@ function get_batch(cs::NTuple{N}{Channel}, n=1) where N
         push!(res, xs)
         i >= n && break
     end
-    res
+    batched(res)
 end
 
 get_vocab(::D, args...; kwargs...) where D <: Dataset = error("No prebuild vocab")
