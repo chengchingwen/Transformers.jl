@@ -1,12 +1,6 @@
 using Flux
 using Flux: @treelike
 
-#extend Flux LayerNorm for 3-dims input
-function (a::LayerNorm)(x::ThreeDimArray{T}) where T
-    s = size(x)
-    reshape(a(reshape(x, s[1], :)), s)
-end
-
 struct Positionwise
     din::Dense
     dout::Dense

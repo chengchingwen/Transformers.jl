@@ -10,7 +10,8 @@ using Flux.Tracker: back!
 
 using Transformers
 using Transformers.Basic: NNTopo
-using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot, logkldivergence
+using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot,
+                          logkldivergence, broadcast_add, logsoftmax3d
 using Transformers.Datasets: WMT, Train, batched
 
 
@@ -96,32 +97,12 @@ else
     error("task not define")
 end
 
-
-#extend for 3d op
-function (d::Dense)(x::AbstractArray{T, 3}) where T
-    s = size(x)
-    reshape(d(reshape(x, s[1], :)), size(d.W, 1), s[2], s[3])
-end
-
-logsoftmax3d(x) = logsoftmax(x)
-function logsoftmax3d(x::AbstractArray{T, 3}) where T
-    s = size(x)
-    reshape(logsoftmax(reshape(x, s[1], :)), s)
-end
-
 embed = Embed(512, labels, unksym)
 
 function embedding(x)
     em, ma = embed(x)
     #sqrt(512) makes type unstable
     em ./ convert(typeof(em.data[1]),sqrt(512)), ma
-end
-
-broadcast_add(e, pe) = e .+ pe
-function broadcast_add(e::AbstractArray{T, 3}, pe) where T
-    #for Flux gpu issue 530 https://github.com/FluxML/Flux.jl/issues/530
-    s = size(e)
-    reshape(reshape(e, :, s[end]) .+ reshape(pe, :, 1), s)
 end
 
 encoder = device(Stack(

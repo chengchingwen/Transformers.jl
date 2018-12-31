@@ -9,7 +9,7 @@ export Transformer, TransformerDecoder
 export NNTopo, @nntopo_str, @nntopo
 export Stack, show_stackfunc, stack
 
-export logkldivergence, logcrossentropy
+export logkldivergence, logcrossentropy, logsoftmax3d
 
 device(x) = cpu(x)
 
@@ -33,5 +33,6 @@ include("./topology.jl")
 include("./stack.jl")
 include("./embed.jl")
 include("./loss.jl")
+include("./extend3d.jl")
 
 end
