@@ -37,7 +37,7 @@ if args["task"] == "copy"
     const N = 2
     const V = 10
     const Smooth = 1e-6
-    const Batch = 16
+    const Batch = 32
 
     startsym = 11
     endsym = 12
@@ -54,11 +54,11 @@ if args["task"] == "copy"
         global Batch
         println("start training")
         i = 1
-        for i = 1:300
+        for i = 1:320*7
             data = batched([gen_data() for i = 1:Batch])
-            @time l = loss(data)
-            @time back!(l)
-            i%8 == 0 && (@show l; @time opt())
+            l = loss(data)
+            back!(l)
+            i%8 == 0 && (@show l; opt())
         end
     end
 
@@ -127,7 +127,6 @@ encoder = device(Stack(
     NNTopo("e → pe:(e, pe) → x → $N"),
     PositionEmbedding(512),
     broadcast_add,
-    # (e, pe) -> (e .+ pe),
     [Transformer(512, 8, 64, 2048) for i = 1:N]...
 ))
 
@@ -135,7 +134,6 @@ decoder = device(Stack(
     NNTopo("(e, m, mask):e → pe:(e, pe) → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c"),
     PositionEmbedding(512),
     broadcast_add,
-    # (e, pe) -> (e .+ pe),
     [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
     Chain(Dense(512, length(labels)), logsoftmax3d)
 ))
@@ -146,7 +144,7 @@ opt = ADAM(params(embed, encoder, decoder), 1e-4; β2=0.98)
 kl_div(q::AbstractArray{T, 3},
        logp::AbstractArray{T, 3},
        mask) where T =
-           kl_div(reshape(q, size(q, 1), :), reshape(logp, size(logp, 1), :), reshape(mask, 1, :))
+           sum(reshape(sum(sum(q .* (log.(q .+ eps(q[1])) .- logp); dims=1) .* mask; dims=2), :) ./ reshape(sum(mask; dims=2), :))
 
 function kl_div(q, logp, mask)
     kld = (q .* (log.(q .+ eps(q[1])) .- logp)) #handle gpu broadcast error
@@ -179,14 +177,13 @@ function translate(x)
     seq = [startsym]
 
     src, _ = embedding(ix)
-    trg, _ = embedding(seq)
     enc = encoder(src)
 
     len = length(ix)
     for i = 1:2len
         trg, _ = embedding(seq)
         dec = decoder(trg, enc, nothing)
-        @show ntok = onecold(dec, labels)
+        ntok = onecold(dec, labels)
         push!(seq, ntok[end])
         ntok[end] == endsym && break
     end
