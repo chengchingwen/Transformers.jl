@@ -2,7 +2,7 @@ using Flux
 using Flux: @treelike
 
 #extend Flux LayerNorm for 3-dims input
-function (a::LayerNorm)(x::AbstractArray{T, 3}) where T
+function (a::LayerNorm)(x::ThreeDimArray{T}) where T
     s = size(x)
     reshape(a(reshape(x, s[1], :)), s)
 end
@@ -24,7 +24,7 @@ function (pw::Positionwise)(x)
     pw.dout(pw.din(x))
 end
 
-function (pw::Positionwise)(x::AbstractArray{T, 3}) where T
+function (pw::Positionwise)(x::ThreeDimArray{T}) where T
     s = size(x)
     reshape(pw.dout(pw.din(reshape(x, s[1], :))), s)
 end

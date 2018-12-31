@@ -1,6 +1,6 @@
 using Flux
 using Flux: @treelike
-using Flux.Tracker
+using Flux.Tracker: data
 using LinearAlgebra: LowerTriangular
 
 struct MultiheadAttention
@@ -36,9 +36,9 @@ function Base.show(io::IO, mh::MultiheadAttention)
     print(io, "$(is)=>$(os))")
 end
 
-function (mh::MultiheadAttention)(query::AbstractArray{T, 3},
-                                  key::AbstractArray{T, 3},
-                                  value::AbstractArray{T, 3};
+function (mh::MultiheadAttention)(query::ThreeDimArray{T},
+                                  key::ThreeDimArray{T},
+                                  value::ThreeDimArray{T};
                                   mask=nothing) where T
     qs = size(query)
     ks = size(key)
@@ -62,12 +62,17 @@ function (mh::MultiheadAttention)(query::AbstractArray{T, 3},
     ipk = reshape(ipk, size(ipk, 1), ks[2], :)
     ipv = reshape(ipv, size(ipv, 1), vs[2], :)
 
+
     #wait for batch matmul in Flux
+    # atten = attention(ipq,ipk,ipv;
+    #                   mask = mask === nothing ? mask : repeat(mask, inner=(1, 1, mh.head)),
+    #                   future=mh.future)
     atten = map(1:size(ipq, 3)) do i
         attention(ipq[:, :, i],
                   ipk[:, :, i],
                   ipv[:, :, i];
-                  mask= mask === nothing ? mask : mask[:, :, div(i-1, qs[3])+1]
+                  mask= mask === nothing ? mask : mask[:, :, div(i-1, mh.head)+1],
+                  future=mh.future
                   )
     end
     atten = cat(atten...; dims=3) #size(atten) == (hs, q_seq_len, head * batch)
@@ -78,9 +83,9 @@ function (mh::MultiheadAttention)(query::AbstractArray{T, 3},
     reshape(out, :, qs[2], qs[3]) #size(out) == (h, q_seq_len, batch)
 end
 
-function (mh::MultiheadAttention)(query::AbstractArray{T, 2},
-                                  key::AbstractArray{T, 2},
-                                  value::AbstractArray{T, 2};
+function (mh::MultiheadAttention)(query::TwoDimArray{T},
+                                  key::TwoDimArray{T},
+                                  value::TwoDimArray{T};
                                   mask=nothing) where T
     # size(query) == (dims, seq_len)
     # dim = size(query)[1]
@@ -121,15 +126,15 @@ function (mh::MultiheadAttention)(query::AbstractArray{T, 2},
     mh.oproj(atten)
 end
 
-function attention(query::AbstractArray{T, 2},
-                   key::AbstractArray{T, 2},
-                   value::AbstractArray{T, 2};
+function attention(query::TwoDimArray{T},
+                   key::TwoDimArray{T},
+                   value::TwoDimArray{T};
                    mask=nothing, future::Bool = false) where T
     # size(query) == (dims, {q,k}_seq_len) == size(key) == size(value)
     # size(score) == (k_seq_len, q_seq_len)
     dk = size(key)[1]
     score = key' * query
-    score = score ./ sqrt(dk)
+    score = score ./ oftype(data(score)[1], sqrt(dk))
 
     if mask !== nothing
         @. mask = (1 - mask) * -1e9
@@ -146,4 +151,33 @@ function attention(query::AbstractArray{T, 2},
 
     score = softmax(score)
     value * score #size(return) == (dims, q_seq_len)
+end
+
+function attention(query::ThreeDimArray{T},
+                   key::ThreeDimArray{T},
+                   value::ThreeDimArray{T};
+                   mask=nothing, future::Bool = false) where T
+    #size(query) == (dims, {q,k}_seq_len, batch) == size(key) == size(value)
+    #size(score) == (k_seq_len, q_seq_len, batch)
+    dk = size(key, 1)
+    score = batchedmul(permutedims(key, [2,1,3]), query)
+    score = score ./ oftype(data(score)[1], sqrt(dk))
+
+    s = size(score)
+
+    if mask !== nothing
+        @. mask = (1 - mask) * -1e9
+        score = score .+ mask
+    end
+
+    if !future
+        fmask = fill(oftype(data(score)[1], 1), s[1:end-1])
+        fmask .-= one(fmask)
+        fmask .= -1e9 .* collect(LowerTriangular(fmask))
+        fmask = device(fmask)
+        score = score .+ fmask
+    end
+
+    score = reshape(softmax(reshape(score, s[1], :)) , s)
+    batchedmul(value, score) #size(return) == (dims, q_seq_len, batch)
 end
