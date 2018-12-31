@@ -23,7 +23,7 @@ end
 const ThreeDimArray{T} = AbstractArray{T, 3}
 const TwoDimArray{T} = AbstractArray{T, 2}
 
-#include("./batchedmul.jl")
+include("./batchedmul.jl")
 include("./position_embed.jl")
 include("./mh_atten.jl")
 include("./transformer.jl")

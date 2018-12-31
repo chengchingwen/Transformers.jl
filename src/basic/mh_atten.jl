@@ -64,18 +64,18 @@ function (mh::MultiheadAttention)(query::ThreeDimArray{T},
 
 
     #wait for batch matmul in Flux
-    # atten = attention(ipq,ipk,ipv;
-    #                   mask = mask === nothing ? mask : repeat(mask, inner=(1, 1, mh.head)),
-    #                   future=mh.future)
-    atten = map(1:size(ipq, 3)) do i
-        attention(ipq[:, :, i],
-                  ipk[:, :, i],
-                  ipv[:, :, i];
-                  mask= mask === nothing ? mask : mask[:, :, div(i-1, mh.head)+1],
-                  future=mh.future
-                  )
-    end
-    atten = cat(atten...; dims=3) #size(atten) == (hs, q_seq_len, head * batch)
+    atten = attention(ipq,ipk,ipv;
+                      mask = mask === nothing ? mask : repeat(mask, inner=(1, 1, mh.head)),
+                      future=mh.future)
+    # atten = map(1:size(ipq, 3)) do i
+    #     attention(ipq[:, :, i],
+    #               ipk[:, :, i],
+    #               ipv[:, :, i];
+    #               mask= mask === nothing ? mask : mask[:, :, div(i-1, mh.head)+1],
+    #               future=mh.future
+    #               )
+    # end
+    # atten = cat(atten...; dims=3) #size(atten) == (hs, q_seq_len, head * batch)
     atten = permutedims(reshape(atten, hs, qs[2], mh.head, qs[3]), [1, 3, 2, 4]) #size(atten) == (hs, head, ql, b)
     atten = reshape(atten, h, :) #size(atten) == (h, ql*b)
 
