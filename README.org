@@ -6,6 +6,7 @@ Julia implementation of NLP models, that based on google [[https://arxiv.org/abs
 
 * Roadmap
 + optimize performance
+  *notice*: currently GPU version is way slower than CPU version
 + text related util functions
 + better dataset API
 + more datasets
