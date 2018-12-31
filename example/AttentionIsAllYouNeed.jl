@@ -10,7 +10,7 @@ using Flux.Tracker: back!
 
 using Transformers
 using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot, NNTopo
-using Transformers.Datasets: WMT, Train
+using Transformers.Datasets: WMT, Train, batched
 
 
 function parse_commandline()
@@ -33,23 +33,11 @@ args = parse_commandline()
 
 use_gpu(args["gpu"])
 
-
-function batched(xs)
-    sx = length(xs[1])
-    res = [[] for i = 1:sx]
-    for x ∈ xs
-        for (i, xi) ∈ enumerate(x)
-            push!(res[i], xi)
-        end
-    end
-    res
-end
-
 if args["task"] == "copy"
     const N = 2
     const V = 10
     const Smooth = 1e-6
-    const Batch = 32
+    const Batch = 16
 
     startsym = 11
     endsym = 12
@@ -68,9 +56,9 @@ if args["task"] == "copy"
         i = 1
         for i = 1:300
             data = batched([gen_data() for i = 1:Batch])
-            l = loss(data)
-            back!(l)
-            i%5 == 0 && (@show l; opt())
+            @time l = loss(data)
+            @time back!(l)
+            i%8 == 0 && (@show l; @time opt())
         end
     end
 
@@ -95,11 +83,10 @@ elseif args["task"] == "wmt14"
         println("start training")
         i = 1
         while (batch = get_batch(datas, Batch)) != []
-            batch = batched(batch)
-            l = loss(batch)
-            back!(l)
+            @time l = loss(batch)
+            @time back!(l)
             i+=1
-            i%5 == 0 && (@show l; opt())
+            i%5 == 0 && (@show l; @time opt())
         end
     end
 
@@ -115,6 +102,7 @@ function (d::Dense)(x::AbstractArray{T, 3}) where T
     reshape(d(reshape(x, s[1], :)), size(d.W, 1), s[2], s[3])
 end
 
+logsoftmax3d(x) = logsoftmax(x)
 function logsoftmax3d(x::AbstractArray{T, 3}) where T
     s = size(x)
     reshape(logsoftmax(reshape(x, s[1], :)), s)
@@ -128,28 +116,32 @@ function embedding(x)
     em ./ convert(typeof(em.data[1]),sqrt(512)), ma
 end
 
+broadcast_add(e, pe) = e .+ pe
+function broadcast_add(e::AbstractArray{T, 3}, pe) where T
+    #for Flux gpu issue 530 https://github.com/FluxML/Flux.jl/issues/530
+    s = size(e)
+    reshape(reshape(e, :, s[end]) .+ reshape(pe, :, 1), s)
+end
+
 encoder = device(Stack(
     NNTopo("e → pe:(e, pe) → x → $N"),
     PositionEmbedding(512),
-    (e, pe) -> (e .+ pe),
+    broadcast_add,
+    # (e, pe) -> (e .+ pe),
     [Transformer(512, 8, 64, 2048) for i = 1:N]...
 ))
 
 decoder = device(Stack(
     NNTopo("(e, m, mask):e → pe:(e, pe) → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c"),
     PositionEmbedding(512),
-    (e, pe) -> (e .+ pe),
+    broadcast_add,
+    # (e, pe) -> (e .+ pe),
     [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
     Chain(Dense(512, length(labels)), logsoftmax3d)
 ))
 
 
-kl_div(q::AbstractArray{T, 3}, logp::AbstractArray{T, 3}) where T =
-    kl_div(reshape(q, size(q, 1), :), reshape(logp, size(logp, 1), :))
-
 opt = ADAM(params(embed, encoder, decoder), 1e-4; β2=0.98)
-kl_div(q, logp) = sum(q .* (log.(q .+ eps(q[1])) .- logp)) / size(q, 2)
-
 
 kl_div(q::AbstractArray{T, 3},
        logp::AbstractArray{T, 3},
@@ -158,7 +150,7 @@ kl_div(q::AbstractArray{T, 3},
 
 function kl_div(q, logp, mask)
     kld = (q .* (log.(q .+ eps(q[1])) .- logp)) #handle gpu broadcast error
-    sum(kld .* mask) / (size(q, 2) + sum(mask))
+    sum(kld .* mask) / sum(mask)
 end
 
 loss((x,t)) = loss(x, t)
