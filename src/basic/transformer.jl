@@ -38,6 +38,11 @@ end
 
 @treelike Transformer
 
+function Transformer(size::Int, head::Int, ps::Int; future::Bool = true, act = relu)
+    rem(size, head) != 0 && error("size not divisible by head")
+    Transformer(size, head, div(size, head), ps;future=future, act=act)
+end
+
 Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true, act = relu) = device(Transformer(
     MultiheadAttention(head, size, hs, size; future=future),
     LayerNorm(size),
