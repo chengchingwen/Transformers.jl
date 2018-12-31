@@ -9,7 +9,8 @@ using Flux: onecold
 using Flux.Tracker: back!
 
 using Transformers
-using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot, NNTopo
+using Transformers.Basic: NNTopo
+using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot, logkldivergence
 using Transformers.Datasets: WMT, Train, batched
 
 
@@ -141,16 +142,6 @@ decoder = device(Stack(
 
 opt = ADAM(params(embed, encoder, decoder), 1e-4; β2=0.98)
 
-kl_div(q::AbstractArray{T, 3},
-       logp::AbstractArray{T, 3},
-       mask) where T =
-           sum(reshape(sum(sum(q .* (log.(q .+ eps(q[1])) .- logp); dims=1) .* mask; dims=2), :) ./ reshape(sum(mask; dims=2), :))
-
-function kl_div(q, logp, mask)
-    kld = (q .* (log.(q .+ eps(q[1])) .- logp)) #handle gpu broadcast error
-    sum(kld .* mask) / sum(mask)
-end
-
 loss((x,t)) = loss(x, t)
 function loss(x, t)
     global Smooth
@@ -169,7 +160,7 @@ function loss(x, t)
     #label smoothing
     label = device((fill(Smooth/length(embed.vocab), size(et)) .* (1 .- et) .+ et .* (1 - Smooth))[:, 2:end, :])
 
-    loss = kl_div(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
+    loss = logkldivergence(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
 end
 
 function translate(x)

@@ -9,6 +9,8 @@ export Transformer, TransformerDecoder
 export NNTopo, @nntopo_str, @nntopo
 export Stack, show_stackfunc, stack
 
+export logkldivergence, logcrossentropy
+
 device(x) = cpu(x)
 
 function use_gpu(use::Bool)
@@ -30,5 +32,6 @@ include("./transformer.jl")
 include("./topology.jl")
 include("./stack.jl")
 include("./embed.jl")
+include("./loss.jl")
 
 end
