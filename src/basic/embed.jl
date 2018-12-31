@@ -30,16 +30,16 @@ function Embed(size::Int, vocab, unk="</unk>")
     device(Embed(vocab, unk, param(randn(size, length(vocab)))))
 end
 
-(e::Embed)(x) = e.embedding * onehotbatch(x, e.vocab, e.unk), device(fill(1.0, (1, length(x))))
+(e::Embed)(x) = e.embedding * device(onehotbatch(x, e.vocab, e.unk)), device(fill(1.0, (1, length(x))))
 function (e::Embed)(xs::Container)
     maxlen = maximum(map(length, xs))
-    cat([e.embedding * onehotbatch([x; fill(e.unk, max(maxlen - length(x)))], e.vocab, e.unk) for x ∈ xs]...;dims=3), device(getmask(xs))
+    cat([e.embedding * device(onehotbatch([x; fill(e.unk, max(maxlen - length(x)))], e.vocab, e.unk)) for x ∈ xs]...;dims=3), device(getmask(xs))
 end
 
-onehot(e::Embed, x) = onehotbatch(x, e.vocab, e.unk)
+onehot(e::Embed, x) = device(onehotbatch(x, e.vocab, e.unk))
 function onehot(e::Embed, xs::Container)
     maxlen = maximum(map(length, xs))
-    cat([onehotbatch([x; fill(e.unk, max(maxlen - length(x)))], e.vocab, e.unk) for x ∈ xs]...;dims=3)
+    cat([device(onehotbatch([x; fill(e.unk, max(maxlen - length(x)))], e.vocab, e.unk)) for x ∈ xs]...;dims=3)
 end
 
 Base.show(io::IO, e::Embed) = print(io, "Embed($(size(e.embedding)[1]), vocab_size=$(length(e.vocab)), unk=$(e.unk))")
