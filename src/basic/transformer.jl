@@ -14,8 +14,8 @@ end
 
 @treelike Positionwise
 
-Positionwise(size::Int, h::Int) = Positionwise(
-    Dense(size, h, relu),
+Positionwise(size::Int, h::Int, act = relu) = Positionwise(
+    Dense(size, h, act),
     Dense(h, size)
 )
 
@@ -38,10 +38,10 @@ end
 
 @treelike Transformer
 
-Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true) = device(Transformer(
+Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true, act = relu) = device(Transformer(
     MultiheadAttention(head, size, hs, size; future=future),
     LayerNorm(size),
-    Positionwise(size, ps),
+    Positionwise(size, ps, act),
     LayerNorm(size)
 ))
 
@@ -75,12 +75,12 @@ end
 
 @treelike TransformerDecoder
 
-TransformerDecoder(size, head, hs, ps) = device(TransformerDecoder(
+TransformerDecoder(size, head, hs, ps; act = relu) = device(TransformerDecoder(
     MultiheadAttention(head, size, hs, size; future=false),
     LayerNorm(size),
     MultiheadAttention(head, size, hs, size; future=true),
     LayerNorm(size),
-    Positionwise(size, ps),
+    Positionwise(size, ps, act),
     LayerNorm(size)
 ))
 
