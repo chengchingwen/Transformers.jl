@@ -36,7 +36,7 @@ function (pe::PositionEmbedding)(x)
 
         pe.embedding = device(over)
     end
-    selectdim(pe.embedding, 2, 1:len)
+    pe.embedding[:, 1:len]
 end
 
 Base.show(io::IO, pe::PositionEmbedding) = print(io, "PositionEmbedding($(size(pe.embedding)[1]))")
