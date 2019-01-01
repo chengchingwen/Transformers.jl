@@ -40,21 +40,21 @@ function load_gpt_pretrain(n::Int=12)
         mhW = pms[12(i-1) + 3]
         mhb = pms[12(i-1) + 4]
         loadparams!(gpt.ts[i].mh.iqproj,[selectdim(mhW, 1, 1:768),
-                                                selectdim(mhb, 1, 1:768)])
+                                         selectdim(mhb, 1, 1:768)])
         loadparams!(gpt.ts[i].mh.ikproj,[selectdim(mhW, 1, 768+1:2*768),
-                                                selectdim(mhb, 1, 768+1:2*768)])
+                                         selectdim(mhb, 1, 768+1:2*768)])
         loadparams!(gpt.ts[i].mh.ivproj,[selectdim(mhW, 1, 2*768+1:3*768),
-                                                selectdim(mhb, 1, 2*768+1:3*768)])
+                                         selectdim(mhb, 1, 2*768+1:3*768)])
         loadparams!(gpt.ts[i].mh.oproj,[pms[12(i-1) + 5],
-                                               pms[12(i-1) + 6]])
+                                        pms[12(i-1) + 6]])
         loadparams!(gpt.ts[i].LN1,[pms[12(i-1) + 7],
-                                          pms[12(i-1) + 8]])
+                                   pms[12(i-1) + 8]])
         loadparams!(gpt.ts[i].pw.din,[pms[12(i-1) + 9],
-                                             pms[12(i-1) + 10]])
+                                      pms[12(i-1) + 10]])
         loadparams!(gpt.ts[i].pw.dout,[pms[12(i-1) + 11],
-                                              pms[12(i-1) + 12]])
+                                       pms[12(i-1) + 12]])
         loadparams!(gpt.ts[i].LN2,[pms[12(i-1) + 13],
-                                          pms[12(i-1) + 14]])
+                                   pms[12(i-1) + 14]])
     end
     gpt
 end
