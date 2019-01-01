@@ -3,6 +3,7 @@ Julia implementation of NLP models, that based on google [[https://arxiv.org/abs
 
 * implemented model
 + [[https://arxiv.org/abs/1706.03762][Attention is all you need]]
++ [[https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf][Improving Language Understanding by Generative Pre-Training]]
 
 * Roadmap
 + optimize performance
