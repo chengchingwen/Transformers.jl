@@ -1,7 +1,29 @@
 using JSON
 using NPZ
 
+using BytePairEncoding
+using WordTokenizers
+
 using Flux: loadparams!
+
+"""
+The function in the origin gpt code
+
+fixes some issues the spacy tokenizer had on books corpus
+also does some whitespace standardization
+"""
+function text_standardize(text)
+    text = replace(text, "—"=>"-")
+    text = replace(text, "–"=>"-")
+    text = replace(text, "―"=>"-")
+    text = replace(text, "…"=>"...")
+    text = replace(text, "´"=>"'")
+    text = replace(text, r"""(-+|~+|!+|"+|;+|\?+|\++|,+|\)+|\(+|\\+|\/+|\*+|\[+|\]+|}+|{+|\|+|_+)"""=>s" \1 ")
+    text = replace(text, r"\s*\n\s*"=>" \n ")
+    text = replace(text, r"[^\S\n]+"=>" ")
+    strip(text)
+end
+
 
 function load_gpt_pretrain_params()
     shapes = JSON.parsefile(joinpath(dirname(@__FILE__), "pretrain/params_shapes.json"))
@@ -33,8 +55,20 @@ end
 
 function load_gpt_pretrain(n::Int=12)
     n > 12 && error("pretrain maximum layer: 12")
+    set_tokenizer((x)->nltk_word_tokenize(text_standardize(x)))
+    emp = JSON.parsefile(joinpath(dirname(@__FILE__), "pretrain/encoder_bpe_40000.json"))
+    vocab = map(first, sort!(collect(emp), by=(x)->x.second))
+    push!(vocab, "_start_")
+    push!(vocab, "_delimiter_")
+    push!(vocab, "_classify_")
+
+    bpe = Bpe(joinpath(dirname(@__FILE__), "pretrain/vocab_40000.bpe"))
+
+    embed = Embed(768, vocab, "<unk>")
     gpt = Gpt(768, 12, 768*4, 12; max_len=512, trainable=true, act=gelu)
+
     pms = load_gpt_pretrain_params()
+    loadparams!(embed, [hcat(pms[2], randn(768, 3))])
     loadparams!(gpt.pe, [pms[1]])
     for i = 1:n
         mhW = pms[12(i-1) + 3]
@@ -56,5 +90,5 @@ function load_gpt_pretrain(n::Int=12)
         loadparams!(gpt.ts[i].LN2,[pms[12(i-1) + 13],
                                    pms[12(i-1) + 14]])
     end
-    gpt
+    gpt, embed, bpe
 end
