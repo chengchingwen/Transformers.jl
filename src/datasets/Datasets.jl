@@ -17,10 +17,10 @@ end
 
 include("./dataset.jl")
 
-include("./wmt.jl")
+include("translate/wmt.jl")
 using .WMT
 
-include("./iwslt.jl")
+include("translate/iwslt.jl")
 using .IWSLT
 
 
