@@ -22,9 +22,16 @@ testfile(d, args...; kwargs...) = error("Testset not found")
 
 trainset(d::D, args...) where D <: Dataset = dataset(Train, d, args...)
 
-function reader(file)
+function reader(file::AbstractString)
     ch = Channel{String}(0)
     task = @async foreach(x->put!(ch, x), eachline(open(file)))
+    bind(ch, task)
+    ch
+end
+
+function reader(iter)
+    ch = Channel{String}(0)
+    task = @async foreach(x->put!(ch, x), iter)
     bind(ch, task)
     ch
 end
@@ -50,7 +57,7 @@ function get_batch(c::Channel, n=1)
     batched(res)
 end
 
-function get_batch(cs::NTuple{N}{Channel}, n=1) where N
+function get_batch(cs::Union{NTuple{N}{Channel{T}} where N, Vector{Channel{T}}}, n=1) where T
     res = Vector()
     for (i, xs) ∈ enumerate(zip(cs...))
         push!(res, xs)
