@@ -1,7 +1,7 @@
 using Flux: @treelike
 
 using ..Basic
-using ..Basic: TwoDimArray, ThreeDimArray
+using ..Basic: TwoDimArray, ThreeDimArray, onehot
 
 export Gpt, lmloss
 export load_gpt_pretrain
@@ -35,7 +35,6 @@ end
 
 function lmloss(embed, et, t::TwoDimArray, mask)
     t = t[:, 1:end-1]
-    size(t)
     sim = embed.embedding' * t
     logcrossentropy(et[:, 2:end], sim, mask[:, 2:end])
 end
@@ -43,7 +42,7 @@ end
 function lmloss(embed::Embed, et, t::ThreeDimArray, mask)
     t = t[:, 1:end-1, :]
     s = size(t)
-    sim = reshape(embed.embedding' * reshape(t, s[1], :), s)
+    sim = reshape(embed.embedding' * reshape(t, s[1], :), length(embed.vocab), s[2:end]...)
     #(vocab, seq_len*batch)
     logcrossentropy(et[:, 2:end, :], sim, mask[:, 2:end, :])
 end
