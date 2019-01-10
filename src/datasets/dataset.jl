@@ -39,7 +39,7 @@ end
 function batched(xs)
     s = length(xs)
     sx = s != 0 ? length(xs[1]) : 0
-    res = [[] for i = 1:sx]
+    res = [Vector{typeof(xs[1][i])}() for i = 1:sx]
     for x ∈ xs
         for (i, xi) ∈ enumerate(x)
             push!(res[i], xi)
