@@ -53,18 +53,22 @@ end
 #            :xN,
 #            )
 
-function load_gpt_pretrain(n::Int=12)
+function load_gpt_pretrain(n::Int=12;
+                           startsym="_start_",
+                           delisym="_delimiter_",
+                           clfsym="_classify_",
+                           unksym="<unk>")
     n > 12 && error("pretrain maximum layer: 12")
     set_tokenizer((x)->nltk_word_tokenize(text_standardize(x)))
     emp = JSON.parsefile(joinpath(dirname(@__FILE__), "pretrain/encoder_bpe_40000.json"))
     vocab = map(first, sort!(collect(emp), by=(x)->x.second))
-    push!(vocab, "_start_")
-    push!(vocab, "_delimiter_")
-    push!(vocab, "_classify_")
+    push!(vocab, startsym)
+    push!(vocab, delisym)
+    push!(vocab, clfsym)
 
     bpe = Bpe(joinpath(dirname(@__FILE__), "pretrain/vocab_40000.bpe"))
 
-    embed = Embed(768, vocab, "<unk>")
+    embed = Embed(768, vocab, unksym)
     gpt = Gpt(768, 12, 768*4, 12; max_len=512, trainable=true, act=gelu)
 
     pms = load_gpt_pretrain_params()
