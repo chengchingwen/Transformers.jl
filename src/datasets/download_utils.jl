@@ -5,7 +5,8 @@ unshorten a short url with the service of http://checkshorturl.com,
  and return the url if it is not a short link
 """
 function unshortlink(url)
-    cmd = `curl http://checkshorturl.com/expand.php?u="$url"`
+    cmd = `curl "http://checkshorturl.com/expand.php?u=$url"`
+    @show cmd
     html = read(cmd, String)
     m = match(r".*<td .*Long URL<\/td>\s*<td .*><a href=\"([^ ]*)\"", html)
     m === nothing ? url : m.captures[1]
