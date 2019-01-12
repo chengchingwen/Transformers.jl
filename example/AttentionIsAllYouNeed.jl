@@ -58,8 +58,8 @@ if args["task"] == "copy"
         i = 1
         for i = 1:320*7
             data = batched([gen_data() for i = 1:Batch])
-            l = loss(data)
-            back!(l)
+            @time l = loss(data)
+            @time back!(l)
             i%8 == 0 && (@show l; opt())
         end
     end
@@ -97,7 +97,7 @@ else
     error("task not define")
 end
 
-embed = Embed(512, labels, unksym)
+embed = device(Embed(512, labels, unksym))
 
 function embedding(x)
     em, ma = embed(x)
