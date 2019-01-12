@@ -37,12 +37,12 @@ function Transformer(size::Int, head::Int, ps::Int; future::Bool = true, act = r
     Transformer(size, head, div(size, head), ps;future=future, act=act)
 end
 
-Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true, act = relu) = device(Transformer(
+Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true, act = relu) = Transformer(
     MultiheadAttention(head, size, hs, size; future=future),
     LayerNorm(size),
     Positionwise(size, ps, act),
     LayerNorm(size)
-))
+)
 
 function (t::Transformer)(x, mask=nothing)
     a = t.mh(x, x, x; mask=mask)
@@ -74,14 +74,14 @@ end
 
 @treelike TransformerDecoder
 
-TransformerDecoder(size, head, hs, ps; act = relu) = device(TransformerDecoder(
+TransformerDecoder(size, head, hs, ps; act = relu) = TransformerDecoder(
     MultiheadAttention(head, size, hs, size; future=false),
     LayerNorm(size),
     MultiheadAttention(head, size, hs, size; future=true),
     LayerNorm(size),
     Positionwise(size, ps, act),
     LayerNorm(size)
-))
+)
 
 function (td::TransformerDecoder)(x, m, mask=nothing)
     a1 = td.mhm(x,x,x)
