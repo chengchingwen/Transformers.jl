@@ -12,34 +12,99 @@ import CuArrays
 const ThreeDimArray{T} = AbstractArray{T,3}
 const Tracked3D{T,A} = TrackedArray{T,3,A}
 
-function batchedmul(a::ThreeDimArray{T}, b::ThreeDimArray{T}) where {T}
+function batchedmul(a::ThreeDimArray{T}, b::ThreeDimArray{T};
+                    transA::Bool = false, transB::Bool = false) where {T}
     (bs = size(a, 3)) == size(b, 3) || error("batch size mismatch")
-    res = similar(a, size(a, 1), size(b, 2), bs)
-    batched_mul!(res, a, b)
+    res = similar(a, size(a, transA ? 2 : 1), size(b, transB ? 1 : 2), bs)
+    batched_mul!(res, a, b;transA=transA, transB=transB)
     return res
 end
 
+function batched_mul!(C::ThreeDimArray{T}, A::ThreeDimArray{T}, B::ThreeDimArray{T};
+                      transA::Bool = false, transB::Bool = false) where T
+    At = transA ? 'T' : 'N'
+    Bt = transB ? 'T' : 'N'
+    batched_gemm!(At, Bt, one(T), A, B, zero(T), C)
+    C
+end
 
-batchedmul(a::Tracked3D, b::Tracked3D) = track(batchedmul, a, b)
-@grad batchedmul(a::ThreeDimArray, b::ThreeDimArray) =
-    batchedmul(data(a), data(b)), Δ -> (batchedmul(Δ, permutedims(data(b), [2,1,3])), batchedmul(permutedims(data(a), [2,1,3]), Δ))
+#=
+ta = f
+tb = f
+a: mxn
+b: nxk
+c: mxk
+da = c * b'
+db = a' * c
+======
+ta = t
+tb = f
+a: nxm
+b: nxk
+c: mxk
+da = b * c'
+db = a * c
+======
+ta = f
+tb = t
+a: mxn
+b: kxn
+c: mxk
+da = c * b
+db = c' * a
+======
+ta = t
+tb = t
+a: nxm
+b: kxn
+c: mxk
+da = b' * c'
+db = c' * a'
+=#
+
+batchedmul(a::Tracked3D, b::Tracked3D; kw...) = track(batchedmul, a, b; kw...)
+@grad function batchedmul(a::ThreeDimArray, b::ThreeDimArray; transA::Bool = false, transB::Bool = false)
+    batchedmul(data(a), data(b); transA=transA, transB=transB), if !transA && !transB
+        Δ -> (batchedmul(Δ, data(b); transB=true), batchedmul(data(a), Δ; transA=true))
+    elseif transA && !transB
+        Δ -> (batchedmul(data(b), Δ; transB=true), batchedmul(data(a), Δ))
+    elseif !transA && transB
+        Δ -> (batchedmul(Δ, data(b)), batchedmul(Δ, data(a); transA=true))
+    else
+        Δ -> (batchedmul(data(b), Δ; transA=true, transB=true), batchedmul(Δ, data(a); transA=true, transB=true))
+    end
+end
 
 
+#batched CuArray gemm by BatchedRoutines.jl
 for (gemm, elty) in
     ((:dgemm_,:Float64),
      (:sgemm_,:Float32))
     @eval begin
-        function batched_gemm!(transA::AbstractChar, transB::AbstractChar, alpha::($elty), A::CuArrays.CuArray{$elty, 3}, B::CuArrays.CuArray{$elty, 3}, beta::($elty), C::CuArrays.CuArray{$elty, 3})
+        function batched_gemm!(transA::AbstractChar,
+                               transB::AbstractChar,
+                               alpha::($elty),
+                               A::CuArrays.CuArray{$elty, 3},
+                               B::CuArrays.CuArray{$elty, 3},
+                               beta::($elty),
+                               C::CuArrays.CuArray{$elty, 3})
             gemm_strided_batched!(transA, transB, alpha, A, B, beta, C)
         end
     end
 end
 
+#batched cpu gemm by BatchedRoutines.jl
 for (gemm, elty) in
     ((:dgemm_,:Float64),
      (:sgemm_,:Float32),)
     @eval begin
-        function batched_gemm!(transA::AbstractChar, transB::AbstractChar, alpha::($elty), A::AbstractArray{$elty, 3}, B::AbstractArray{$elty, 3}, beta::($elty), C::AbstractArray{$elty, 3})
+        function batched_gemm!(transA::AbstractChar,
+                               transB::AbstractChar,
+                               alpha::($elty),
+                               A::AbstractArray{$elty, 3},
+                               B::AbstractArray{$elty, 3},
+                               beta::($elty),
+                               C::AbstractArray{$elty, 3})
             @assert !BLAS.has_offset_axes(A, B, C)
             @assert size(A, 3) == size(B, 3) == size(C, 3) "batch size mismatch"
             m = size(A, transA == 'N' ? 1 : 2)
@@ -78,14 +143,9 @@ for (gemm, elty) in
     end
 end
 
-function batched_mul!(C::ThreeDimArray{T}, A::ThreeDimArray{T}, B::ThreeDimArray{T}) where T
-    batched_gemm!('N', 'N', one(T), A, B, zero(T), C)
-    C
-end
 
-
-
-
+#api for gemm_strided_batched!
+#can be remove when new CUBLAS.jl release
 for (fname, elty) in
         ((:cublasDgemmStridedBatched,:Float64),
          (:cublasSgemmStridedBatched,:Float32))
