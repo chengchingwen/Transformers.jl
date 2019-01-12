@@ -1,4 +1,5 @@
 using Flux: @treelike
+using Flux.Tracker: data
 
 broadcast_add(e, pe) = e .+ pe
 function broadcast_add(e::ThreeDimArray{T}, pe) where T
@@ -31,7 +32,7 @@ function PositionEmbedding(size::Int, max_len::Int = 1024; trainable::Bool = fal
             map!(i->PE(size, l, i), selectdim(embedding, 2, l), 1:size)
         end
     end
-    device(PositionEmbedding(trainable, embedding))
+    PositionEmbedding(trainable, embedding)
 end
 
 function (pe::PositionEmbedding)(x)
@@ -42,7 +43,7 @@ function (pe::PositionEmbedding)(x)
         if pe.trainable
             error("position embedding length exceeded")
         else
-            over = Matrix{Float64}(undef, size(pe.embedding, 1), len)
+            over = Matrix{eltype(data(pe.embedding))}(undef, size(pe.embedding, 1), len)
             selectdim(over, 2, 1:size(pe.embedding, 2)) .= pe.embedding
 
             for l = size(pe.embedding, 2)+1:len

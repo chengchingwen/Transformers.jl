@@ -94,5 +94,5 @@ function load_gpt_pretrain(n::Int=12;
         loadparams!(gpt.ts[i].LN2,[pms[12(i-1) + 13],
                                    pms[12(i-1) + 14]])
     end
-    device(gpt), device(embed), bpe
+    gpt, embed, bpe
 end

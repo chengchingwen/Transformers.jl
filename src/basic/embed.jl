@@ -27,7 +27,7 @@ function Embed(size::Int, vocab, unk="</unk>")
         push!(vocab, unk)
     end
 
-    device(Embed(vocab, unk, param(randn(size, length(vocab)))))
+    Embed(vocab, unk, param(randn(size, length(vocab))))
 end
 
 (e::Embed)(x) = e.embedding * device(onehotbatch(x, e.vocab, e.unk)), device(fill(1.0, (1, length(x))))
