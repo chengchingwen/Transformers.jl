@@ -41,7 +41,7 @@ end
 onehot(e::Embed, x) = device(onehotbatch(x, e.vocab, e.unk))
 function onehot(e::Embed, xs::Container)
     maxlen = maximum(map(length, xs))
-    cat([device(onehotbatch([x; fill(e.unk, max(maxlen - length(x)))], e.vocab, e.unk)) for x ∈ xs]...;dims=3)
+    device(cat([onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk) for x ∈ xs]...;dims=3))
 end
 
 Base.show(io::IO, e::Embed) = print(io, "Embed($(size(e.embedding)[1]), vocab_size=$(length(e.vocab)), unk=$(e.unk))")
