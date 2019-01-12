@@ -160,7 +160,7 @@ function attention(query::ThreeDimArray{T},
     #size(query) == (dims, {q,k}_seq_len, batch) == size(key) == size(value)
     #size(score) == (k_seq_len, q_seq_len, batch)
     dk = size(key, 1)
-    score = batchedmul(permutedims(key, [2,1,3]), query)
+    score = batchedmul(key, query; transA = true)
     score = score ./ oftype(data(score)[1], sqrt(dk))
 
     s = size(score)
