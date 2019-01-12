@@ -1,4 +1,5 @@
 using Flux: @treelike, onehotbatch
+import Flux: gpu
 
 const Container = Union{NTuple{N, Vector{T}}, Vector{Vector{T}}} where N where T
 
@@ -21,6 +22,7 @@ struct Embed
 end
 
 @treelike Embed
+gpu(e::Embed) = Embed(e.vocab, e.unk, gpu(e.embedding))
 
 function Embed(size::Int, vocab, unk="</unk>")
     if !(unk ∈ vocab)
