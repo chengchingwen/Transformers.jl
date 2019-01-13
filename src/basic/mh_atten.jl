@@ -162,12 +162,13 @@ function attention(query::ThreeDimArray{T},
     #size(score) == (k_seq_len, q_seq_len, batch)
     dk = size(key, 1)
     score = batchedmul(key, query; transA = true)
-    score = score ./ oftype(data(score)[1], sqrt(dk))
+    score = score ./ convert(eltype(data(score)), sqrt(dk))
 
     s = size(score)
 
     if mask !== nothing
-        @. mask = (1 - mask) * -1e9
+        #weird issue on @. mask = (1 - mask) * -1e9 which casue mask to be -Inf
+        mask = (1 .- mask) .* convert(eltype(data(score)), -1e9)
         ms = size(mask)
         #score = score .+ mask; use broadcast instead of repeat mask for head
         score = reshape(reshape(score, s[1:end-1]..., :, ms[end]) .+ reshape(mask, ms[1:end-1]..., 1, ms[end]), s)
