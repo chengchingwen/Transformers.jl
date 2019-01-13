@@ -40,6 +40,7 @@ if args["task"] == "copy"
     const V = 10
     const Smooth = 1e-6
     const Batch = 32
+    const lr = 1e-4
 
     startsym = 11
     endsym = 12
@@ -69,7 +70,8 @@ elseif args["task"] == "wmt14"
     const N = 6
     const Smooth = 0.4
     const Batch = 16
-
+    const lr = 1e-6
+    
     wmt14 = WMT.GoogleWMT()
 
     datas = dataset(Train, wmt14)
@@ -121,11 +123,18 @@ decoder = device(Stack(
 ))
 
 
-opt = ADAM(params(embed, encoder, decoder), 1e-4; β2=0.98)
+opt = ADAM(params(embed, encoder, decoder), lr; β2=0.98)
+
+function smooth(et)
+    global Smooth
+    sm = device(fill(Smooth/length(embed.vocab), size(et)))
+    p = sm .* broadcast_add(1, -et)
+    label = broadcast_add(p , et .* (1 - convert(eltype(sm) ,Smooth)))
+    label
+end
 
 loss((x,t)) = loss(x, t)
 function loss(x, t)
-    global Smooth
     ix = mkline.(x)
     iy = mkline.(t)
     et = onehot(embed, iy)
@@ -139,7 +148,7 @@ function loss(x, t)
     dec = decoder(trg, enc, mask)
 
     #label smoothing
-    label = device((fill(Smooth/length(embed.vocab), size(et)) .* (1 .- et) .+ et .* (1 - Smooth))[:, 2:end, :])
+    label = smooth(et)[:, 2:end, :]
 
     loss = logkldivergence(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
 end
