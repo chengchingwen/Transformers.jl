@@ -171,11 +171,11 @@ function attention(query::ThreeDimArray{T},
     end
 
     if !future
-        fmask = fill(oftype(data(score)[1], 1), s[1:end-1])
+        fmask = fill(convert(eltype(data(score)), 1), s[1:end-1])
         fmask .-= one(fmask)
         fmask .= -1e9 .* collect(LowerTriangular(fmask))
         fmask = device(fmask)
-        score = score .+ fmask
+        score = broadcast_add(score,  fmask)
     end
 
     score = reshape(softmax(reshape(score, s[1], :)) , s)

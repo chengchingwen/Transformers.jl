@@ -2,11 +2,17 @@ using Flux: @treelike
 using Flux.Tracker: data
 
 broadcast_add(e, pe) = e .+ pe
-function broadcast_add(e::ThreeDimArray{T}, pe) where T
+function broadcast_add(e::ThreeDimArray{T}, pe::TwoDimArray{T}) where T
     #for Flux gpu issue 530 https://github.com/FluxML/Flux.jl/issues/530
     s = size(e)
     reshape(reshape(e, :, s[end]) .+ reshape(pe, :, 1), s)
 end
+
+function broadcast_add(e::ThreeDimArray{T}, pe::ThreeDimArray{T}) where T
+    s = size(e)
+    reshape(reshape(e, :, s[end]) .+ reshape(pe, :, s[end]), s)
+end
+
 
 mutable struct PositionEmbedding
     trainable::Bool
