@@ -65,7 +65,8 @@ function (mh::MultiheadAttention)(query::ThreeDimArray{T},
 
     #wait for batch matmul in Flux
     atten = attention(ipq,ipk,ipv;
-                      mask = mask === nothing ? mask : repeat(mask, inner=(1, 1, mh.head)),
+                      mask=mask,
+                      #mask = mask === nothing ? mask : repeat(mask, inner=(1, 1, mh.head)),
                       future=mh.future)
     # atten = map(1:size(ipq, 3)) do i
     #     attention(ipq[:, :, i],
@@ -167,7 +168,9 @@ function attention(query::ThreeDimArray{T},
 
     if mask !== nothing
         @. mask = (1 - mask) * -1e9
-        score = score .+ mask
+        ms = size(mask)
+        #score = score .+ mask; use broadcast instead of repeat mask for head
+        score = reshape(reshape(score, s[1:end-1]..., :, ms[end]) .+ reshape(mask, ms[1:end-1]..., 1, ms[end]), s)
     end
 
     if !future
