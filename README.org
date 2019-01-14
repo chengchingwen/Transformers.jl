@@ -5,9 +5,24 @@ Julia implementation of NLP models, that based on google [[https://arxiv.org/abs
 + [[https://arxiv.org/abs/1706.03762][Attention is all you need]]
 + [[https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf][Improving Language Understanding by Generative Pre-Training]]
 
+* Known issue
+There are some hack in the implementation, will be remove once these packages update.
++ some hack to make gpu work
+  + =permutedims_hack=: move gpu array back to cpu to do permutedims than move to gpu, 
+    due to performance issue on permutedims on =CuArray=.
+  + =broadcast_add=: =.+= casue =CUDA too many resource requested error= on =Flux.back!=, 
+    use =reshape= to avoid that error
++ =batchedmul=: Currently =Flux.jl= doesn't have a batched matrix multiply function, 
+  so I implement one.
+  + CPU =batched_gemm!=: borrow the implemetation from =BatchedRoutines.jl=
+  + GPU =batched_gemm!=: currently the =gemm_strided_batched!= of CUBLAS is not release 
+    in the version I use, so I borrow from the master branch of CUBLAS.
++ =gelu=: implementation use =xσ(1.702x)= instead of =0.5x*(1 + tanh(√(2/π)*(x + 0.044715x^3)= 
+  due to =tanh= on gpu cause error.
+
 * Roadmap
++ refactor code
 + optimize performance
-  *notice*: currently GPU version is way slower than CPU version due to performance issue of permutedim on CuArray
 + text related util functions
 + better dataset API
 + more datasets
