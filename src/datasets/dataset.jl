@@ -15,12 +15,9 @@ datafile(::Type{Train}, d::D, args...; kwargs...) where D <: Dataset = trainfile
 datafile(::Type{Dev}, d::D, args...; kwargs...) where D <: Dataset = devfile(d, args...; kwargs...)
 datafile(::Type{Test}, d::D, args...; kwargs...) where D <: Dataset = testfile(d, args...; kwargs...)
 
-trainfile(d, args...; kwargs...) = error("Trainset not found")
-devfile(d, args...; kwargs...) = error("Devset not found")
-testfile(d, args...; kwargs...) = error("Testset not found")
-
-
-trainset(d::D, args...) where D <: Dataset = dataset(Train, d, args...)
+trainfile(d, args...; kwargs...) = (println("Trainset not found"); nothing)
+devfile(d, args...; kwargs...) = (println("Devset not found"); nothing)
+testfile(d, args...; kwargs...) = (println("Testset not found"); nothing)
 
 function reader(file::AbstractString)
     ch = Channel{String}(0)
@@ -49,21 +46,21 @@ function batched(xs)
 end
 
 function get_batch(c::Channel, n=1)
-    res = Vector()
+    res = Vector(undef, n)
     for (i, x) ∈ enumerate(c)
-        push!(res, x)
+        res[i] = x
         i >= n && break
     end
-    batched(res)
+    isassigned(res, n) ? batched(res) : nothing
 end
 
-function get_batch(cs::Union{NTuple{N}{Channel{T}} where N, Vector{Channel{T}}}, n=1) where T
-    res = Vector()
+function get_batch(cs::Container{C}, n=1) where C <: Channel
+    res = Vector(undef, n)
     for (i, xs) ∈ enumerate(zip(cs...))
-        push!(res, xs)
+        res[i] = xs
         i >= n && break
     end
-    batched(res)
+    isassigned(res, n) ? batched(res) : nothing
 end
 
-get_vocab(::D, args...; kwargs...) where D <: Dataset = error("No prebuild vocab")
+get_vocab(::D, args...; kwargs...) where D <: Dataset = (println("No prebuild vocab"); nothing)

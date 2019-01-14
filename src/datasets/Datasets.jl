@@ -2,6 +2,8 @@ module Datasets
 
 using DataDeps
 
+using ..Transformers: Container
+
 export Dataset, Train, Dev, Test
 export dataset, datafile, get_batch, get_vocab
 
