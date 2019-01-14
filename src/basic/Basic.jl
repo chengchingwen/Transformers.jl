@@ -26,9 +26,11 @@ const ThreeDimArray{T} = AbstractArray{T, 3}
 const TwoDimArray{T} = AbstractArray{T, 2}
 
 #hack for gpu
-include("./permutedims.jl")
+include("../fix/permutedims.jl")
 
-include("./batchedmul.jl")
+#implement batchmul for flux
+include("../fix/batchedmul.jl")
+
 include("./position_embed.jl")
 include("./mh_atten.jl")
 include("./transformer.jl")
