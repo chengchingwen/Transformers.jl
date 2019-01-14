@@ -10,6 +10,8 @@ export Gpt, load_gpt_pretrain, lmloss
 
 const ThreeDimArray{T} = AbstractArray{T, 3}
 const TwoDimArray{T} = AbstractArray{T, 2}
+const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
+
 
 device(x) = cpu(x)
 function use_gpu(use::Bool)

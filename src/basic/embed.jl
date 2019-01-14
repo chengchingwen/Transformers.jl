@@ -1,8 +1,6 @@
 using Flux: @treelike, onehotbatch
 import Flux: gpu
 
-const Container = Union{NTuple{N, Vector{T}}, Vector{Vector{T}}} where N where T
-
 function getmask(ls)
     lens = map(length, ls)
     m = zeros(maximum(lens), length(lens))
