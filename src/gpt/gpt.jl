@@ -1,7 +1,7 @@
-using Flux: @treelike, σ
+using Flux: @treelike
 
 using ..Basic
-using ..Basic: TwoDimArray, ThreeDimArray, onehot
+using ..Basic: onehot
 
 export Gpt, lmloss
 export load_gpt_pretrain
@@ -12,23 +12,6 @@ struct Gpt
 end
 
 @treelike Gpt
-
-#gelu(x) = 0.5x*(1 + tanh(√(2/π)*(x + 0.044715x^3)))
-function gelus(x)
-    k = x + oftype(x/1, 0.044715) * x^3
-    y = oftype(x/1, sqrt(2/π)) * k
-    sx = oftype(x/1, 0.5) * x
-    z = tanh(y)
-    sx * (1 + z)
-end
-
-#gelu(x) = x*σ(oftype(x, 1.702)*x)
-function gelu(x)
-    y = oftype(x/1, 1.702) * x
-    z = σ(y)
-    x * z
-end
-
 
 function Gpt(size::Int, head::Int, ps::Int, layer::Int; max_len::Int=512, trainable = true, act = gelu)
     rem(size, head) != 0 && error("size not divisible by head")

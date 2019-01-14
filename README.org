@@ -17,8 +17,7 @@ There are some hack in the implementation, will be remove once these packages up
   + CPU =batched_gemm!=: borrow the implemetation from =BatchedRoutines.jl=
   + GPU =batched_gemm!=: currently the =gemm_strided_batched!= of CUBLAS is not release 
     in the version I use, so I borrow from the master branch of CUBLAS.
-+ =gelu=: implementation use =xσ(1.702x)= instead of =0.5x*(1 + tanh(√(2/π)*(x + 0.044715x^3)= 
-  due to =tanh= on gpu cause error.
++ =gelu=: cpu & gpu version of =gelu=, can be remove when =NNlib.jl= & =CuArrays.jl= has one.
 
 * Roadmap
 + refactor code
