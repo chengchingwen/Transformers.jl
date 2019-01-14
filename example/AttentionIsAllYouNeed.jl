@@ -71,7 +71,7 @@ elseif args["task"] == "wmt14"
     const Smooth = 0.4
     const Batch = 16
     const lr = 1e-6
-    
+
     wmt14 = WMT.GoogleWMT()
 
     datas = dataset(Train, wmt14)
