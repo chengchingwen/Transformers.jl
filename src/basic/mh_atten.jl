@@ -134,7 +134,7 @@ function attention(query::TwoDimArray{T},
     # size(query) == (dims, {q,k}_seq_len) == size(key) == size(value)
     # size(score) == (k_seq_len, q_seq_len)
     dk = size(key)[1]
-    score = key' * query
+    score = device(key') * query
     score = score ./ oftype(data(score)[1], sqrt(dk))
 
     if mask !== nothing
