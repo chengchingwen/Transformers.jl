@@ -1,4 +1,4 @@
-using Flux: @treelike
+using Flux: @treelike, σ
 
 using ..Basic
 using ..Basic: TwoDimArray, ThreeDimArray, onehot
@@ -13,7 +13,22 @@ end
 
 @treelike Gpt
 
-gelu(x) = 0.5x*(1 + tanh(√(2/π)*(x + 0.044715x^3)))
+#gelu(x) = 0.5x*(1 + tanh(√(2/π)*(x + 0.044715x^3)))
+function gelus(x)
+    k = x + oftype(x/1, 0.044715) * x^3
+    y = oftype(x/1, sqrt(2/π)) * k
+    sx = oftype(x/1, 0.5) * x
+    z = tanh(y)
+    sx * (1 + z)
+end
+
+#gelu(x) = x*σ(oftype(x, 1.702)*x)
+function gelu(x)
+    y = oftype(x/1, 1.702) * x
+    z = σ(y)
+    x * z
+end
+
 
 function Gpt(size::Int, head::Int, ps::Int, layer::Int; max_len::Int=512, trainable = true, act = gelu)
     rem(size, head) != 0 && error("size not divisible by head")
@@ -35,14 +50,14 @@ end
 
 function lmloss(embed, et, t::TwoDimArray, mask)
     t = t[:, 1:end-1]
-    sim = embed.embedding' * t
+    sim = device(embed.embedding') * t
     logcrossentropy(et[:, 2:end], sim, mask[:, 2:end])
 end
 
 function lmloss(embed::Embed, et, t::ThreeDimArray, mask)
     t = t[:, 1:end-1, :]
     s = size(t)
-    sim = reshape(embed.embedding' * reshape(t, s[1], :), length(embed.vocab), s[2:end]...)
+    sim = reshape(device(embed.embedding') * reshape(t, s[1], :), length(embed.vocab), s[2:end]...)
     #(vocab, seq_len*batch)
     logcrossentropy(et[:, 2:end, :], sim, mask[:, 2:end, :])
 end
