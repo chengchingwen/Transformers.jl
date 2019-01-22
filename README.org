@@ -8,8 +8,6 @@ Julia implementation of NLP models, that based on google [[https://arxiv.org/abs
 * Known issue
 There are some hack in the implementation, will be remove once these packages update.
 + some hack to make gpu work
-  + =broadcast_add=: =.+= casue =CUDA too many resource requested error= on =Flux.back!=, 
-    use =reshape= to avoid that error
 + =batchedmul=: Currently =Flux.jl= doesn't have a batched matrix multiply function, 
   so I implement one.
   + =batched_gemm!=: borrow the implemetation from =BatchedRoutines.jl=

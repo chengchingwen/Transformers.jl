@@ -193,7 +193,7 @@ function attention(query::ThreeDimArray{T},
         fmask .-= one(fmask)
         fmask .= -1e9 .* collect(LowerTriangular(fmask))
         fmask = device(fmask)
-        score = broadcast_add(score,  fmask)
+        score = score .+ fmask
     end
 
     score = reshape(softmax(reshape(score, s[1], :)) , s)
