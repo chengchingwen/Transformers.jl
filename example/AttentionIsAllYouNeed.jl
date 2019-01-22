@@ -11,7 +11,7 @@ using Flux.Tracker: back!
 using Transformers
 using Transformers.Basic: NNTopo
 using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot,
-                          logkldivergence, broadcast_add, logsoftmax3d
+                          logkldivergence, logsoftmax3d
 using Transformers.Datasets: WMT, Train, batched
 
 
@@ -104,13 +104,13 @@ embed = device(Embed(512, labels, unksym))
 function embedding(x)
     em, ma = embed(x)
     #sqrt(512) makes type unstable
-    em ./ convert(eltype(em.data),sqrt(512)), ma
+    em ./ convert(get_ftype(), sqrt(512)), ma
 end
 
 encoder = device(Stack(
     NNTopo("e → pe:(e, pe) → x → x → $N"),
     PositionEmbedding(512),
-    broadcast_add,
+    (e, pe) -> e .+ pe,
     Dropout(0.1),
     [Transformer(512, 8, 64, 2048) for i = 1:N]...
 ))
@@ -118,7 +118,7 @@ encoder = device(Stack(
 decoder = device(Stack(
     NNTopo("(e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c"),
     PositionEmbedding(512),
-    broadcast_add,
+    (e, pe) -> e .+ pe,
     Dropout(0.1),
     [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
     Chain(Dense(512, length(labels)), logsoftmax3d)
@@ -129,8 +129,8 @@ opt = ADAM(params(embed, encoder, decoder), lr; β2=0.98)
 function smooth(et)
     global Smooth
     sm = device(fill(Smooth/length(embed.vocab), size(et)))
-    p = sm .* broadcast_add(1, -et)
-    label = broadcast_add(p , et .* (1 - convert(eltype(sm) ,Smooth)))
+    p = sm .* (1 .+ -et)
+    label = p .+ et .* (1 - convert(get_ftype(), Smooth))
     label
 end
 

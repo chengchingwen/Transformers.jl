@@ -23,6 +23,10 @@ function parse_commandline()
         "--gpu", "-g"
             help = "use gpu"
             action = :store_true
+        "--epoch", "-e"
+            help = "epoch"
+            arg_type = Int
+            default = 3
         "task"
             help = "task name"
             required = true
@@ -72,19 +76,21 @@ end
 function loss(x1, x2, y)
     e1, e1_mask = embed(x1)
     e2, e2_mask = embed(x2)
-    t1 = gpt(e1)
-    t2 = gpt(e2)
+    t1 = gpt(e1, e1_mask)
+    t2 = gpt(e2, e2_mask)
     lm = lmloss(embed, onehot(embed, x1), t1, e1_mask) + lmloss(embed, onehot(embed, x2), t2, e2_mask)
+
     c1 = hcat(map(enumerate(findfirst(isequal(clfsym), x) for x in x1)) do (i, ind)
               t1[:, ind, i]
-              end...
-              )
+              end...)
     c2 = hcat(map(enumerate(findfirst(isequal(clfsym), x) for x in x2)) do (i, ind)
               t2[:, ind, i]
-              end...
-              )
-    p1 = clf(c1)
-    p2 = clf(c2)
+              end...)
+
+    drop = Dropout(0.1)
+    dm = device(drop(ones(get_ftype(), size(c1))))
+    p1 = clf(c1 .* dm)
+    p2 = clf(c2 .* dm)
     p = vcat(p1, p2)
     cl = logcrossentropy(device(onehotbatch(y, anslabel)), p)
 
@@ -93,24 +99,48 @@ end
 
 
 const rocs = StoryCloze()
-const datas = dataset(Train, rocs)
-const opt = ADAM(params(embed, gpt, clf), 1e-4; β2=0.98)
+const opt = ADAMW(params(embed, gpt, clf), 6.25e-5; β2=0.98, decay=0.01)
 
 
 
 const Batch = 4
-function train!()
-    global Batch
-    println("start training")
-    i::Int = 1
-    a::Float64 = 0.
-    while (batch = get_batch(datas, Batch)) != []
+
+function test()
+    println("eval:")
+    i::Int = 0
+    al::Float64 = 0.
+    devl = dataset(Test, rocs)
+    while (batch = get_batch(devl, Batch)) !== nothing
         tdb = transform.(batch...)
         b1, b2, y = batched(tdb)
-        @time l, p = loss(b1, b2, y)
-        a += acc(p, y)
-        @time back!(l)
-        i+=1
-        i%5 == 0 && (@show a/5; a = 0.; @time opt())
+        _, p = loss(b1, b2, y)
+        a = acc(p, y)
+        al += a
+        i += 1
+    end
+    @show al / i
+end
+
+function train!(epoch)
+    global Batch, rocs
+    for e = 1:epoch
+        println("start training: $e")
+        datas = dataset(Train, rocs)
+        i::Int = 0
+        al::Float64 = 0.
+        while (batch = get_batch(datas, Batch)) !== nothing
+            tdb = transform.(batch...)
+            b1, b2, y = batched(tdb)
+            @time l, p = loss(b1, b2, y)
+            a = acc(p, y)
+            al += a
+            @time back!(l)
+            i+=1
+            i%8 == 0 && (opt())
+            i%16==0 && @show al/i
+        end
+        test()
     end
 end
+
+#train!(args["epoch"])
