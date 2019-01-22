@@ -9,8 +9,8 @@ end
 @treelike Positionwise
 
 Positionwise(size::Int, h::Int, act = relu) = Positionwise(
-    Dense(size, h, act),
-    Dense(h, size)
+    Dense(get_ftype(), size, h, act),
+    Dense(get_ftype(), h, size)
 )
 
 function (pw::Positionwise)(x)
@@ -40,9 +40,9 @@ end
 
 Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true, act = relu, pdrop = 0.1) = Transformer(
     MultiheadAttention(head, size, hs, size; future=future),
-    LayerNorm(size),
+    LayerNorm(get_ftype(), size),
     Positionwise(size, ps, act),
-    LayerNorm(size),
+    LayerNorm(get_ftype(), size),
     Dropout(pdrop),
 )
 
@@ -86,11 +86,11 @@ end
 
 TransformerDecoder(size, head, hs, ps; act = relu, pdrop = 0.1) = TransformerDecoder(
     MultiheadAttention(head, size, hs, size; future=false),
-    LayerNorm(size),
+    LayerNorm(get_ftype(), size),
     MultiheadAttention(head, size, hs, size; future=true),
-    LayerNorm(size),
+    LayerNorm(get_ftype(), size),
     Positionwise(size, ps, act),
-    LayerNorm(size),
+    LayerNorm(get_ftype(), size),
     Dropout(pdrop),
 )
 
