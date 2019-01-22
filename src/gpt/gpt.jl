@@ -9,23 +9,28 @@ export load_gpt_pretrain
 struct Gpt
     pe::PositionEmbedding
     ts::Chain
+    drop::Dropout
 end
 
 @treelike Gpt
 
-function Gpt(size::Int, head::Int, ps::Int, layer::Int; max_len::Int=512, trainable = true, act = gelu)
+function Gpt(size::Int, head::Int, ps::Int, layer::Int;
+             max_len::Int = 512, trainable = true, act = gelu, pdrop = 0.1)
     rem(size, head) != 0 && error("size not divisible by head")
-    Gpt(size, head, div(size, head), ps, layer; max_len=max_len, trainable=trainable, act=act)
+    Gpt(size, head, div(size, head), ps, layer; max_len=max_len, trainable=trainable, act=act, pdrop=pdrop)
 end
 
-function Gpt(size::Int, head::Int, hs::Int, ps::Int, layer::Int; max_len::Int=512, trainable = true, act = gelu)
+function Gpt(size::Int, head::Int, hs::Int, ps::Int, layer::Int;
+             max_len::Int = 512, trainable = true, act = gelu, pdrop = 0.1)
     Gpt(PositionEmbedding(size, max_len; trainable=trainable),
-        Chain([Transformer(size, head, hs, ps; future=false, act=act) for i = 1:layer]...))
+        Chain([Transformer(size, head, hs, ps; future=false, act=act, pdrop=pdrop) for i = 1:layer]...),
+        Dropout(pdrop))
 end
 
 function (gpt::Gpt)(x, mask=nothing)
     pe = gpt.pe(x)
     e = broadcast_add(x, pe)
+    e = gpt.drop(e)
     t = gpt.ts(e)
     t = mask === nothing ? t : t .* mask
     t #size(t) == (size, seq_len, batch)

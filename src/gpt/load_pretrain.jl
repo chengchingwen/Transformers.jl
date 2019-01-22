@@ -69,7 +69,7 @@ function load_gpt_pretrain(n::Int=12;
     bpe = Bpe(joinpath(dirname(@__FILE__), "pretrain/vocab_40000.bpe"))
 
     embed = Embed(768, vocab, unksym)
-    gpt = Gpt(768, 12, 768*4, 12; max_len=512, trainable=true, act=gelu)
+    gpt = Gpt(768, 12, 768*4, 12; max_len=512, trainable=true, act=gelu, pdrop=0.1)
 
     pms = load_gpt_pretrain_params()
     loadparams!(embed, [hcat(pms[2], randn(768, 3))])
