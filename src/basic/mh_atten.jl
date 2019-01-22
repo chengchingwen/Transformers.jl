@@ -63,9 +63,9 @@ function (mh::MultiheadAttention)(query::ThreeDimArray{T},
     hs = div(h, mh.head)
 
     #size(ipq) == (hs, q_seq_len, head, batch)
-    ipq = permutedims_hack(reshape(ipq, :, mh.head, qs[2], qs[3]), [1, 3, 2, 4])
-    ipk = permutedims_hack(reshape(ipk, :, mh.head, ks[2], ks[3]), [1, 3, 2, 4])
-    ipv = permutedims_hack(reshape(ipv, :, mh.head, vs[2], vs[3]), [1, 3, 2, 4])
+    ipq = permutedims(reshape(ipq, :, mh.head, qs[2], qs[3]), [1, 3, 2, 4])
+    ipk = permutedims(reshape(ipk, :, mh.head, ks[2], ks[3]), [1, 3, 2, 4])
+    ipv = permutedims(reshape(ipv, :, mh.head, vs[2], vs[3]), [1, 3, 2, 4])
 
     #size(ipq) == (hs, q_seq_len, head * batch)
     ipq = reshape(ipq, size(ipq, 1), qs[2], :)
@@ -88,7 +88,7 @@ function (mh::MultiheadAttention)(query::ThreeDimArray{T},
     #               )
     # end
     # atten = cat(atten...; dims=3) #size(atten) == (hs, q_seq_len, head * batch)
-    atten = permutedims_hack(reshape(atten, hs, qs[2], mh.head, qs[3]), [1, 3, 2, 4]) #size(atten) == (hs, head, ql, b)
+    atten = permutedims(reshape(atten, hs, qs[2], mh.head, qs[3]), [1, 3, 2, 4]) #size(atten) == (hs, head, ql, b)
     atten = reshape(atten, h, :) #size(atten) == (h, ql*b)
 
     out = mh.oproj(atten)

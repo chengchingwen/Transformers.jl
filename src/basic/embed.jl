@@ -11,7 +11,7 @@ function getmask(ls)
     reshape(m, (1, size(m)...))
 end
 
-getmask(m1, m2) = permutedims_hack(m1, [2,1,3]) .* m2
+getmask(m1, m2) = permutedims(m1, [2,1,3]) .* m2
 
 struct Embed
     vocab

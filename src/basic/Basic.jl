@@ -3,7 +3,7 @@ module Basic
 using Flux
 using ..Transformers: device, get_ftype,
     ThreeDimArray, TwoDimArray, Container,
-    batchedmul, permutedims_hack
+    batchedmul
 
 export PositionEmbedding, Embed, getmask, broadcast_add
 export Transformer, TransformerDecoder
