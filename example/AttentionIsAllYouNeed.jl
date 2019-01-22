@@ -57,7 +57,7 @@ if args["task"] == "copy"
         global Batch
         println("start training")
         i = 1
-        for i = 1:320*7
+        for i = 1:320*15
             data = batched([gen_data() for i = 1:Batch])
             @time l = loss(data)
             @time back!(l)
@@ -104,24 +104,25 @@ embed = device(Embed(512, labels, unksym))
 function embedding(x)
     em, ma = embed(x)
     #sqrt(512) makes type unstable
-    em ./ convert(typeof(em.data[1]),sqrt(512)), ma
+    em ./ convert(eltype(em.data),sqrt(512)), ma
 end
 
 encoder = device(Stack(
-    NNTopo("e → pe:(e, pe) → x → $N"),
+    NNTopo("e → pe:(e, pe) → x → x → $N"),
     PositionEmbedding(512),
     broadcast_add,
+    Dropout(0.1),
     [Transformer(512, 8, 64, 2048) for i = 1:N]...
 ))
 
 decoder = device(Stack(
-    NNTopo("(e, m, mask):e → pe:(e, pe) → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c"),
+    NNTopo("(e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c"),
     PositionEmbedding(512),
     broadcast_add,
+    Dropout(0.1),
     [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
     Chain(Dense(512, length(labels)), logsoftmax3d)
 ))
-
 
 opt = ADAM(params(embed, encoder, decoder), lr; β2=0.98)
 
