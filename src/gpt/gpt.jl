@@ -29,7 +29,7 @@ end
 
 function (gpt::Gpt)(x, mask=nothing)
     pe = gpt.pe(x)
-    e = broadcast_add(x, pe)
+    e = x .+ pe
     e = gpt.drop(e)
     t = gpt.ts(e)
     t = mask === nothing ? t : t .* mask

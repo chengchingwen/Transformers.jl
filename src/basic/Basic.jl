@@ -5,7 +5,7 @@ using ..Transformers: device, get_ftype,
     ThreeDimArray, TwoDimArray, Container,
     batchedmul
 
-export PositionEmbedding, Embed, getmask, broadcast_add
+export PositionEmbedding, Embed, getmask
 export Transformer, TransformerDecoder
 
 export NNTopo, @nntopo_str, @nntopo
