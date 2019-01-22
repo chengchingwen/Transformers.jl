@@ -10,6 +10,7 @@ struct MultiheadAttention
     ikproj::Dense
     ivproj::Dense
     oproj::Dense
+    drop::Dropout
 end
 
 @treelike MultiheadAttention
@@ -17,12 +18,15 @@ end
 MultiheadAttention(head::Int,
                    is::Int,
                    hs::Int,
-                   os::Int; future::Bool=true) = MultiheadAttention(head,
-                                                                    future,
-                                                                    Dense(is, hs*head),
-                                                                    Dense(is, hs*head),
-                                                                    Dense(is, hs*head),
-                                                                    Dense(hs*head, os))
+                   os::Int;
+                   future::Bool=true, pdrop = 0.1) = MultiheadAttention(head,
+                                                                        future,
+                                                                        Dense(is, hs*head),
+                                                                        Dense(is, hs*head),
+                                                                        Dense(is, hs*head),
+                                                                        Dense(hs*head, os),
+                                                                        Dropout(pdrop),
+                                                                        )
 
 
 function Base.show(io::IO, mh::MultiheadAttention)
@@ -33,7 +37,13 @@ function Base.show(io::IO, mh::MultiheadAttention)
     print(io, "MultiheadAttention(")
     print(io, "head=$(mh.head), ")
     print(io, "head_size=$(hs), ")
-    print(io, "$(is)=>$(os))")
+    print(io, "$(is)=>$(os)")
+
+    if mh.drop.active
+        print(io, ", dropout=$(mh.drop.p))")
+    else
+        print(io, ")")
+    end
 end
 
 function (mh::MultiheadAttention)(query::ThreeDimArray{T},
@@ -67,7 +77,8 @@ function (mh::MultiheadAttention)(query::ThreeDimArray{T},
     atten = attention(ipq,ipk,ipv;
                       mask=mask,
                       #mask = mask === nothing ? mask : repeat(mask, inner=(1, 1, mh.head)),
-                      future=mh.future)
+                      future=mh.future,
+                      dropout=mh.drop)
     # atten = map(1:size(ipq, 3)) do i
     #     attention(ipq[:, :, i],
     #               ipk[:, :, i],
@@ -121,7 +132,7 @@ function (mh::MultiheadAttention)(query::TwoDimArray{T},
 
 
     # size(atten) == (head*hs, seq_len)
-    atten = map((q,k,v)->attention(q, k, v; mask=mask, future=mh.future), hq, hk, hv)
+    atten = map((q,k,v)->attention(q, k, v; mask=mask, future=mh.future, dropout=mh.drop), hq, hk, hv)
     atten = cat(atten...; dims=1)
 
     mh.oproj(atten)
@@ -130,7 +141,8 @@ end
 function attention(query::TwoDimArray{T},
                    key::TwoDimArray{T},
                    value::TwoDimArray{T};
-                   mask=nothing, future::Bool = false) where T
+                   mask=nothing, future::Bool = false,
+                   dropout=nothing) where T
     # size(query) == (dims, {q,k}_seq_len) == size(key) == size(value)
     # size(score) == (k_seq_len, q_seq_len)
     dk = size(key)[1]
@@ -151,13 +163,15 @@ function attention(query::TwoDimArray{T},
     end
 
     score = softmax(score)
+    dropout !== nothing && (score = dropout(score))
     value * score #size(return) == (dims, q_seq_len)
 end
 
 function attention(query::ThreeDimArray{T},
                    key::ThreeDimArray{T},
                    value::ThreeDimArray{T};
-                   mask=nothing, future::Bool = false) where T
+                   mask=nothing, future::Bool = false,
+                   dropout=nothing) where T
     #size(query) == (dims, {q,k}_seq_len, batch) == size(key) == size(value)
     #size(score) == (k_seq_len, q_seq_len, batch)
     dk = size(key, 1)
@@ -183,5 +197,6 @@ function attention(query::ThreeDimArray{T},
     end
 
     score = reshape(softmax(reshape(score, s[1], :)) , s)
+    dropout !== nothing && (score = dropout(score))
     batchedmul(value, score) #size(return) == (dims, q_seq_len, batch)
 end
