@@ -28,10 +28,6 @@ function use_gpu(use::Bool)
     end
 end
 
-
-#hack for gpu
-include("./fix/permutedims.jl")
-
 #implement batchmul for flux
 include("./fix/batchedmul.jl")
 

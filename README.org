@@ -8,8 +8,6 @@ Julia implementation of NLP models, that based on google [[https://arxiv.org/abs
 * Known issue
 There are some hack in the implementation, will be remove once these packages update.
 + some hack to make gpu work
-  + =permutedims_hack=: move gpu array back to cpu to do permutedims than move to gpu, 
-    due to performance issue on permutedims on =CuArray=.
   + =broadcast_add=: =.+= casue =CUDA too many resource requested error= on =Flux.back!=, 
     use =reshape= to avoid that error
 + =batchedmul=: Currently =Flux.jl= doesn't have a batched matrix multiply function, 
