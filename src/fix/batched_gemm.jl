@@ -17,7 +17,7 @@ for (gemm, elty) in
                                B::CuArrays.CuArray{$elty, 3},
                                beta::($elty),
                                C::CuArrays.CuArray{$elty, 3})
-            gemm_strided_batched!(transA, transB, alpha, A, B, beta, C)
+            CuArrays.CUBLAS.gemm_strided_batched!(transA, transB, alpha, A, B, beta, C)
         end
     end
 end
@@ -73,47 +73,3 @@ for (gemm, elty) in
 end
 
 
-#api for gemm_strided_batched!
-#can be remove when new CUBLAS.jl release
-for (fname, elty) in
-        ((:cublasDgemmStridedBatched,:Float64),
-         (:cublasSgemmStridedBatched,:Float32))
-    @eval begin
-      function gemm_strided_batched!(transA::Char,
-                               transB::Char,
-                               alpha::($elty),
-                               A::CuArrays.CuArray{$elty, 3},
-                               B::CuArrays.CuArray{$elty, 3},
-                               beta::($elty),
-                               C::CuArrays.CuArray{$elty, 3})
-           m = size(A, transA == 'N' ? 1 : 2)
-           k = size(A, transA == 'N' ? 2 : 1)
-           n = size(B, transB == 'N' ? 2 : 1)
-
-           @assert size(A, 3) == size(B, 3) == size(C, 3) "Batch size mismatch"
-
-           if m != size(C,1) || n != size(C,2) || k != size(B, transB == 'N' ? 1 : 2)
-               throw(DimensionMismatch(""))
-           end
-           cutransA = CuArrays.CUBLAS.cublasop(transA)
-           cutransB = CuArrays.CUBLAS.cublasop(transB)
-           lda = max(1,stride(A,2))
-           ldb = max(1,stride(B,2))
-           ldc = max(1,stride(C,2))
-
-           strideA = stride(A, 3)
-           strideB = stride(B, 3)
-           strideC = stride(C, 3)
-           batchCount = size(A, 3)
-           CuArrays.CUBLAS.@check ccall(($(string(fname)), CuArrays.libcublas), CuArrays.CUBLAS.cublasStatus_t,
-                        (CuArrays.CUBLAS.cublasHandle_t, CuArrays.CUBLAS.cublasOperation_t,
-                         CuArrays.CUBLAS.cublasOperation_t, Cint, Cint, Cint, Ptr{$elty},
-                         Ptr{$elty}, Cint, Cint, Ptr{$elty}, Cint, Cint, Ptr{$elty},
-                         Ptr{$elty}, Cint, Cint, Cint),
-                        CuArrays.CUBLAS.libcublas_handle[], cutransA,
-                        cutransB, m, n, k, [alpha], A, lda, strideA, B, ldb, strideB, [beta],
-                        C, ldc, strideC, batchCount)
-           C
-           end
-    end
-end
