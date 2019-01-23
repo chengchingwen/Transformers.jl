@@ -13,10 +13,10 @@ end
 
 getmask(m1, m2) = permutedims(m1, [2,1,3]) .* m2
 
-struct Embed
-    vocab
-    unk
-    embedding
+struct Embed{W, T}
+    vocab::Vector{T}
+    unk::T
+    embedding::W
 end
 
 @treelike Embed
@@ -33,7 +33,7 @@ end
 (e::Embed)(x) = e.embedding * device(onehotbatch(x, e.vocab, e.unk)), device(fill(1.0, (1, length(x))))
 function (e::Embed)(xs::Container)
     maxlen = maximum(map(length, xs))
-    cat([e.embedding * device(onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk)) for x ∈ xs]...;dims=3), device(getmask(xs))
+    cat([e.embedding * device(onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk)) for x ∈ xs]...;dims=3)::ThreeDimArray, device(getmask(xs))::ThreeDimArray
 end
 
 onehot(e::Embed, x) = device(onehotbatch(x, e.vocab, e.unk))
