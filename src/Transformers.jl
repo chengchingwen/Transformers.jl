@@ -31,6 +31,9 @@ end
 #implement batchmul for flux
 include("./fix/batchedmul.jl")
 
+#matmul for convenient and little performance gain
+include("./fix/matmul.jl")
+
 #implement of gelu for cpu and gpu
 include("./fix/gelu.jl")
 

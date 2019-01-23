@@ -94,7 +94,8 @@ function loss(x1, x2, y)
     p = vcat(p1, p2)
     cl = logcrossentropy(device(onehotbatch(y, anslabel)), p)
 
-    0.5lm + cl, p
+    #unstable type will cause performance issue
+    convert(get_ftype(), 0.5) * lm + cl, p
 end
 
 
