@@ -2,7 +2,8 @@
     borrow from https://github.com/Roger-luo/BatchedRoutines.jl
 """
 
-import LinearAlgebra: BLAS
+#import LinearAlgebra: BLAS
+import LinearAlgebra
 import CuArrays
 
 #batched CuArray gemm by BatchedRoutines.jl
@@ -34,7 +35,7 @@ for (gemm, elty) in
                                B::AbstractArray{$elty, 3},
                                beta::($elty),
                                C::AbstractArray{$elty, 3})
-            @assert !BLAS.has_offset_axes(A, B, C)
+            @assert !LinearAlgebra.BLAS.has_offset_axes(A, B, C)
             @assert size(A, 3) == size(B, 3) == size(C, 3) "batch size mismatch"
             m = size(A, transA == 'N' ? 1 : 2)
             ka = size(A, transA == 'N' ? 2 : 1)
@@ -43,20 +44,20 @@ for (gemm, elty) in
             if ka != kb || m != size(C,1) || n != size(C,2)
                 throw(DimensionMismatch("A has size ($m,$ka), B has size ($kb,$n), C has size $(size(C))"))
             end
-            BLAS.chkstride1(A)
-            BLAS.chkstride1(B)
-            BLAS.chkstride1(C)
+            LinearAlgebra.BLAS.chkstride1(A)
+            LinearAlgebra.BLAS.chkstride1(B)
+            LinearAlgebra.BLAS.chkstride1(C)
 
             ptrA = Base.unsafe_convert(Ptr{$elty}, A)
             ptrB = Base.unsafe_convert(Ptr{$elty}, B)
             ptrC = Base.unsafe_convert(Ptr{$elty}, C)
 
             for k in 1:size(A, 3)
-                ccall((BLAS.@blasfunc($gemm), BLAS.libblas), Cvoid,
-                    (Ref{UInt8}, Ref{UInt8}, Ref{BLAS.BlasInt}, Ref{BLAS.BlasInt},
-                     Ref{BLAS.BlasInt}, Ref{$elty}, Ptr{$elty}, Ref{BLAS.BlasInt},
-                     Ptr{$elty}, Ref{BLAS.BlasInt}, Ref{$elty}, Ptr{$elty},
-                     Ref{BLAS.BlasInt}),
+                ccall((LinearAlgebra.BLAS.@blasfunc($gemm), LinearAlgebra.BLAS.libblas), Cvoid,
+                    (Ref{UInt8}, Ref{UInt8}, Ref{LinearAlgebra.BLAS.BlasInt}, Ref{LinearAlgebra.BLAS.BlasInt},
+                     Ref{LinearAlgebra.BLAS.BlasInt}, Ref{$elty}, Ptr{$elty}, Ref{LinearAlgebra.BLAS.BlasInt},
+                     Ptr{$elty}, Ref{LinearAlgebra.BLAS.BlasInt}, Ref{$elty}, Ptr{$elty},
+                     Ref{LinearAlgebra.BLAS.BlasInt}),
                      transA, transB, m, n,
                      ka, alpha, ptrA, max(1,stride(A,2)),
                      ptrB, max(1,stride(B,2)), beta, ptrC,
