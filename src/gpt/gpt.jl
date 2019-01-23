@@ -3,6 +3,7 @@ using Flux: @treelike
 using ..Basic
 using ..Basic: onehot
 
+
 export Gpt, lmloss
 export load_gpt_pretrain
 
@@ -27,27 +28,28 @@ function Gpt(size::Int, head::Int, hs::Int, ps::Int, layer::Int;
         Dropout(pdrop))
 end
 
-function (gpt::Gpt)(x, mask=nothing)
+function (gpt::Gpt)(x::T, mask=nothing)::T where T
     pe = gpt.pe(x)
     e = x .+ pe
-    e = gpt.drop(e)
-    t = gpt.ts(e)
+    e = gpt.drop(e)::T
+    t = gpt.ts(e)::T
     t = mask === nothing ? t : t .* mask
     t #size(t) == (size, seq_len, batch)
 end
 
-function lmloss(embed, et, t::TwoDimArray, mask)
+function lmloss(embed::Embed, et, t::TwoDimArray, mask)
     t = t[:, 1:end-1]
-    sim = device(embed.embedding') * t
+    sim = matmul(embed.embedding * t; transA=true)
     logcrossentropy(et[:, 2:end], sim, mask[:, 2:end])
 end
 
-function lmloss(embed::Embed, et, t::ThreeDimArray, mask)
+function lmloss(embed::Embed, et, t::ThreeDimArray, mask)::eltype(t)
     t = t[:, 1:end-1, :]
     s = size(t)
-    sim = reshape(device(embed.embedding') * reshape(t, s[1], :), length(embed.vocab), s[2:end]...)
+    sim = reshape(matmul(embed.embedding, reshape(t, s[1], :); transA=true), :, s[2], s[3])
     #(vocab, seq_len*batch)
     logcrossentropy(et[:, 2:end, :], sim, mask[:, 2:end, :])
+    sum(sim)
 end
 
 function lmloss(gpt::Gpt, embed::Embed, x)

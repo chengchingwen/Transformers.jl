@@ -5,8 +5,8 @@ Julia implementation of NLP models, that based on google [[https://arxiv.org/abs
 + [[https://arxiv.org/abs/1706.03762][Attention is all you need]]
 + [[https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf][Improving Language Understanding by Generative Pre-Training]]
 
-* Known issue
-There are some hack in the implementation, will be remove once these packages update.
+* implementation detail
+There are some hack in the implementation, will be remove once packages update.
 + some hack to make gpu work
 + =batchedmul=: Currently =Flux.jl= doesn't have a batched matrix multiply function, 
   so I implement one.
@@ -15,7 +15,7 @@ There are some hack in the implementation, will be remove once these packages up
 
 * Roadmap
 + refactor code
-+ optimize performance *notice*: performance issue on Gpt model 
++ optimize performance
 + text related util functions
 + better dataset API
 + more datasets
