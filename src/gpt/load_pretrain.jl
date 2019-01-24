@@ -13,6 +13,8 @@ fixes some issues the spacy tokenizer had on books corpus
 also does some whitespace standardization
 """
 function text_standardize(text)
+    text = lowercase(text)
+    text = replace(text, r"([a-z])(,|\.)"=>s"\1 \2")
     text = replace(text, "—"=>"-")
     text = replace(text, "–"=>"-")
     text = replace(text, "―"=>"-")
@@ -28,18 +30,10 @@ end
 function load_gpt_pretrain_params()
     shapes = JSON.parsefile(joinpath(dirname(@__FILE__), "pretrain/params_shapes.json"))
     offsets = accumulate(+, prod.(shapes))
-    params = cat([npzread(joinpath(dirname(@__FILE__), "pretrain/params_$(i).npy")) for i = 0:9]..., dims=1)
+    shapes = map(s -> length(s) > 1 ? (s[end], s[end-1]) : s, shapes)
+    params = cat( [npzread(joinpath(dirname(@__FILE__), "pretrain/params_$(i).npy")) for i = 0:9]..., dims=1)
     params = [collect(reshape(selectdim(params, 1, a+1:b), s...)) for (a, b, s) in zip([0;offsets[1:end-1]], offsets, shapes)]
-    map(params, shapes) do p, s
-        l = length(s)
-        if l == 3
-            reshape(p, s[2:end]...)'
-        elseif l == 2
-            p'
-        else
-            p
-        end
-    end
+    params
 end
 
 # pm_name = (:pe, :embed, (
