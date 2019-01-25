@@ -39,7 +39,7 @@ function Transformer(size::Int, head::Int, ps::Int; future::Bool = true, act = r
 end
 
 Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true, act = relu, pdrop = 0.1) = Transformer(
-    MultiheadAttention(head, size, hs, size; future=future),
+    MultiheadAttention(head, size, hs, size; future=future, pdrop=pdrop),
     LayerNorm(get_ftype(), size),
     Positionwise(size, ps, act),
     LayerNorm(get_ftype(), size),
@@ -85,9 +85,9 @@ end
 @treelike TransformerDecoder
 
 TransformerDecoder(size, head, hs, ps; act = relu, pdrop = 0.1) = TransformerDecoder(
-    MultiheadAttention(head, size, hs, size; future=false),
+    MultiheadAttention(head, size, hs, size; future=false, pdrop=pdrop),
     LayerNorm(get_ftype(), size),
-    MultiheadAttention(head, size, hs, size; future=true),
+    MultiheadAttention(head, size, hs, size; future=true, pdrop=pdrop),
     LayerNorm(get_ftype(), size),
     Positionwise(size, ps, act),
     LayerNorm(get_ftype(), size),
