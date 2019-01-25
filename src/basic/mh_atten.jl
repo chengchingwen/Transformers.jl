@@ -124,14 +124,14 @@ function attention(query::TwoDimArray{T},
     score = score ./ convert(get_ftype(), sqrt(dk))
 
     if mask !== nothing
-        @. mask = (1 - mask) * -1e9
+        @. mask = (1 - mask) * convert(get_ftype(), -1e9)
         score = score .+ mask
     end
 
     if !future
         fmask = fill(convert(get_ftype(), 1), size(score))
         fmask .-= one(fmask)
-        fmask .= -1e9 .* collect(LowerTriangular(fmask))
+        fmask .= convert(get_ftype(), -1e9) .* collect(LowerTriangular(fmask))
         fmask = device(fmask)
         score = score .+ fmask
     end
@@ -165,7 +165,7 @@ function attention(query::ThreeDimArray{T},
     if !future
         fmask = fill(convert(get_ftype(), 1), s[1:end-1])
         fmask .-= one(fmask)
-        fmask .= -1e9 .* collect(LowerTriangular(fmask))
+        fmask .= convert(get_ftype(), -1e9) .* collect(LowerTriangular(fmask))
         fmask = device(fmask)
         score = score .+ fmask
     end
