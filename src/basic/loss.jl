@@ -2,11 +2,11 @@
 logkldivergence(q::ThreeDimArray{T},
                 logp::ThreeDimArray{T},
                 mask) where T =
-                    -sum(reshape(sum(sum(q .* (log.(q .+ eps(q[1])) .- logp); dims=1) .* mask; dims=2), :) ./ reshape(sum(mask; dims=2), :))
+                    sum(reshape(sum(sum(q .* (log.(q .+ eps(q[1])) .- logp); dims=1) .* mask; dims=2), :) ./ reshape(sum(mask; dims=2), :))
 
 function logkldivergence(q, logp, mask)
     kld = (q .* (log.(q .+ eps(q[1])) .- logp)) #handle gpu broadcast error
-    -sum(kld .* mask) / sum(mask)
+    sum(kld .* mask) / sum(mask)
 end
 
 "compute the cross entropy with mask where p is already the log(p)"
@@ -23,11 +23,11 @@ end
 "compute the kl divergence where p is already the log(p)"
 logkldivergence(q::ThreeDimArray{T},
                 logp::ThreeDimArray{T}) where T =
-                    -sum(reshape(sum(sum(q .* (log.(q .+ eps(q[1])) .- logp); dims=1); dims=2), :) ./ size(q, 2))
+                    sum(reshape(sum(sum(q .* (log.(q .+ eps(q[1])) .- logp); dims=1); dims=2), :) ./ size(q, 2))
 
 function logkldivergence(q, logp)
     kld = (q .* (log.(q .+ eps(q[1])) .- logp)) #handle gpu broadcast error
-    -sum(kld) / size(kld, 2)
+    sum(kld) / size(kld, 2)
 end
 
 "compute the cross entropy where p is already the log(p)"
