@@ -7,11 +7,12 @@ using ArgParse
 using Flux
 using Flux: onecold, onehotbatch
 using Flux.Tracker: back!
+import Flux.Optimise: _update_params!
 
 using BytePairEncoding
 
 using Transformers
-using Transformers.Basic: onehot, logcrossentropy
+using Transformers.Basic: onehot, crossentropy
 using Transformers.GenerativePreTrain
 using Transformers.Datasets: StoryCloze, Train, Test, batched
 
@@ -69,17 +70,16 @@ function transform(s1, s2, s3, s4, c1, c2, y)
 end
 
 function acc(p, y)
-    pred = onecold(p, anslabel)
+    pred = onecold(collect(p), anslabel)
     sum(pred .== y) / length(y)
 end
 
-function loss(x1, x2, y)
+@noinline function loss(x1, x2, y)
     e1, e1_mask = embed(x1)
     e2, e2_mask = embed(x2)
     t1 = gpt(e1, e1_mask)
     t2 = gpt(e2, e2_mask)
     lm = lmloss(embed, onehot(embed, x1), t1, e1_mask) + lmloss(embed, onehot(embed, x2), t2, e2_mask)
-
     c1 = hcat(map(enumerate(findfirst(isequal(clfsym), x) for x in x1)) do (i, ind)
               t1[:, ind, i]
               end...)
@@ -92,21 +92,20 @@ function loss(x1, x2, y)
     p1 = clf(c1 .* dm)
     p2 = clf(c2 .* dm)
     p = vcat(p1, p2)
-    cl = logcrossentropy(device(onehotbatch(y, anslabel)), p)
-
+    #logp = logsoftmax(p)
+    cl = crossentropy(device(one(get_ftype()) * onehotbatch(y, anslabel)), p)
     #unstable type will cause performance issue
     convert(get_ftype(), 0.5) * lm + cl, p
 end
 
-
 const rocs = StoryCloze()
-const opt = ADAMW(params(embed, gpt, clf), 6.25e-5; β2=0.98, decay=0.01)
-
-
+const ps = params(embed, gpt, clf)
+const opt = ADAM(6.25e-5)
 
 const Batch = 4
 
 function test()
+    Flux.testmode!(gpt)
     println("eval:")
     i::Int = 0
     al::Float64 = 0.
@@ -119,11 +118,13 @@ function test()
         al += a
         i += 1
     end
-    @show al / i
+    al /= i
+    Flux.testmode!(gpt, false)
+    @show al
 end
 
 function train!(epoch)
-    global Batch, rocs
+    global Batch, rocs, opt, ps
     for e = 1:epoch
         println("start training: $e")
         datas = dataset(Train, rocs)
@@ -132,12 +133,13 @@ function train!(epoch)
         while (batch = get_batch(datas, Batch)) !== nothing
             tdb = transform.(batch...)
             b1, b2, y = batched(tdb)
-            @time l, p = loss(b1, b2, y)
+            l, p = loss(b1, b2, y)
+            #@show l
             a = acc(p, y)
             al += a
-            @time back!(l)
+            back!(l)
             i+=1
-            i%8 == 0 && (opt())
+            i%8 == 0 && _update_params!(opt, ps)
             i%16==0 && @show al/i
         end
         test()

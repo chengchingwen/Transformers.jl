@@ -13,6 +13,10 @@ There are some hack in the implementation, will be remove once packages update.
   + =batched_gemm!=: borrow the implemetation from =BatchedRoutines.jl=
 + =gelu=: cpu & gpu version of =gelu=, can be remove when =NNlib.jl= & =CuArrays.jl= has one.
 
+* Issue
+Currently the code is really ugly, need refactor and test.
+
+
 * Roadmap
 + refactor code
 + optimize performance
