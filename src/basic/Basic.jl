@@ -11,6 +11,8 @@ export Transformer, TransformerDecoder
 export NNTopo, @nntopo_str, @nntopo
 export Stack, show_stackfunc, stack
 
+export @toNd
+
 export logkldivergence, logcrossentropy, logsoftmax3d
 
 include("./position_embed.jl")
