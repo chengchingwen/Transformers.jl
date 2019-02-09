@@ -9,15 +9,21 @@ and reshape back with reshape(out, :, input[n][2:end]...) where n is the n-th in
 
 """
 macro toNd(ex, outref::Int=1)
-    fname = ex.args[1]
+    fname = esc(ex.args[1])
     fkw = ex.args[2] isa Expr && ex.args[2].head == :parameters ? ex.args[2] : nothing
-    fargs = fkw === nothing ? ex.args[2:end] : ex.args[3:end]
+    fargs = esc.(fkw === nothing ? ex.args[2:end] : ex.args[3:end])
     fsize = map(x->Expr(:call, :size, x), fargs)
     rfargs = map((x, s) -> Expr(:call, :reshape, x, Expr(:ref, s, 1), :(:)), fargs, fsize)
     func = fkw === nothing ? Expr(:call, fname, rfargs...) : Expr(:call, fname, fkw, rfargs...)
     rsize = Expr(:ref, fsize[outref], Expr(:call , :(:), 2, :end))
     ret = Expr(:call, :reshape, func, :(:), Expr(:..., rsize))
-    Expr(:(::), ret, Expr(:call, :typeof, fargs[outref]))
+    sT = gensym(:T)
+    Expr(:(::), ret, Expr(:where,
+                          Expr(:curly, :AbstractArray,
+                               sT,
+                               Expr(:call, :ndims, fargs[outref])),
+                          sT)
+         )
 end
 
 
@@ -41,8 +47,5 @@ end
 
 
 logsoftmax3d(x) = logsoftmax(x)
-function logsoftmax3d(x::ThreeDimArray{T}) where T
-    s = size(x)
-    reshape(logsoftmax(reshape(x, s[1], :)), s)
-end
+logsoftmax3d(x::ThreeDimArray) = @toNd logsoftmax(x)
 
