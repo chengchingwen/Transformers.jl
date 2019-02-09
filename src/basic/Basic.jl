@@ -15,6 +15,7 @@ export @toNd
 
 export logkldivergence, logcrossentropy, logsoftmax3d
 
+include("./extend3d.jl")
 include("./position_embed.jl")
 include("./mh_atten.jl")
 include("./transformer.jl")
@@ -22,7 +23,7 @@ include("./topology.jl")
 include("./stack.jl")
 include("./embed.jl")
 include("./loss.jl")
-include("./extend3d.jl")
+
 
 
 end
