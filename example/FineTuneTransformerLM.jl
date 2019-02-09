@@ -74,7 +74,7 @@ function acc(p, y)
     sum(pred .== y) / length(y)
 end
 
-@noinline function loss(x1, x2, y)
+function loss(x1, x2, y)
     e1, e1_mask = embed(x1)
     e2, e2_mask = embed(x2)
     t1 = gpt(e1, e1_mask)

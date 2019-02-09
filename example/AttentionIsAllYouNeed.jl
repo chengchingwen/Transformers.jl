@@ -7,6 +7,7 @@ using ArgParse
 using Flux
 using Flux: onecold
 using Flux.Tracker: back!
+import Flux.Optimise: _update_params!
 
 using Transformers
 using Transformers.Basic: NNTopo
@@ -61,7 +62,7 @@ if args["task"] == "copy"
             data = batched([gen_data() for i = 1:Batch])
             @time l = loss(data)
             @time back!(l)
-            i%8 == 0 && (@show l; opt())
+            i%8 == 0 && (@show l; _update_params!(opt, ps))
         end
     end
 
@@ -90,7 +91,7 @@ elseif args["task"] == "wmt14"
             @time l = loss(batch)
             @time back!(l)
             i+=1
-            i%5 == 0 && (@show l; @time opt())
+            i%5 == 0 && (@show l; @time _update_params!(opt, ps))
         end
     end
 
@@ -124,7 +125,8 @@ decoder = device(Stack(
     Chain(Dense(512, length(labels)), logsoftmax3d)
 ))
 
-opt = ADAM(params(embed, encoder, decoder), lr; β2=0.98)
+ps = params(embed, encoder, decoder)
+opt = ADAM(lr)
 
 function smooth(et)
     global Smooth
