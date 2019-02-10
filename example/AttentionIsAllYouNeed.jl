@@ -7,7 +7,7 @@ using ArgParse
 using Flux
 using Flux: onecold
 using Flux.Tracker: back!
-import Flux.Optimise: _update_params!
+import Flux.Optimise: update!
 
 using Transformers
 using Transformers.Basic: NNTopo
@@ -62,7 +62,7 @@ if args["task"] == "copy"
             data = batched([gen_data() for i = 1:Batch])
             @time l = loss(data)
             @time back!(l)
-            i%8 == 0 && (@show l; _update_params!(opt, ps))
+            i%8 == 0 && (@show l; update!(opt, ps))
         end
     end
 
@@ -91,7 +91,7 @@ elseif args["task"] == "wmt14"
             @time l = loss(batch)
             @time back!(l)
             i+=1
-            i%5 == 0 && (@show l; @time _update_params!(opt, ps))
+            i%5 == 0 && (@show l; @time update!(opt, ps))
         end
     end
 
