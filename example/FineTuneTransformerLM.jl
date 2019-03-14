@@ -7,7 +7,7 @@ using ArgParse
 using Flux
 using Flux: onecold, onehotbatch
 using Flux.Tracker: back!
-import Flux.Optimise: _update_params!
+import Flux.Optimise: update!
 
 using BytePairEncoding
 
@@ -34,7 +34,7 @@ function parse_commandline()
             range_tester = x -> x ∈ ["rocstories"]
     end
 
-    return parse_args(s)
+    return parse_args(ARGS, s)
 end
 
 const args = parse_commandline()
@@ -139,7 +139,7 @@ function train!(epoch)
             al += a
             back!(l)
             i+=1
-            i%8 == 0 && _update_params!(opt, ps)
+            i%8 == 0 && update!(opt, ps)
             i%16==0 && @show al/i
         end
         test()
