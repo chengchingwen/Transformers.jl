@@ -12,7 +12,7 @@ import Flux.Optimise: update!
 using Transformers
 using Transformers.Basic: NNTopo
 using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot,
-                          logkldivergence, logsoftmax3d
+                          logkldivergence, Sequence
 using Transformers.Datasets: WMT, Train, batched
 
 
@@ -29,7 +29,7 @@ function parse_commandline()
             range_tester = x-> x ∈ ["wmt14", "copy"]
     end
 
-    return parse_args(s)
+    return parse_args(ARGS, s)
 end
 
 args = parse_commandline()
@@ -122,7 +122,7 @@ decoder = device(Stack(
     (e, pe) -> e .+ pe,
     Dropout(0.1),
     [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
-    Chain(Dense(512, length(labels)), logsoftmax3d)
+    Sequence(Dense(512, length(labels)), logsoftmax)
 ))
 
 ps = params(embed, encoder, decoder)

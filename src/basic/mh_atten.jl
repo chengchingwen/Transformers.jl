@@ -55,9 +55,9 @@ function (mh::MultiheadAttention)(query::ThreeDimArray{T},
     vs = size(value)
 
     #size(ipq) == (h, q_seq_len, batch)
-    ipq = mh.iqproj(query)
-    ipk = mh.ikproj(key)
-    ipv = mh.ivproj(value)
+    ipq = @toNd mh.iqproj(query)
+    ipk = @toNd mh.ikproj(key)
+    ipv = @toNd mh.ivproj(value)
 
     h = size(ipq, 1)
     hs = div(h, mh.head)
@@ -80,7 +80,7 @@ function (mh::MultiheadAttention)(query::ThreeDimArray{T},
     atten = permutedims(reshape(atten, hs, qs[2], mh.head, qs[3]), [1, 3, 2, 4]) #size(atten) == (hs, head, ql, b)
     atten = reshape(atten, h, qs[2], qs[3]) #size(atten) == (h, ql, b)
 
-    out = mh.oproj(atten)
+    out = @toNd mh.oproj(atten)
     out #size(out) == (h, q_seq_len, batch)
 end
 
@@ -170,7 +170,7 @@ function attention(query::ThreeDimArray{T},
         score = score .+ fmask
     end
 
-    score = reshape(softmax(reshape(score, s[1], :)) , s)
+    score = @toNd softmax(score) #reshape(softmax(reshape(score, s[1], :)) , s)
     dropout !== nothing && (score = dropout(score))
     batchedmul(value, score) #size(return) == (dims, q_seq_len, batch)
 end
