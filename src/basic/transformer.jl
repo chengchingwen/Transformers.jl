@@ -13,7 +13,6 @@ Positionwise(size::Int, h::Int, act = relu) = Positionwise(
     Dense(get_ftype(), h, size)
 )
 
-#(pw::Positionwise)(x::ThreeDimArray) = @toNd pw(x)
 function (pw::Positionwise)(x)::TwoDimArray
     # size(x) == (dims, seq_len)
     pw.dout(pw.din(x))
