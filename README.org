@@ -1,5 +1,6 @@
 * Transformers.jl
 Julia implementation of NLP models, that based on google [[https://arxiv.org/abs/1706.03762][transformer]], with [[https://github.com/FluxML/Flux.jl][Flux.jl]].
+For using the model, see =example= folder.
 
 * implemented model
 + [[https://arxiv.org/abs/1706.03762][Attention is all you need]]
@@ -14,14 +15,17 @@ There are some hack in the implementation, will be remove once packages update.
 + =gelu=: cpu & gpu version of =gelu=, can be remove when =NNlib.jl= & =CuArrays.jl= has one.
 
 * Issue
-Currently the code is really ugly, need refactor and test.
+Currently the code is really ugly, need refactor, test and docs.
 
 
 * Roadmap
++ write docs
++ write test
 + refactor code
 + optimize performance
 + text related util functions
 + better dataset API
 + more datasets
 + openai gpt model
++ openai gpt-2 model
 + google bert model
