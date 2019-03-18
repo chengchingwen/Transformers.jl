@@ -5,7 +5,7 @@ Reference: The origin code of GPT paper from openai (https://github.com/openai/f
 using ArgParse
 
 using Flux
-using Flux: onecold, onehotbatch
+using Flux: onecold, onehotbatch, logitcrossentropy
 using Flux.Tracker: back!
 import Flux.Optimise: update!
 
@@ -88,12 +88,12 @@ function loss(x1, x2, y)
               end...)
 
     drop = Dropout(0.1)
-    dm = device(drop(ones(get_ftype(), size(c1))))
-    p1 = clf(c1 .* dm)
-    p2 = clf(c2 .* dm)
+    p1 = clf(c1)
+    p2 = clf(c2)
     p = vcat(p1, p2)
-    #logp = logsoftmax(p)
-    cl = crossentropy(device(one(get_ftype()) * onehotbatch(y, anslabel)), p)
+    p = drop(p, 1)
+    # cl = crossentropy(device(one(get_ftype()) * onehotbatch(y, anslabel)), p)
+    cl = logitcrossentropy(p, device(one(get_ftype()) * onehotbatch(y, anslabel)))
     #unstable type will cause performance issue
     convert(get_ftype(), 0.5) * lm + cl, p
 end
