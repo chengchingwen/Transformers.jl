@@ -3,7 +3,7 @@ import Flux: gpu
 
 function getmask(ls)
     lens = map(length, ls)
-    m = zeros(maximum(lens), length(lens))
+    m = zeros(get_ftype(), maximum(lens), length(lens))
 
     for (i, l) ∈ enumerate(ls)
         selectdim(selectdim(m, 2, i), 1, 1:length(l)) .= 1
@@ -30,16 +30,16 @@ function Embed(size::Int, vocab, unk="</unk>")
     Embed(vocab, unk, param(randn(get_ftype(), size, length(vocab))))
 end
 
-(e::Embed)(x::Container) = e.embedding * device(onehotbatch(x, e.vocab, e.unk)), device(fill(1.0, (1, length(x))))
+(e::Embed)(x::Container) = e.embedding * device(onehotbatch(x, e.vocab, e.unk)), device(fill(1.0, (1, length(x))))::TwoDimArray
 function (e::Embed)(xs::Container{Vector{T}}) where T
     maxlen = maximum(map(length, xs))
     cat([e.embedding * device(onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk)) for x ∈ xs]...;dims=3)::ThreeDimArray, device(getmask(xs))::ThreeDimArray
 end
 
-onehot(e::Embed, x::Container) = device(onehotbatch(x, e.vocab, e.unk))
+onehot(e::Embed, x::Container) = device(onehotbatch(x, e.vocab, e.unk))::TwoDimArray
 function onehot(e::Embed, xs::Container{Vector{T}}) where T
     maxlen = maximum(map(length, xs))
-    device(cat([onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk) for x ∈ xs]...;dims=3))
+    device(cat([onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk) for x ∈ xs]...;dims=3))::ThreeDimArray
 end
 
 Base.show(io::IO, e::Embed) = print(io, "Embed($(size(e.embedding)[1]), vocab_size=$(length(e.vocab)), unk=$(e.unk))")
