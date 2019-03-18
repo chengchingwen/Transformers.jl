@@ -40,6 +40,9 @@ include("./fix/gelu.jl")
 #type parameter for layer
 include("./fix/type.jl")
 
+#dropout noise shape impl
+include("./fix/dropout.jl")
+
 include("./basic/Basic.jl")
 include("./datasets/Datasets.jl")
 
