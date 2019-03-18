@@ -41,11 +41,11 @@ function logcrossentropy(q, logp)
 end
 
 "compute the cross entropy"
-crossentropy(q::ThreeDimArray{T},
-             p::ThreeDimArray{T}) where T =
-                 -sum(reshape(sum(sum(q .* logsoftmax3d(p); dims=1); dims=2), :) ./ size(q, 2))
+# crossentropy(q::ThreeDimArray{T},
+#              p::ThreeDimArray{T}) where T =
+#                  -sum(reshape(sum(sum(q .* @toNd(logsoftmax(p)); dims=1); dims=2), :) ./ size(q, 2))
 
-function crossentropy(q, p)
-    ce = q .* logsoftmax(p)
-    -sum(ce) / size(ce, 2)
-end
+# function crossentropy(q, p)
+#     ce = q .* logsoftmax(p)
+#     -sum(ce) / size(ce, 2)
+# end
