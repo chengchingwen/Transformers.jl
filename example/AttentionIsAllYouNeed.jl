@@ -122,7 +122,7 @@ decoder = device(Stack(
     (e, pe) -> e .+ pe,
     Dropout(0.1),
     [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
-    Sequence(Dense(512, length(labels)), logsoftmax)
+    Sequence(Dense(get_ftype(), 512, length(labels)), logsoftmax)
 ))
 
 ps = params(embed, encoder, decoder)
