@@ -20,7 +20,6 @@ function download_gdrive(url, localdir)
     cmd = `sh $dgdst "$url" "$localdir"`
     filepath = chomp(read(cmd, String))
     filename = basename(filepath)
-    mv(joinpath(dirname(@__FILE__), filename), filepath)
     filepath
 end
 

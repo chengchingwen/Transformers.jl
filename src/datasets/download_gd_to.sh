@@ -3,5 +3,6 @@
 # curl -sc /tmp/gcokie "${1}"
 filename="$(curl -s -sc /tmp/gcokie "${1}" | grep -o '="uc-name.*</span>' | sed 's/.*">//;s/<.a> .*//')"
 getcode="$(awk '/_warning_/ {print $NF}' /tmp/gcokie)"
-curl -LOJb /tmp/gcokie "${1}&confirm=${getcode}"
+curl -s -LOJb /tmp/gcokie "${1}&confirm=${getcode}"
+mv "$filename" "${2}"
 echo "${2}/$filename"
