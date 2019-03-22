@@ -15,6 +15,7 @@ googlewmt_init() = register(DataDep(
     "https://drive.google.com/uc?export=download&id=0B_bZck-ksdkpM25jRUN2X2UxMm8",
     "86f7f6e0bab3259a34712b4c034dc933f406d6735ce03fd6de6b9ccb5191ce2e";
     fetch_method=download_gdrive,
+    post_fetch_method=DataDeps.unpack,
 ))
 
 struct GoogleWMT <: Dataset end
