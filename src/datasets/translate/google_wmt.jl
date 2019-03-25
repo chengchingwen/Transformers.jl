@@ -60,6 +60,6 @@ function get_vocab(::GoogleWMT; mode = :vocab)
         bpe = Bpe(vf; sepsym="@@", have_header=false)
         return bpe
     else
-        error("model should be one of :vocab and :bpe")
+        error("mode should be one of :vocab and :bpe")
     end
 end
