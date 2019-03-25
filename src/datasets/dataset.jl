@@ -64,3 +64,24 @@ function get_batch(cs::Container{C}, n=1) where C <: Channel
 end
 
 get_vocab(::D, args...; kwargs...) where D <: Dataset = (println("No prebuild vocab"); nothing)
+
+
+function token_freq(files...; vocab::Dict{String, Int} = Dict{String,Int}(), min_freq::Int = 3)
+    for f ∈ files
+        open(f) do fd
+            for line ∈ eachline(fd)
+                for token ∈ tokenize(line)
+                    token = intern(token)
+                    vocab[token] = get(vocab, token, 0) + 1
+                end
+            end
+        end
+    end
+
+    for key ∈ keys(vocab)
+        if vocab[key] < min_freq
+            delete!(vocab, key)
+        end
+    end
+    vocab
+end
