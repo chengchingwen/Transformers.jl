@@ -9,11 +9,13 @@ using Flux: onecold
 using Flux.Tracker: back!
 import Flux.Optimise: update!
 
+using WordTokenizers
+
 using Transformers
 using Transformers.Basic: NNTopo
 using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot,
                           logkldivergence, Sequence
-using Transformers.Datasets: WMT, Train, batched
+using Transformers.Datasets: WMT, IWSLT, Train, batched
 
 
 function parse_commandline()
@@ -26,7 +28,7 @@ function parse_commandline()
         "task"
             help = "task name"
             required = true
-            range_tester = x-> x ∈ ["wmt14", "copy"]
+            range_tester = x-> x ∈ ["wmt14", "iwslt2016", "copy"]
     end
 
     return parse_args(ARGS, s)
@@ -67,16 +69,26 @@ if args["task"] == "copy"
     end
 
     mkline(x) = [startsym, x..., endsym]
-elseif args["task"] == "wmt14"
+elseif args["task"] == "wmt14" || args["task"] == "iwslt2016"
     const N = 6
     const Smooth = 0.4
-    const Batch = 16
+    const Batch = 8
     const lr = 1e-6
+    const MaxLen = 100
 
-    wmt14 = WMT.GoogleWMT()
+    const task = args["task"]
 
-    datas = dataset(Train, wmt14)
-    vocab = get_vocab(wmt14)
+    if task == "wmt14"
+        wmt14 = WMT.GoogleWMT()
+
+        datas = dataset(Train, wmt14)
+        vocab = get_vocab(wmt14)
+    else
+        iwslt2016 = IWSLT.IWSLT2016(:en, :de)
+
+        datas = dataset(Train, iwslt2016)
+        vocab = get_vocab(iwslt2016)
+    end
 
     startsym = "<s>"
     endsym = "</s>"
@@ -95,7 +107,27 @@ elseif args["task"] == "wmt14"
         end
     end
 
-    mkline(x) = [startsym, split(x)..., endsym]
+    if task == "wmt14"
+        function mkline(x)
+            global MaxLen
+            xi = split(x)
+            if length(xi) > MaxLen
+                xi = xi[1:100]
+            end
+
+            [startsym, xi..., endsym]
+        end
+    else
+        function mkline(x)
+            global MaxLen
+            xi = tokenize(x)
+            if length(xi) > MaxLen
+                xi = xi[1:100]
+            end
+
+            [startsym, xi..., endsym]
+        end
+    end
 else
     error("task not define")
 end
@@ -173,3 +205,6 @@ function translate(x)
     end
     seq
 end
+
+
+train!()

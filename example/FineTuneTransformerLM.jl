@@ -146,4 +146,4 @@ function train!(epoch)
     end
 end
 
-#train!(args["epoch"])
+train!(args["epoch"])
