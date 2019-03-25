@@ -1,22 +1,25 @@
 
 # Table of Contents
 
-1.  [Transformers.jl](#org24a62fa)
-2.  [implemented model](#org8446635)
-3.  [implementation detail](#orgcf2de53)
-4.  [Issue](#org807c82d)
-5.  [Roadmap](#org8a12ea0)
+1.  [Transformers.jl](#org55bbbed)
+2.  [implemented model](#orge06cab7)
+3.  [Issue](#org4c758f8)
+4.  [Roadmap](#org3e70e94)
 
 
-<a id="org24a62fa"></a>
+<a id="org55bbbed"></a>
 
 # Transformers.jl
 
 Julia implementation of NLP models, that based on google [transformer](https://arxiv.org/abs/1706.03762), with [Flux.jl](https://github.com/FluxML/Flux.jl).
 For using the model, see `example` folder.
 
+Install:
 
-<a id="org8446635"></a>
+    ]add Transformers#master
+
+
+<a id="orge06cab7"></a>
 
 # implemented model
 
@@ -24,27 +27,14 @@ For using the model, see `example` folder.
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
 
-<a id="orgcf2de53"></a>
-
-# implementation detail
-
-There are some hack in the implementation, will be remove once packages update.
-
--   some hack to make gpu work
--   `batchedmul`: Currently `Flux.jl` doesn't have a batched matrix multiply function, 
-    so I implement one.
-    -   `batched_gemm!`: borrow the implemetation from `BatchedRoutines.jl`
--   `gelu`: cpu & gpu version of `gelu`, can be remove when `NNlib.jl` & `CuArrays.jl` has one.
-
-
-<a id="org807c82d"></a>
+<a id="org4c758f8"></a>
 
 # Issue
 
 Currently the code is really ugly, need refactor, test and docs.
 
 
-<a id="org8a12ea0"></a>
+<a id="org3e70e94"></a>
 
 # Roadmap
 
