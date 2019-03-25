@@ -2,21 +2,17 @@
 Julia implementation of NLP models, that based on google [[https://arxiv.org/abs/1706.03762][transformer]], with [[https://github.com/FluxML/Flux.jl][Flux.jl]].
 For using the model, see =example= folder.
 
+Install:
+#+BEGIN_EXAMPLE
+]add Transformers#master
+#+END_EXAMPLE
+
 * implemented model
 + [[https://arxiv.org/abs/1706.03762][Attention is all you need]]
 + [[https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf][Improving Language Understanding by Generative Pre-Training]]
 
-* implementation detail
-There are some hack in the implementation, will be remove once packages update.
-+ some hack to make gpu work
-+ =batchedmul=: Currently =Flux.jl= doesn't have a batched matrix multiply function, 
-  so I implement one.
-  + =batched_gemm!=: borrow the implemetation from =BatchedRoutines.jl=
-+ =gelu=: cpu & gpu version of =gelu=, can be remove when =NNlib.jl= & =CuArrays.jl= has one.
-
 * Issue
 Currently the code is really ugly, need refactor, test and docs.
-
 
 * Roadmap
 + write docs
