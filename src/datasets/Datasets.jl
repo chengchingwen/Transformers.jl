@@ -2,6 +2,8 @@ module Datasets
 
 using DataDeps
 using HTTP
+using InternedStrings
+using WordTokenizers
 
 using ..Transformers: Container
 
