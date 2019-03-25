@@ -3,6 +3,7 @@ using DataDeps
 
 using ..Datasets: Dataset
 import ..Datasets: testfile, devfile, trainfile
+import ..Datasets: token_freq, get_vocab
 
 export IWSLT2016
 
