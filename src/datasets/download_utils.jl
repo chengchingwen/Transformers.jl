@@ -12,16 +12,16 @@ function unshortlink(url)
     m === nothing ? url : m.captures[1]
 end
 
-"drive.google.com"
-const dgdst = joinpath(dirname(@__FILE__), "download_gd_to.sh")
-
-"download from google drive"
-function download_gdrive(url, localdir)
-    cmd = `sh $dgdst "$url" "$localdir"`
-    filepath = chomp(read(cmd, String))
-    filename = basename(filepath)
-    filepath
-end
+# "drive.google.com"
+# const dgdst = joinpath(dirname(@__FILE__), "download_gd_to.sh")
+#
+# "download from google drive"
+# function download_gdrive(url, localdir)
+#     cmd = `sh $dgdst "$url" "$localdir"`
+#     filepath = chomp(read(cmd, String))
+#     filename = basename(filepath)
+#     filepath
+# end
 
 isgooglesheet(url) = occursin("docs.google.com/spreadsheets", url)
 isgoogledrive(url) = occursin("drive.google.com", url)
@@ -47,4 +47,39 @@ function mybegoogle_download(url, localdir)
     else
         DataDeps.fetch_http(long_url, localdir)
     end
+end
+
+function find_gcode(ckj)
+    for cookie ∈ ckj
+        if match(r"_warning_", cookie.name) !== nothing
+            return cookie.value
+        end
+    end
+
+    nothing
+end
+
+
+function download_gdrive(url, localdir)
+    rq = HTTP.request("GET", url; cookies=true)
+    ckj = HTTP.CookieRequest.default_cookiejar["drive.google.com"]
+    gcode = find_gcode(ckj)
+    @assert gcode !== nothing
+
+    rq = HTTP.request("GET", "$url&confirm=$gcode"; cookies=true)
+    hcd = HTTP.header(rq, "Content-Disposition")
+    m = match(r"filename=\\\"(.*)\\\"", hcd)
+    if m === nothing
+        filename = "gdrive_downloaded"
+    else
+        filename = m.captures[]
+    end
+
+    filepath = joinpath(localdir, filename)
+
+    open(filepath, "w+") do f
+        write(f, rq.body)
+    end
+
+    filepath
 end

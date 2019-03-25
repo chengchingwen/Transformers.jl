@@ -1,6 +1,7 @@
 module Datasets
 
 using DataDeps
+using HTTP
 
 using ..Transformers: Container
 
