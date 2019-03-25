@@ -138,3 +138,15 @@ end
 
 devfile(iw::IWSLT2016, year=2010; tedx = false) = tunefile(iw, true, year; tedx=tedx)
 testfile(iw::IWSLT2016, year=2010; tedx = false) = tunefile(iw, false, year; tedx=tedx)
+
+
+function get_vocab(iw::IWSLT2016; mode = :vocab, min_freq = 7)
+    if mode == :vocab
+        sf, rf = trainfile(iw)
+        vocab = token_freq(sf, rf; min_freq = min_freq)
+
+        return vocab
+    else
+        error("mode should be one of :vocab")
+    end
+end
