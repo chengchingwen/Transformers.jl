@@ -5,6 +5,9 @@ For using the model, see =example= folder.
 Install:
 #+BEGIN_EXAMPLE
 ]add Transformers#master
+
+#Currently the Dataset need the HTTP#master to download
+]add HTTP#master
 #+END_EXAMPLE
 
 * implemented model
