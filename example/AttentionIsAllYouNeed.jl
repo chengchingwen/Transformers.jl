@@ -15,6 +15,7 @@ using Transformers
 using Transformers.Basic: NNTopo
 using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot,
                           logkldivergence, Sequence
+using Transformers.Datasets
 using Transformers.Datasets: WMT, IWSLT, Train, batched
 
 
@@ -63,8 +64,11 @@ if args["task"] == "copy"
         for i = 1:320*15
             data = batched([gen_data() for i = 1:Batch])
             @time l = loss(data)
-            @time back!(l)
-            i%8 == 0 && (@show l; update!(opt, ps))
+            #@time back!(l)
+            @time grad = Tracker.gradient(()->l, ps)
+            #i%8 == 0 && (@show l; update!(opt, ps, grad))
+            i%8 == 0 && @show l
+            update!(opt, ps, grad)
         end
     end
 
@@ -101,9 +105,11 @@ elseif args["task"] == "wmt14" || args["task"] == "iwslt2016"
         i = 1
         while (batch = get_batch(datas, Batch)) != []
             @time l = loss(batch)
-            @time back!(l)
+            #@time back!(l)
+            @time grad = Tracker.gradient(()->l, ps)
             i+=1
-            i%5 == 0 && (@show l; @time update!(opt, ps))
+            #i%5 == 0 &&
+            (@show l; @time update!(opt, ps, grad))
         end
     end
 
@@ -199,7 +205,8 @@ function translate(x)
     for i = 1:2len
         trg, _ = embedding(seq)
         dec = decoder(trg, enc, nothing)
-        ntok = onecold(dec, labels)
+        #move back to gpu due to argmax wrong result on CuArrays
+        ntok = onecold(collect(dec), labels)
         push!(seq, ntok[end])
         ntok[end] == endsym && break
     end
@@ -207,4 +214,4 @@ function translate(x)
 end
 
 
-train!()
+#train!()
