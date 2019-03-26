@@ -91,10 +91,9 @@ function loss(x1, x2, y)
     p2 = clf(c2)
     p = vcat(p1, p2)
     p = drop(p, 1)
-    # cl = crossentropy(device(one(get_ftype()) * onehotbatch(y, anslabel)), p)
-    cl = logitcrossentropy(p, device(one(get_ftype()) * onehotbatch(y, anslabel)))
+    cl = logitcrossentropy(p, device(one(Float32) * onehotbatch(y, anslabel)))
     #unstable type will cause performance issue
-    convert(get_ftype(), 0.5) * lm + cl, p
+    convert(Float32, 0.5) * lm + cl, p
 end
 
 const rocs = StoryCloze()
