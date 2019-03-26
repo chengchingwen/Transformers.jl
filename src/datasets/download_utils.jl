@@ -12,17 +12,6 @@ function unshortlink(url)
     m === nothing ? url : m.captures[1]
 end
 
-# "drive.google.com"
-# const dgdst = joinpath(dirname(@__FILE__), "download_gd_to.sh")
-#
-# "download from google drive"
-# function download_gdrive(url, localdir)
-#     cmd = `sh $dgdst "$url" "$localdir"`
-#     filepath = chomp(read(cmd, String))
-#     filename = basename(filepath)
-#     filepath
-# end
-
 isgooglesheet(url) = occursin("docs.google.com/spreadsheets", url)
 isgoogledrive(url) = occursin("drive.google.com", url)
 
