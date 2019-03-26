@@ -5,14 +5,13 @@ Reference: The origin code of GPT paper from openai (https://github.com/openai/f
 using ArgParse
 
 using Flux
-using Flux: onecold, onehotbatch, logitcrossentropy
-using Flux.Tracker: back!
+using Flux: onecold, gradient, onehotbatch, logitcrossentropy
 import Flux.Optimise: update!
 
 using BytePairEncoding
 
 using Transformers
-using Transformers.Basic: onehot, crossentropy
+using Transformers.Basic: onehot
 using Transformers.GenerativePreTrain
 using Transformers.Datasets: StoryCloze, Train, Test, batched
 
@@ -137,9 +136,9 @@ function train!(epoch)
             #@show l
             a = acc(p, y)
             al += a
-            back!(l)
+            grad = gradient(()->l, ps)
             i+=1
-            i%8 == 0 && update!(opt, ps)
+            update!(opt, ps, grad)
             i%16==0 && @show al/i
         end
         test()

@@ -5,8 +5,7 @@ Reference: The Annotated Transformer (http://nlp.seas.harvard.edu/2018/04/03/att
 using ArgParse
 
 using Flux
-using Flux: onecold
-using Flux.Tracker: back!
+using Flux: onecold, gradient
 import Flux.Optimise: update!
 
 using WordTokenizers
@@ -64,9 +63,7 @@ if args["task"] == "copy"
         for i = 1:320*15
             data = batched([gen_data() for i = 1:Batch])
             @time l = loss(data)
-            #@time back!(l)
-            @time grad = Tracker.gradient(()->l, ps)
-            #i%8 == 0 && (@show l; update!(opt, ps, grad))
+            @time grad = gradient(()->l, ps)
             i%8 == 0 && @show l
             update!(opt, ps, grad)
         end
@@ -106,7 +103,7 @@ elseif args["task"] == "wmt14" || args["task"] == "iwslt2016"
         while (batch = get_batch(datas, Batch)) != []
             @time l = loss(batch)
             #@time back!(l)
-            @time grad = Tracker.gradient(()->l, ps)
+            @time grad = gradient(()->l, ps)
             i+=1
             #i%5 == 0 &&
             (@show l; @time update!(opt, ps, grad))
@@ -214,4 +211,4 @@ function translate(x)
 end
 
 
-#train!()
+train!()
