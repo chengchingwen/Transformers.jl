@@ -67,7 +67,7 @@ function load_gpt_pretrain(n::Int=12;
 
     pms = load_gpt_pretrain_params()
     loadparams!(embed, [hcat(pms[2],
-                             randn(768, 3) .* convert(get_ftype(), 0.02))])
+                             randn(768, 3) .* 0.02)])
     loadparams!(gpt.pe, [pms[1]])
     for i = 1:n
         mhW = pms[12(i-1) + 3]

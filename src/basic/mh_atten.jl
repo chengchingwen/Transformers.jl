@@ -21,10 +21,10 @@ MultiheadAttention(head::Int,
                    os::Int;
                    future::Bool=true, pdrop = 0.1) = MultiheadAttention(head,
                                                                         future,
-                                                                        Dense(get_ftype(), is, hs*head),
-                                                                        Dense(get_ftype(), is, hs*head),
-                                                                        Dense(get_ftype(), is, hs*head),
-                                                                        Dense(get_ftype(), hs*head, os),
+                                                                        Dense(is, hs*head),
+                                                                        Dense(is, hs*head),
+                                                                        Dense(is, hs*head),
+                                                                        Dense(hs*head, os),
                                                                         Dropout(pdrop),
                                                                         )
 
@@ -121,17 +121,17 @@ function attention(query::TwoDimArray{T},
     # size(score) == (k_seq_len, q_seq_len)
     dk = size(key)[1]
     score = matmul(key, query; transA = true)
-    score = score ./ convert(get_ftype(), sqrt(dk))
+    score = score ./ convert(T, sqrt(dk))
 
     if mask !== nothing
-        @. mask = (1 - mask) * convert(get_ftype(), -1e9)
+        @. mask = (1 - mask) * convert(T, -1e9)
         score = score .+ mask
     end
 
     if !future
-        fmask = fill(convert(get_ftype(), 1), size(score))
+        fmask = fill(convert(T, 1), size(score))
         fmask .-= one(fmask)
-        fmask .= convert(get_ftype(), -1e9) .* collect(LowerTriangular(fmask))
+        fmask .= convert(T, -1e9) .* collect(LowerTriangular(fmask))
         fmask = device(fmask)
         score = score .+ fmask
     end
@@ -150,22 +150,22 @@ function attention(query::ThreeDimArray{T},
     #size(score) == (k_seq_len, q_seq_len, batch)
     dk = size(key, 1)
     score = batchedmul(key, query; transA = true)
-    score = score ./ convert(get_ftype(), sqrt(dk))
+    score = score ./ convert(T, sqrt(dk))
 
     s = size(score)
 
     if mask !== nothing
         #weird issue on @. mask = (1 - mask) * -1e9 which casue mask to be -Inf
-        mask = (1 .- mask) .* convert(get_ftype(), -1e9)
+        mask = (1 .- mask) .* convert(T, -1e9)
         ms = size(mask)
         #score = score .+ mask; use broadcast instead of repeat mask for head
         score = reshape(reshape(score, s[1:end-1]..., :, ms[end]) .+ reshape(mask, ms[1:end-1]..., 1, ms[end]), s)
     end
 
     if !future
-        fmask = fill(convert(get_ftype(), 1), s[1:end-1])
+        fmask = fill(convert(T, 1), s[1:end-1])
         fmask .-= one(fmask)
-        fmask .= convert(get_ftype(), -1e9) .* collect(LowerTriangular(fmask))
+        fmask .= convert(T, -1e9) .* collect(LowerTriangular(fmask))
         fmask = device(fmask)
         score = score .+ fmask
     end

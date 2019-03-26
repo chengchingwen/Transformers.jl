@@ -140,7 +140,7 @@ embed = device(Embed(512, labels, unksym))
 function embedding(x)
     em, ma = embed(x)
     #sqrt(512) makes type unstable
-    em ./ convert(get_ftype(), sqrt(512)), ma
+    em ./ convert(Float32, sqrt(512)), ma
 end
 
 encoder = device(Stack(
@@ -157,7 +157,7 @@ decoder = device(Stack(
     (e, pe) -> e .+ pe,
     Dropout(0.1),
     [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
-    Sequence(Dense(get_ftype(), 512, length(labels)), logsoftmax)
+    Sequence(Dense(512, length(labels)), logsoftmax)
 ))
 
 ps = params(embed, encoder, decoder)
@@ -167,7 +167,7 @@ function smooth(et)
     global Smooth
     sm = device(fill(Smooth/length(embed.vocab), size(et)))
     p = sm .* (1 .+ -et)
-    label = p .+ et .* (1 - convert(get_ftype(), Smooth))
+    label = p .+ et .* (1 - convert(Float32, Smooth))
     label
 end
 

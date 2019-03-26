@@ -1,7 +1,7 @@
 module Basic
 
 using Flux
-using ..Transformers: device, get_ftype,
+using ..Transformers: device,
     ThreeDimArray, TwoDimArray, Container,
     batchedmul, matmul
 

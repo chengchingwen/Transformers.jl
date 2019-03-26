@@ -18,9 +18,9 @@ end
 
 function PositionEmbedding(size::Int, max_len::Int = 1024; trainable::Bool = false)
     if trainable
-        embedding = param(randn(get_ftype(), size, max_len))
+        embedding = param(randn(Float32, size, max_len))
     else
-        embedding = Matrix{get_ftype()}(undef, size, max_len)
+        embedding = Matrix{Float32}(undef, size, max_len)
         for l = 1:max_len
             map!(i->PE(size, l, i), selectdim(embedding, 2, l), 1:size)
         end
@@ -36,7 +36,7 @@ function (pe::PositionEmbedding)(x)
         if pe.trainable
             error("position embedding length exceeded")
         else
-            over = Matrix{get_ftype()}(undef, size(pe.embedding, 1), len)
+            over = similar(pe.embedding, size(pe.embedding, 1), len)
             selectdim(over, 2, 1:size(pe.embedding, 2)) .= pe.embedding
 
             for l = size(pe.embedding, 2)+1:len
