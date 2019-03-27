@@ -165,7 +165,7 @@ opt = ADAM(lr)
 
 function smooth(et)
     global Smooth
-    sm = device(fill(Smooth/length(embed.vocab), size(et)))
+    sm = fill!(similar(et), Smooth/length(embed.vocab))
     p = sm .* (1 .+ -et)
     label = p .+ et .* (1 - convert(Float32, Smooth))
     label
