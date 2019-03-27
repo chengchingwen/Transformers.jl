@@ -43,7 +43,7 @@ function (pe::PositionEmbedding)(x)
                 map!(i->PE(size(pe.embedding, 1), l, i), selectdim(over, 2, l), 1:size(pe.embedding, 1))
             end
 
-            pe.embedding = device(over)
+            pe.embedding = over
         end
     end
     pe.embedding[:, 1:len]
