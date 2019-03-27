@@ -4,7 +4,7 @@ For using the model, see =example= folder.
 
 Install:
 #+BEGIN_EXAMPLE
-]add Transformers#master
+]add Transformers
 
 #Currently the Dataset need the HTTP#master to download
 ]add HTTP#master
@@ -21,6 +21,8 @@ Currently the code is really ugly, need refactor, test and docs.
 + write docs
 + write test
 + refactor code
++ better embedding functions
++ lazy CuArrays loading
 + optimize performance
 + text related util functions
 + better dataset API
