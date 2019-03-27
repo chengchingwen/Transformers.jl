@@ -1,13 +1,13 @@
 
 # Table of Contents
 
-1.  [Transformers.jl](#orgb2bedeb)
-2.  [implemented model](#org51e63fb)
-3.  [Issue](#orgf87b327)
-4.  [Roadmap](#org201ee68)
+1.  [Transformers.jl](#org5853523)
+2.  [implemented model](#org8c7be0a)
+3.  [Issue](#orga4198ca)
+4.  [Roadmap](#org9151d19)
 
 
-<a id="orgb2bedeb"></a>
+<a id="org5853523"></a>
 
 # Transformers.jl
 
@@ -16,13 +16,13 @@ For using the model, see `example` folder.
 
 Install:
 
-    ]add Transformers#master
+    ]add Transformers
     
     #Currently the Dataset need the HTTP#master to download
     ]add HTTP#master
 
 
-<a id="org51e63fb"></a>
+<a id="org8c7be0a"></a>
 
 # implemented model
 
@@ -30,20 +30,22 @@ Install:
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
 
-<a id="orgf87b327"></a>
+<a id="orga4198ca"></a>
 
 # Issue
 
 Currently the code is really ugly, need refactor, test and docs.
 
 
-<a id="org201ee68"></a>
+<a id="org9151d19"></a>
 
 # Roadmap
 
 -   write docs
 -   write test
 -   refactor code
+-   better embedding functions
+-   lazy CuArrays loading
 -   optimize performance
 -   text related util functions
 -   better dataset API
