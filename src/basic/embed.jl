@@ -33,13 +33,13 @@ end
 (e::Embed)(x::Container) = e.embedding * device(onehotbatch(x, e.vocab, e.unk)), device(fill(1.0, (1, length(x))))::AbstractMatrix
 function (e::Embed)(xs::Container{Vector{T}}) where T
     maxlen = maximum(map(length, xs))
-    cat([e.embedding * device(onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk)) for x ∈ xs]...;dims=3)::ThreeDimArray, device(getmask(xs))::ThreeDimArray
+    cat([e.embedding * device(onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk)) for x ∈ xs]...;dims=3)::Abstract3DTensor, device(getmask(xs))::Abstract3DTensor
 end
 
 onehot(e::Embed, x::Container) = device(onehotbatch(x, e.vocab, e.unk))::AbstractMatrix
 function onehot(e::Embed, xs::Container{Vector{T}}) where T
     maxlen = maximum(map(length, xs))
-    device(cat([onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk) for x ∈ xs]...;dims=3))::ThreeDimArray
+    device(cat([onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk) for x ∈ xs]...;dims=3))::Abstract3DTensor
 end
 
 Base.show(io::IO, e::Embed) = print(io, "Embed($(size(e.embedding)[1]), vocab_size=$(length(e.vocab)), unk=$(e.unk))")

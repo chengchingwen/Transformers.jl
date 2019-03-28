@@ -43,7 +43,7 @@ function lmloss(embed::Embed, et, t::AbstractMatrix, mask)
     logcrossentropy(et[:, 2:end], sim, mask[:, 2:end])
 end
 
-function lmloss(embed::Embed, et, t::ThreeDimArray, mask)::eltype(t)
+function lmloss(embed::Embed, et, t::Abstract3DTensor, mask)::eltype(t)
     t = t[:, 1:end-1, :]
     s = size(t)
     sim = logsoftmax(matmul(embed.embedding, reshape(t, s[1], :); transA=true)) #(vocab, seq_len*batch)
