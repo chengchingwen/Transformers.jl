@@ -46,9 +46,9 @@ function Base.show(io::IO, mh::MultiheadAttention)
     end
 end
 
-function (mh::MultiheadAttention)(query::ThreeDimArray{T},
-                                  key::ThreeDimArray{T},
-                                  value::ThreeDimArray{T};
+function (mh::MultiheadAttention)(query::Abstract3DTensor{T},
+                                  key::Abstract3DTensor{T},
+                                  value::Abstract3DTensor{T};
                                   mask=nothing) where T
     qs = size(query)
     ks = size(key)
@@ -140,9 +140,9 @@ function attention(query::AbstractMatrix{T},
     matmul(value, score) #size(return) == (dims, q_seq_len)
 end
 
-function attention(query::ThreeDimArray{T},
-                   key::ThreeDimArray{T},
-                   value::ThreeDimArray{T};
+function attention(query::Abstract3DTensor{T},
+                   key::Abstract3DTensor{T},
+                   value::Abstract3DTensor{T};
                    mask=nothing, future::Bool = false,
                    dropout=nothing) where T
     #size(query) == (dims, {q,k}_seq_len, batch) == size(key) == size(value)

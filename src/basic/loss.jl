@@ -1,6 +1,6 @@
 "compute the kl divergence with mask where p is already the log(p)"
-logkldivergence(q::ThreeDimArray{T},
-                logp::ThreeDimArray{T},
+logkldivergence(q::Abstract3DTensor{T},
+                logp::Abstract3DTensor{T},
                 mask) where T =
                     sum(reshape(sum(sum(q .* (log.(q .+ eps(q[1])) .- logp); dims=1) .* mask; dims=2), :) ./ reshape(sum(mask; dims=2), :))
 
@@ -10,8 +10,8 @@ function logkldivergence(q, logp, mask)
 end
 
 "compute the cross entropy with mask where p is already the log(p)"
-logcrossentropy(q::ThreeDimArray{T},
-                logp::ThreeDimArray{T},
+logcrossentropy(q::Abstract3DTensor{T},
+                logp::Abstract3DTensor{T},
                 mask) where T =
                     -sum(reshape(sum(sum(q .* logp; dims=1) .* mask; dims=2), :) ./ reshape(sum(mask; dims=2), :))
 
@@ -21,8 +21,8 @@ function logcrossentropy(q, logp, mask)
 end
 
 "compute the kl divergence where p is already the log(p)"
-logkldivergence(q::ThreeDimArray{T},
-                logp::ThreeDimArray{T}) where T =
+logkldivergence(q::Abstract3DTensor{T},
+                logp::Abstract3DTensor{T}) where T =
                     sum(reshape(sum(sum(q .* (log.(q .+ eps(q[1])) .- logp); dims=1); dims=2), :) ./ size(q, 2))
 
 function logkldivergence(q, logp)
@@ -31,8 +31,8 @@ function logkldivergence(q, logp)
 end
 
 "compute the cross entropy where p is already the log(p)"
-logcrossentropy(q::ThreeDimArray{T},
-                logp::ThreeDimArray{T}) where T =
+logcrossentropy(q::Abstract3DTensor{T},
+                logp::Abstract3DTensor{T}) where T =
                     -sum(reshape(sum(sum(q .* logp; dims=1); dims=2), :) ./ size(q, 2))
 
 function logcrossentropy(q, logp)
@@ -41,8 +41,8 @@ function logcrossentropy(q, logp)
 end
 
 "compute the cross entropy"
-# crossentropy(q::ThreeDimArray{T},
-#              p::ThreeDimArray{T}) where T =
+# crossentropy(q::Abstract3DTensor{T},
+#              p::Abstract3DTensor{T}) where T =
 #                  -sum(reshape(sum(sum(q .* @toNd(logsoftmax(p)); dims=1); dims=2), :) ./ size(q, 2))
 
 # function crossentropy(q, p)

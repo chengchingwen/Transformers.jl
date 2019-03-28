@@ -5,7 +5,7 @@ using Flux.Tracker: TrackedArray, track, data, @grad
 
 const Tracked3D{T,A} = TrackedArray{T,3,A}
 
-function batchedmul(a::ThreeDimArray{T}, b::ThreeDimArray{T};
+function batchedmul(a::Abstract3DTensor{T}, b::Abstract3DTensor{T};
                     transA::Bool = false, transB::Bool = false) where {T}
     (bs = size(a, 3)) == size(b, 3) || error("batch size mismatch")
     res = similar(a, size(a, transA ? 2 : 1), size(b, transB ? 1 : 2), bs)
@@ -13,7 +13,7 @@ function batchedmul(a::ThreeDimArray{T}, b::ThreeDimArray{T};
     return res
 end
 
-function batched_mul!(C::ThreeDimArray{T}, A::ThreeDimArray{T}, B::ThreeDimArray{T};
+function batched_mul!(C::Abstract3DTensor{T}, A::Abstract3DTensor{T}, B::Abstract3DTensor{T};
                       transA::Bool = false, transB::Bool = false) where T
     At = transA ? 'T' : 'N'
     Bt = transB ? 'T' : 'N'
@@ -22,10 +22,10 @@ function batched_mul!(C::ThreeDimArray{T}, A::ThreeDimArray{T}, B::ThreeDimArray
 end
 
 batchedmul(a::Tracked3D, b::Tracked3D; kw...) = track(batchedmul, a, b; kw...)
-batchedmul(a::ThreeDimArray, b::Tracked3D; kw...) = track(batchedmul, a, b; kw...)
-batchedmul(a::Tracked3D, b::ThreeDimArray; kw...) = track(batchedmul, a, b; kw...)
+batchedmul(a::Abstract3DTensor, b::Tracked3D; kw...) = track(batchedmul, a, b; kw...)
+batchedmul(a::Tracked3D, b::Abstract3DTensor; kw...) = track(batchedmul, a, b; kw...)
 
-@grad function batchedmul(a::ThreeDimArray, b::ThreeDimArray; transA::Bool = false, transB::Bool = false)
+@grad function batchedmul(a::Abstract3DTensor, b::Abstract3DTensor; transA::Bool = false, transB::Bool = false)
     batchedmul(data(a), data(b); transA=transA, transB=transB),
     if transA
         if transB

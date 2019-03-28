@@ -10,7 +10,7 @@ export dataset, datafile, get_batch, get_vocab
 
 export Gpt, load_gpt_pretrain, lmloss
 
-const ThreeDimArray{T} = AbstractArray{T, 3}
+const Abstract3DTensor{T} = AbstractArray{T, 3}
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
 
 device(x) = cpu(x)
