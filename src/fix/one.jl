@@ -8,6 +8,7 @@ function Base.one(xs::CuMatrix{T}) where T
     end
 
     ys = CuArray{T}(undef, n, n)
+    fill!(ys, zero(T))
 
     num_threads = min(n, 256)
     num_blocks = ceil(Int, n / num_threads)
