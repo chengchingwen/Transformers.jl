@@ -3,7 +3,7 @@ module Basic
 using Flux
 using ..Transformers: device,
     Abstract3DTensor, Container,
-    batchedmul, matmul
+    batchedmul
 
 export PositionEmbedding, Embed, getmask
 export Transformer, TransformerDecoder

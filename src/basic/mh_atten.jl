@@ -120,7 +120,7 @@ function attention(query::AbstractMatrix{T},
     # size(query) == (dims, {q,k}_seq_len) == size(key) == size(value)
     # size(score) == (k_seq_len, q_seq_len)
     dk = size(key)[1]
-    score = matmul(key, query; transA = true)
+    score = transpose(key) * query
     score = score ./ convert(T, sqrt(dk))
 
     if mask !== nothing
@@ -130,12 +130,12 @@ function attention(query::AbstractMatrix{T},
 
     if !future
         fmask = tril!(fill!(similar(score), convert(T, -1e9)), -1)
-        score = score .+ fmask
+        score = score + fmask
     end
 
     score = softmax(score)
     dropout !== nothing && (score = dropout(score))
-    matmul(value, score) #size(return) == (dims, q_seq_len)
+    value * score #size(return) == (dims, q_seq_len)
 end
 
 function attention(query::Abstract3DTensor{T},
