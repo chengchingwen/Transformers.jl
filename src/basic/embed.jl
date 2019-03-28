@@ -30,13 +30,13 @@ function Embed(size::Int, vocab, unk="</unk>")
     Embed(vocab, unk, param(randn(Float32, size, length(vocab))))
 end
 
-(e::Embed)(x::Container) = e.embedding * device(onehotbatch(x, e.vocab, e.unk)), device(fill(1.0, (1, length(x))))::TwoDimArray
+(e::Embed)(x::Container) = e.embedding * device(onehotbatch(x, e.vocab, e.unk)), device(fill(1.0, (1, length(x))))::AbstractMatrix
 function (e::Embed)(xs::Container{Vector{T}}) where T
     maxlen = maximum(map(length, xs))
     cat([e.embedding * device(onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk)) for x ∈ xs]...;dims=3)::ThreeDimArray, device(getmask(xs))::ThreeDimArray
 end
 
-onehot(e::Embed, x::Container) = device(onehotbatch(x, e.vocab, e.unk))::TwoDimArray
+onehot(e::Embed, x::Container) = device(onehotbatch(x, e.vocab, e.unk))::AbstractMatrix
 function onehot(e::Embed, xs::Container{Vector{T}}) where T
     maxlen = maximum(map(length, xs))
     device(cat([onehotbatch([x; fill(e.unk, maxlen - length(x))], e.vocab, e.unk) for x ∈ xs]...;dims=3))::ThreeDimArray

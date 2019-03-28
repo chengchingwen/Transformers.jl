@@ -31,14 +31,14 @@ end
 
 
 
-function matmul(a::TwoDimArray{T}, b::TwoDimArray{T};
+function matmul(a::AbstractMatrix{T}, b::AbstractMatrix{T};
                     transA::Bool = false, transB::Bool = false) where {T}
     res = similar(a, size(a, transA ? 2 : 1), size(b, transB ? 1 : 2))
     matmul!(res, a, b;transA=transA, transB=transB)
     return res
 end
 
-function matmul!(C::TwoDimArray{T}, A::TwoDimArray{T}, B::TwoDimArray{T};
+function matmul!(C::AbstractMatrix{T}, A::AbstractMatrix{T}, B::AbstractMatrix{T};
                       transA::Bool = false, transB::Bool = false) where T
     At = transA ? 'T' : 'N'
     Bt = transB ? 'T' : 'N'
@@ -47,10 +47,10 @@ function matmul!(C::TwoDimArray{T}, A::TwoDimArray{T}, B::TwoDimArray{T};
 end
 
 matmul(a::Tracked2D, b::Tracked2D; kw...) = track(matmul, a, b; kw...)
-matmul(a::TwoDimArray, b::Tracked2D; kw...) = track(matmul, a, b; kw...)
-matmul(a::Tracked2D, b::TwoDimArray; kw...) = track(matmul, a, b; kw...)
+matmul(a::AbstractMatrix, b::Tracked2D; kw...) = track(matmul, a, b; kw...)
+matmul(a::Tracked2D, b::AbstractMatrix; kw...) = track(matmul, a, b; kw...)
 
-@grad function matmul(a::TwoDimArray, b::TwoDimArray; transA::Bool = false, transB::Bool = false)
+@grad function matmul(a::AbstractMatrix, b::AbstractMatrix; transA::Bool = false, transB::Bool = false)
     matmul(data(a), data(b); transA=transA, transB=transB),
     if transA
         if transB

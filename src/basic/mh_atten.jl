@@ -84,9 +84,9 @@ function (mh::MultiheadAttention)(query::ThreeDimArray{T},
     out #size(out) == (h, q_seq_len, batch)
 end
 
-function (mh::MultiheadAttention)(query::TwoDimArray{T},
-                                  key::TwoDimArray{T},
-                                  value::TwoDimArray{T};
+function (mh::MultiheadAttention)(query::AbstractMatrix{T},
+                                  key::AbstractMatrix{T},
+                                  value::AbstractMatrix{T};
                                   mask=nothing) where T
     # size(query) == (dims, seq_len)
     ipq = mh.iqproj(query)
@@ -112,9 +112,9 @@ function (mh::MultiheadAttention)(query::TwoDimArray{T},
     mh.oproj(atten)
 end
 
-function attention(query::TwoDimArray{T},
-                   key::TwoDimArray{T},
-                   value::TwoDimArray{T};
+function attention(query::AbstractMatrix{T},
+                   key::AbstractMatrix{T},
+                   value::AbstractMatrix{T};
                    mask=nothing, future::Bool = false,
                    dropout=nothing) where T
     # size(query) == (dims, {q,k}_seq_len) == size(key) == size(value)

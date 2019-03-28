@@ -2,7 +2,7 @@ module GenerativePreTrain
 
 using Flux
 
-using ..Transformers: device, TwoDimArray, ThreeDimArray, gelu, matmul
+using ..Transformers: device, ThreeDimArray, gelu, matmul
 using ..Basic
 
 include("./gpt.jl")

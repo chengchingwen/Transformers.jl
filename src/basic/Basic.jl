@@ -2,7 +2,7 @@ module Basic
 
 using Flux
 using ..Transformers: device,
-    ThreeDimArray, TwoDimArray, Container,
+    ThreeDimArray, Container,
     batchedmul, matmul
 
 export PositionEmbedding, Embed, getmask
