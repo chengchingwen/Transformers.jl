@@ -1,13 +1,13 @@
 
 # Table of Contents
 
-1.  [Transformers.jl](#org5853523)
-2.  [implemented model](#org8c7be0a)
-3.  [Issue](#orga4198ca)
-4.  [Roadmap](#org9151d19)
+1.  [Transformers.jl](#org038119e)
+2.  [implemented model](#org2bcbf10)
+3.  [Issue](#orga2755b7)
+4.  [Roadmap](#org1940678)
 
 
-<a id="org5853523"></a>
+<a id="org038119e"></a>
 
 # Transformers.jl
 
@@ -22,7 +22,7 @@ Install:
     ]add HTTP#master
 
 
-<a id="org8c7be0a"></a>
+<a id="org2bcbf10"></a>
 
 # implemented model
 
@@ -30,22 +30,24 @@ Install:
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
 
-<a id="orga4198ca"></a>
+<a id="orga2755b7"></a>
 
 # Issue
 
 Currently the code is really ugly, need refactor, test and docs.
 
 
-<a id="org9151d19"></a>
+<a id="org1940678"></a>
 
 # Roadmap
 
 -   write docs
 -   write test
 -   refactor code
+-   remove calling `gpu` directly in internal codes
 -   better embedding functions
 -   lazy CuArrays loading
+-   using HTTP to handle dataset download (need HTTP.jl update)
 -   optimize performance
 -   text related util functions
 -   better dataset API

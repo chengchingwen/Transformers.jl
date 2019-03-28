@@ -21,8 +21,10 @@ Currently the code is really ugly, need refactor, test and docs.
 + write docs
 + write test
 + refactor code
++ remove calling =gpu= directly in internal codes
 + better embedding functions
 + lazy CuArrays loading
++ using HTTP to handle dataset download (need HTTP.jl update)
 + optimize performance
 + text related util functions
 + better dataset API
