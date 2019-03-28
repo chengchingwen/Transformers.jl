@@ -32,9 +32,6 @@ include("./fix/matmul.jl")
 #implement of gelu for gpu
 include("./fix/gelu.jl")
 
-#implement of one for gpu
-include("./fix/one.jl")
-
 #dropout noise shape impl
 include("./fix/dropout.jl")
 

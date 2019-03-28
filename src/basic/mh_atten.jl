@@ -1,7 +1,7 @@
 using Flux
 using Flux: @treelike
 using Flux.Tracker: data
-using LinearAlgebra: LowerTriangular
+using LinearAlgebra: tril!
 
 struct MultiheadAttention
     head::Int
@@ -129,9 +129,7 @@ function attention(query::AbstractMatrix{T},
     end
 
     if !future
-        fmask = fill!(similar(score), one(T))
-        fmask .-= one(fmask)
-        fmask .= convert(T, -1e9) .* LowerTriangular(fmask)
+        fmask = tril!(fill!(similar(score), convert(T, -1e9)), -1)
         score = score .+ fmask
     end
 
@@ -163,9 +161,7 @@ function attention(query::Abstract3DTensor{T},
 
     if !future
         #without ... will cause data move back to cpu
-        fmask = fill!(similar(score, s[1:end-1]...), one(T))
-        fmask .-= one(fmask)
-        fmask .= convert(T, -1e9) .* LowerTriangular(fmask)
+        fmask = tril!(fill!(similar(score, s[1:end-1]...), convert(T, -1e9)), -1)
         score = score .+ fmask
     end
 
