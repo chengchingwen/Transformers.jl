@@ -94,7 +94,7 @@ function loss(x1, x2, y)
 
     ##### handle data placement
     oy = onehotbatch(y, anslabel)
-    yd = copyto!(similar(data(p)), oy)
+    yd = copyto!(similar(p), oy)
     #####
 
     cl = logitcrossentropy(p, yd)

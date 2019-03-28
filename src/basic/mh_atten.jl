@@ -129,7 +129,7 @@ function attention(query::TwoDimArray{T},
     end
 
     if !future
-        fmask = fill!(similar(data(score)), one(T))
+        fmask = fill!(similar(score), one(T))
         fmask .-= one(fmask)
         fmask .= convert(T, -1e9) .* LowerTriangular(fmask)
         score = score .+ fmask
@@ -163,7 +163,7 @@ function attention(query::ThreeDimArray{T},
 
     if !future
         #without ... will cause data move back to cpu
-        fmask = fill!(similar(data(score), s[1:end-1]...), one(T))
+        fmask = fill!(similar(score, s[1:end-1]...), one(T))
         fmask .-= one(fmask)
         fmask .= convert(T, -1e9) .* LowerTriangular(fmask)
         score = score .+ fmask
