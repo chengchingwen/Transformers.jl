@@ -37,7 +37,7 @@ function (gpt::Gpt)(x::T, mask=nothing)::T where T
     t #size(t) == (size, seq_len, batch)
 end
 
-function lmloss(embed::Embed, et, t::TwoDimArray, mask)
+function lmloss(embed::Embed, et, t::AbstractMatrix, mask)
     t = t[:, 1:end-1]
     sim = logsoftmax(matmul(embed.embedding * t; transA=true))
     logcrossentropy(et[:, 2:end], sim, mask[:, 2:end])

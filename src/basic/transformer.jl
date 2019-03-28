@@ -13,7 +13,7 @@ Positionwise(size::Int, h::Int, act = relu) = Positionwise(
     Dense(h, size)
 )
 
-function (pw::Positionwise)(x)::TwoDimArray
+function (pw::Positionwise)(x)::AbstractMatrix
     # size(x) == (dims, seq_len)
     pw.dout(pw.din(x))
 end
