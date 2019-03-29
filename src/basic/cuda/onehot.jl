@@ -14,7 +14,7 @@ Base.size(xs::OneHotArray) = (Int64(xs.dims), size(xs.data)...)
 Base.getindex(o::OneHotArray, i::Integer, j::Integer) = o.data[j][i]
 Base.getindex(o::OneHotArray, ::Colon, i::Integer) = o.data[i]
 Base.getindex(o::OneHotArray, ::Colon, i::AbstractArray) = OneHotArray(o.dims, o.data[i])
-
+Base.getindex(o::OneHotArray, i::Integer, j::Integer, k...) = o.data[j, k...][i]
 
 OneHotArray(xs::A) where A = OneHotArray{ndims(A)+1, A}(Int(xs[1].of), xs)
 OneHotArray(nums::Int, xs::AbstractArray{Int}) = OneHotArray(nums, map(i->onehot(i, 1:nums), xs))
@@ -23,25 +23,41 @@ import Adapt: adapt, adapt_structure
 
 adapt_structure(T, xs::OneHotArray) = OneHotArray(xs.dims, adapt(T, xs.data))
 
+#onehotarray(xs, labels)
+Base.convert(::Type{OneHotVector}, x::Int) = OneHotVector(x & 0xffffffff, x >> 32)
+Base.convert(::Type{Int}, x::OneHotVector) = Int(x.ix)
+
 "turn one hot encoding to indices"
 onehot2indices(xs::OneHotArray) = onehot2indices(xs.data)
 
 #cpu onehot to indices
-function onehot2indices(x::AbstractArray{OneHotVector})
-    ys = similar(x, Int, size(x)...)
+onehot2indices(x::AbstractArray{OneHotVector}) = map(i->Int(i.ix), x)
 
-    Threads.@threads for i = 1:length(x)
-        @inbounds ys[i] = x[i].ix
-    end
-
-    return ys
-end
+#cpu indices to onehot
+indice2onehot(nums::Int, xs::AbstractArray{Int}) = map(i->onehot(i, 1:nums), xs)
 
 
 import CuArrays: CuArray, cudaconvert
 import Base.Broadcast: BroadcastStyle, ArrayStyle
 BroadcastStyle(::Type{<:OneHotArray{N, <:CuArray} where N}) = ArrayStyle{CuArray}()
 cudaconvert(x::OneHotArray{<:CuArray}) = OneHotArray(x.dims, cudaconvert(x.data))
+
+_labelindex(num::Int, x::AbstractArray) = x .+ (num << 32)
+
+
+#gpu indices to onehot
+indice2onehot(num::Int, xs::CuArray{Int}) = convert(CuArray{OneHotVector}, _labelindex(num, xs))
+
+#gpu onehot to indices
+onehot2indices(x::CuArray{OneHotVector}) = convert(CuArray{Int}, x)
+
+include("./gather.jl")
+
+
+import Base: *
+*(A::AbstractMatrix{T}, b::OneHotArray{N}) where {T,N} = invoke(gather, Tuple{AbstractMatrix, OneHotArray}, A, b)
+
+*(A::TrackedMatrix{T}, b::OneHotArray{N}) where {T,N} = invoke(gather, Tuple{TrackedMatrix, OneHotArray}, A, b)
 
 
 # ca = randn(512,  40000)
@@ -58,31 +74,3 @@ cudaconvert(x::OneHotArray{<:CuArray}) = OneHotArray(x.dims, cudaconvert(x.data)
 # pca = param(ca)
 # pga = param(ga)
 
-#gpu onehot to indices
-function onehot2indices(x::CuArray{OneHotVector})
-    ys = CuArray{Int}(undef, size(x)...)
-
-    function kernel!(ys, x)
-        i = threadIdx().x + (blockIdx().x - 1) * blockDim().x
-
-        if i <= length(x)
-            ys[i] = x[i].ix
-        end
-
-        return
-    end
-    thr = min(256, length(x))
-    blk = ceil.(Int, length(x) / thr)
-    @cuda blocks=blk threads=thr kernel!(ys, x)
-    return ys
-end
-
-
-
-include("./gather.jl")
-
-
-import Base: *
-*(A::AbstractMatrix{T}, b::OneHotArray{N}) where {T,N} = invoke(gather, Tuple{AbstractMatrix, OneHotArray}, A, b)
-
-*(A::TrackedMatrix{T}, b::OneHotArray{N}) where {T,N} = invoke(gather, Tuple{TrackedMatrix, OneHotArray}, A, b)
