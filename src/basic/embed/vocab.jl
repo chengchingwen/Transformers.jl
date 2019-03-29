@@ -23,7 +23,8 @@ encode(vocab::Vocabulary{T}, i::T) where T = something(findfirst(isequal(i), voc
 encode(vocab::Vocabulary{T}, xs::Container{T}) where T = indices = map(x->encode(vocab, x), xs)
 
 function encode(vocab::Vocabulary{T}, xs::Container{<:Container{T}}) where T
-    indices = fill(vocab.unki, length(xs[1]), length(xs))
+    lens = map(length, xs)
+    indices = fill(vocab.unki, maximum(lens), length(xs))
     for (i, x) ∈ enumerate(xs)
         for (j, xi) ∈ enumerate(x)
             @inbounds indices[j, i] = encode(vocab, xi)
