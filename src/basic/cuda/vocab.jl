@@ -5,7 +5,7 @@ struct Vocabulary{T}
     list::Vector{T}
     unk::T
     unki::Int
-    function Vocabulary{T}(voc::Vector{T}, unk::T) where T
+    function Vocabulary(voc::Vector{T}, unk::T) where T
         if !(unk ∈ voc)
             pushfirst!(voc, unk)
             unki = 1
@@ -19,12 +19,12 @@ end
 
 Base.length(v::Vocabulary) = v.siz
 
-encode(vocab::Vocabulary{T}, i::T) where T = something(findfirst(isequal(l), vocab.list), vocab.unki)
+encode(vocab::Vocabulary{T}, i::T) where T = something(findfirst(isequal(i), vocab.list), vocab.unki)
 
 
 encode(vocab::Vocabulary{T}, xs::Container{T}) where T = indices = map(x->encode(vocab, x), xs)
 
-function encode(vocab::Vocabulary{T}, xs::Container{Container{T}}) where T
+function encode(vocab::Vocabulary{T}, xs::Container{<:Container{T}}) where T
     indices = fill(vocab.unki, length(xs[1]), length(xs))
     for (i, x) ∈ enumerate(xs)
         for (j, xi) ∈ enumerate(x)
@@ -35,3 +35,6 @@ function encode(vocab::Vocabulary{T}, xs::Container{Container{T}}) where T
 end
 
 (vocab::Vocabulary)(x) = encode(vocab, x)
+
+
+Base.show(io::IO, v::Vocabulary) = print(io, "Vocabulary($(v.siz), unk=$(v.unk))")

@@ -19,6 +19,8 @@ Base.getindex(o::OneHotArray, i::Integer, j::Integer, k...) = o.data[j, k...][i]
 OneHotArray(xs::A) where A = OneHotArray{ndims(A)+1, A}(Int(xs[1].of), xs)
 OneHotArray(nums::Int, xs::AbstractArray{Int}) = OneHotArray(nums, map(i->onehot(i, 1:nums), xs))
 
+onehotarray(num::Int, xs::AbstractArray{Int}) = OneHotArray(num, indices2onehot(num, xs))
+
 import Adapt: adapt, adapt_structure
 
 adapt_structure(T, xs::OneHotArray) = OneHotArray(xs.dims, adapt(T, xs.data))
@@ -34,7 +36,7 @@ onehot2indices(xs::OneHotArray) = onehot2indices(xs.data)
 onehot2indices(x::AbstractArray{OneHotVector}) = map(i->Int(i.ix), x)
 
 #cpu indices to onehot
-indice2onehot(nums::Int, xs::AbstractArray{Int}) = map(i->onehot(i, 1:nums), xs)
+indices2onehot(nums::Int, xs::AbstractArray{Int}) = map(i->onehot(i, 1:nums), xs)
 
 
 import CuArrays: CuArray, cudaconvert
@@ -46,7 +48,7 @@ _labelindex(num::Int, x::AbstractArray) = x .+ (num << 32)
 
 
 #gpu indices to onehot
-indice2onehot(num::Int, xs::CuArray{Int}) = convert(CuArray{OneHotVector}, _labelindex(num, xs))
+indices2onehot(num::Int, xs::CuArray{Int}) = convert(CuArray{OneHotVector}, _labelindex(num, xs))
 
 #gpu onehot to indices
 onehot2indices(x::CuArray{OneHotVector}) = convert(CuArray{Int}, x)
