@@ -1,13 +1,13 @@
 
 # Table of Contents
 
-1.  [Transformers.jl](#org038119e)
-2.  [implemented model](#org2bcbf10)
-3.  [Issue](#orga2755b7)
-4.  [Roadmap](#org1940678)
+1.  [Transformers.jl](#org65cf6ea)
+2.  [implemented model](#org417a5ad)
+3.  [Issue](#orgb6d8d3f)
+4.  [Roadmap](#org63f3074)
 
 
-<a id="org038119e"></a>
+<a id="org65cf6ea"></a>
 
 # Transformers.jl
 
@@ -22,7 +22,7 @@ Install:
     ]add HTTP#master
 
 
-<a id="org2bcbf10"></a>
+<a id="org417a5ad"></a>
 
 # implemented model
 
@@ -30,29 +30,28 @@ Install:
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
 
-<a id="orga2755b7"></a>
+<a id="orgb6d8d3f"></a>
 
 # Issue
 
 Currently the code is really ugly, need refactor, test and docs.
 
 
-<a id="org1940678"></a>
+<a id="org63f3074"></a>
 
 # Roadmap
 
--   write docs
--   write test
--   refactor code
--   remove calling `gpu` directly in internal codes
--   better embedding functions
--   lazy CuArrays loading
--   using HTTP to handle dataset download (need HTTP.jl update)
--   optimize performance
--   text related util functions
--   better dataset API
--   more datasets
--   openai gpt model
--   openai gpt-2 model
--   google bert model
+-   [ ] write docs
+-   [ ] write test
+-   [ ] refactor code
+-   [X] better embedding functions
+-   [ ] lazy CuArrays loading
+-   [ ] using HTTP to handle dataset download (need HTTP.jl update)
+-   [ ] optimize performance
+-   [ ] text related util functions
+-   [ ] better dataset API
+-   [ ] more datasets
+-   [X] openai gpt model
+-   [ ] openai gpt-2 model
+-   [ ] google bert model
 

@@ -18,17 +18,16 @@ Install:
 Currently the code is really ugly, need refactor, test and docs.
 
 * Roadmap
-+ write docs
-+ write test
-+ refactor code
-+ remove calling =gpu= directly in internal codes
-+ better embedding functions
-+ lazy CuArrays loading
-+ using HTTP to handle dataset download (need HTTP.jl update)
-+ optimize performance
-+ text related util functions
-+ better dataset API
-+ more datasets
-+ openai gpt model
-+ openai gpt-2 model
-+ google bert model
+  - [ ] write docs
+  - [ ] write test
+  - [ ] refactor code
+  - [X] better embedding functions
+  - [ ] lazy CuArrays loading
+  - [ ] using HTTP to handle dataset download (need HTTP.jl update)
+  - [ ] optimize performance
+  - [ ] text related util functions
+  - [ ] better dataset API
+  - [ ] more datasets
+  - [X] openai gpt model
+  - [ ] openai gpt-2 model
+  - [ ] google bert model
