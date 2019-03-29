@@ -8,7 +8,7 @@ using WordTokenizers
 using ..Transformers: Container
 
 export Dataset, Train, Dev, Test
-export dataset, datafile, get_batch, get_vocab
+export dataset, datafile, get_batch, get_vocab, batched
 
 
 include("download_utils.jl")
