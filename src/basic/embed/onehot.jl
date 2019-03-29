@@ -53,8 +53,6 @@ indices2onehot(num::Int, xs::CuArray{Int}) = convert(CuArray{OneHotVector}, _lab
 #gpu onehot to indices
 onehot2indices(x::CuArray{OneHotVector}) = convert(CuArray{Int}, x)
 
-include("./gather.jl")
-
 
 import Base: *
 *(A::AbstractMatrix{T}, b::OneHotArray{N}) where {T,N} = invoke(gather, Tuple{AbstractMatrix, OneHotArray}, A, b)

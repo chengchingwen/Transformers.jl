@@ -1,5 +1,3 @@
-import Base
-
 struct Vocabulary{T}
     siz::Int
     list::Vector{T}
