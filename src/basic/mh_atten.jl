@@ -130,7 +130,7 @@ function attention(query::AbstractMatrix{T},
 
     if !future
         fmask = tril!(fill!(similar(score), convert(T, -1e9)), -1)
-        score = score + fmask
+        score = score .+ fmask
     end
 
     score = softmax(score)
