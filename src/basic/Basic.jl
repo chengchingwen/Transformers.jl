@@ -21,7 +21,7 @@ include("./mh_atten.jl")
 include("./transformer.jl")
 include("./topology.jl")
 include("./stack.jl")
-include("./embed.jl")
+include("./cuda/embed.jl")
 include("./loss.jl")
 
 
