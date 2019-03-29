@@ -1,9 +1,3 @@
-using Flux: @treelike
-import Flux
-
-include("./vocab.jl")
-include("./onehot.jl")
-
 function getmask(ls)
     lens = map(length, ls)
     m = zeros(Float32, maximum(lens), length(lens))

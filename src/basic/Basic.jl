@@ -1,11 +1,10 @@
 module Basic
 
 using Flux
-using ..Transformers: device,
-    Abstract3DTensor, Container,
-    batchedmul
+using ..Transformers: Abstract3DTensor, Container, batchedmul
 
-export PositionEmbedding, Embed, getmask
+export PositionEmbedding, Embed, getmask, Vocabulary, gather
+export OneHotArray, indices2onehot, onehot2indices, onehotarray
 export Transformer, TransformerDecoder
 
 export NNTopo, @nntopo_str, @nntopo
@@ -16,14 +15,11 @@ export @toNd
 export logkldivergence, logcrossentropy, logsoftmax3d
 
 include("./extend3d.jl")
-include("./position_embed.jl")
+include("./stack/topology.jl")
+include("./stack/stack.jl")
+include("./embed/Embed.jl")
 include("./mh_atten.jl")
 include("./transformer.jl")
-include("./topology.jl")
-include("./stack.jl")
-include("./cuda/embed.jl")
 include("./loss.jl")
-
-
 
 end

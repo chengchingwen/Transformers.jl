@@ -1,6 +1,3 @@
-using Flux: @treelike
-using Flux.Tracker: data
-
 mutable struct PositionEmbedding{W}
     trainable::Bool
     embedding::W
