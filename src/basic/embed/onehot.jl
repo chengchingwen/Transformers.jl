@@ -25,7 +25,15 @@ import Adapt: adapt, adapt_structure
 
 adapt_structure(T, xs::OneHotArray) = OneHotArray(xs.dims, adapt(T, xs.data))
 
-#onehotarray(xs, labels)
+
+Base.similar(o::OneHotArray{N, <:CuArray}) where N = similar(o, size(o))
+Base.similar(o::OneHotArray{N, <:CuArray}, dims::NTuple{N, Int}) where N = similar(o, Bool, dims)
+Base.similar(o::OneHotArray{N, <:CuArray}, dims::Int...) where N = similar(o, Bool, Tuple(dims))
+Base.similar(o::OneHotArray{N, <:CuArray}, T::Type) where N = similar(o, T, size(o))
+Base.similar(o::OneHotArray{N, <:CuArray}, T::Type, dims::Int...) where N = similar(o, T, Tuple(dims))
+Base.similar(o::OneHotArray{N, <:CuArray}, T::Type, dims::NTuple{N, Int}) where N = CuArray{T}(undef, size(o))
+
+
 Base.convert(::Type{OneHotVector}, x::Int) = OneHotVector(x & 0xffffffff, x >> 32)
 Base.convert(::Type{Int}, x::OneHotVector) = Int(x.ix)
 
