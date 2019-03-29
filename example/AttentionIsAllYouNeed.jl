@@ -3,6 +3,7 @@ Reference: The Annotated Transformer (http://nlp.seas.harvard.edu/2018/04/03/att
 """
 
 using ArgParse
+using CuArrays
 
 using Flux
 using Flux: onecold, gradient
@@ -11,11 +12,9 @@ import Flux.Optimise: update!
 using WordTokenizers
 
 using Transformers
-using Transformers.Basic: NNTopo
-using Transformers.Basic: PositionEmbedding, Embed, getmask, onehot,
-                          logkldivergence, Sequence
+using Transformers.Basic
 using Transformers.Datasets
-using Transformers.Datasets: WMT, IWSLT, Train, batched
+using Transformers.Datasets: WMT, IWSLT
 
 
 function parse_commandline()
@@ -35,8 +34,6 @@ function parse_commandline()
 end
 
 args = parse_commandline()
-
-use_gpu(args["gpu"])
 
 if args["task"] == "copy"
     const N = 2
@@ -60,9 +57,16 @@ if args["task"] == "copy"
         global Batch
         println("start training")
         i = 1
-        for i = 1:320*15
+        for i = 1:320*7
             data = batched([gen_data() for i = 1:Batch])
-            @time l = loss(data)
+            x, t = data
+            x = mkline.(x)
+            t = mkline.(t)
+            x_mask = getmask(x)
+            t_mask = getmask(t)
+            x, t = embed.Vocab.((x, t))
+            x, t, x_mask, t_mask = CuArray.((x,t,x_mask,t_mask))
+            @time l = loss(x, t, x_mask, t_mask)
             @time grad = gradient(()->l, ps)
             i%8 == 0 && @show l
             update!(opt, ps, grad)
@@ -101,7 +105,13 @@ elseif args["task"] == "wmt14" || args["task"] == "iwslt2016"
         println("start training")
         i = 1
         while (batch = get_batch(datas, Batch)) != []
-            @time l = loss(batch)
+            x = mkline.(batch[1])
+            t = mkline.(batch[2])
+            x_mask = getmask(x)
+            t_mask = getmask(t)
+            x, t = embed.Vocab.((x, t))
+            x, t, x_mask, t_mask = CuArray.((x,t,x_mask,t_mask))
+            @time l = loss(x,t, x_mask, t_mask)
             #@time back!(l)
             @time grad = gradient(()->l, ps)
             i+=1
@@ -135,15 +145,16 @@ else
     error("task not define")
 end
 
-embed = device(Embed(512, labels, unksym))
+vocab = Vocabulary(labels, unksym)
+embed = gpu(Embed(512, vocab))
 
 function embedding(x)
-    em, ma = embed(x)
+    em = embed(x)
     #sqrt(512) makes type unstable
-    em ./ convert(Float32, sqrt(512)), ma
+    em ./ convert(Float32, sqrt(512))
 end
 
-encoder = device(Stack(
+encoder = gpu(Stack(
     NNTopo("e → pe:(e, pe) → x → x → $N"),
     PositionEmbedding(512),
     (e, pe) -> e .+ pe,
@@ -151,7 +162,7 @@ encoder = device(Stack(
     [Transformer(512, 8, 64, 2048) for i = 1:N]...
 ))
 
-decoder = device(Stack(
+decoder = gpu(Stack(
     NNTopo("(e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c"),
     PositionEmbedding(512),
     (e, pe) -> e .+ pe,
@@ -165,42 +176,43 @@ opt = ADAM(lr)
 
 function smooth(et)
     global Smooth
-    sm = fill!(similar(et), Smooth/length(embed.vocab))
+    sm = fill!(similar(et, Float32), Smooth/length(embed.Vocab))
     p = sm .* (1 .+ -et)
     label = p .+ et .* (1 - convert(Float32, Smooth))
     label
 end
 
-loss((x,t)) = loss(x, t)
-function loss(x, t)
-    ix = mkline.(x)
-    iy = mkline.(t)
-    et = onehot(embed, iy)
+function loss(src, trg, src_mask, trg_mask)
+    lab = onehot(embed, trg)
 
-    src, src_mask = embedding(ix)
-    trg, trg_mask = embedding(iy)
+    src = embedding(src)
+    trg = embedding(trg)
 
-    mask = getmask(src_mask, trg_mask)
+    if src_mask === nothing || trg_mask === nothing
+        mask = nothing
+    else
+        mask = getmask(src_mask, trg_mask)
+    end
 
     enc = encoder(src)
     dec = decoder(trg, enc, mask)
 
     #label smoothing
-    label = smooth(et)[:, 2:end, :]
+    label = smooth(lab)[:, 2:end, :]
 
     loss = logkldivergence(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
 end
 
 function translate(x)
-    ix = mkline(x)
+    ix = CuArray(embed.Vocab(mkline(x)))
     seq = [startsym]
 
-    src, _ = embedding(ix)
+    src = embedding(ix)
     enc = encoder(src)
 
     len = length(ix)
     for i = 1:2len
-        trg, _ = embedding(seq)
+        trg = embedding(CuArray(embed.Vocab(seq)))
         dec = decoder(trg, enc, nothing)
         #move back to gpu due to argmax wrong result on CuArrays
         ntok = onecold(collect(dec), labels)
