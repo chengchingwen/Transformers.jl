@@ -2,7 +2,6 @@ module Transformers
 
 using Flux
 
-export device, use_gpu
 export Transformer, TransformerDecoder
 export Stack, stack, @nntopo_str, show_stackfunc
 
@@ -12,16 +11,6 @@ export Gpt, load_gpt_pretrain, lmloss
 
 const Abstract3DTensor{T} = AbstractArray{T, 3}
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
-
-device(x) = cpu(x)
-function use_gpu(use::Bool)
-    if use
-        @eval using CuArrays
-        @eval device(x) = gpu(x)
-    else
-        @eval device(x) = cpu(x)
-    end
-end
 
 #implement batchmul for flux
 include("./fix/batchedmul.jl")
