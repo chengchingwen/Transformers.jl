@@ -27,6 +27,17 @@ Embed(size::Int, vocab::Vocabulary) = Embed(vocab, param(randn(Float32, size, le
 Flux.onehot(e::Embed, x) = onehot(e.Vocab, x)
 Flux.onehot(v::Vocabulary, x) = onehotarray(length(v), x)
 
+Flux.onecold(e::Embed, p) = onecold(e.Vocab, p)
+Flux.onecold(v::Vocabulary{T}, p) where T = map(i->v.list[i], p)
+function Flux.onecold(p)
+    y = similar{Int}(p, Base.tail(size(p)))
+    for i = 1:length(y)
+        ind = Tuple(CartesianIndices(y)[i])
+        y[i] = argmax(@view(p[:, ind...]))
+    end
+    y
+end
+
 function Base.show(io::IO, e::Embed)
     print(io, "Embed($(size(e.embedding, 1)), ")
     show(io,  e.Vocab)

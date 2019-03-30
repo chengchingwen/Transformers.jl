@@ -6,7 +6,7 @@ using ..Transformers: Abstract3DTensor, Container, batchedmul
 export PositionEmbedding, Embed, getmask,
     Vocabulary, gather
 export OneHotArray, indices2onehot, onehot2indices,
-    onehotarray, onehot
+    onehotarray, onehot, tofloat
 export Transformer, TransformerDecoder
 
 export NNTopo, @nntopo_str, @nntopo

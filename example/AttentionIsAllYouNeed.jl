@@ -66,8 +66,8 @@ if args["task"] == "copy"
             t_mask = getmask(t)
             x, t = embed.Vocab.((x, t))
             x, t, x_mask, t_mask = CuArray.((x,t,x_mask,t_mask))
-            @time l = loss(x, t, x_mask, t_mask)
-            @time grad = gradient(()->l, ps)
+            l = loss(x, t, x_mask, t_mask)
+            grad = gradient(()->l, ps)
             i%8 == 0 && @show l
             update!(opt, ps, grad)
         end
@@ -111,9 +111,8 @@ elseif args["task"] == "wmt14" || args["task"] == "iwslt2016"
             t_mask = getmask(t)
             x, t = embed.Vocab.((x, t))
             x, t, x_mask, t_mask = CuArray.((x,t,x_mask,t_mask))
-            @time l = loss(x,t, x_mask, t_mask)
-            #@time back!(l)
-            @time grad = gradient(()->l, ps)
+            l = loss(x,t, x_mask, t_mask)
+            grad = gradient(()->l, ps)
             i+=1
             #i%5 == 0 &&
             (@show l; @time update!(opt, ps, grad))

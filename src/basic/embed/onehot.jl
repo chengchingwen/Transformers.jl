@@ -35,6 +35,9 @@ Base.similar(o::OneHotArray{N, <:CuArray}, T::Type, dims::Int...) where N = simi
 Base.similar(o::OneHotArray{N, <:CuArray}, T::Type, dims::NTuple{N, Int}) where N = CuArray{T}(undef, dims)
 
 
+tofloat(::Type{F}, o::OneHotArray{N, <:CuArray}) where {F<:AbstractFloat,N} = CuArray{F}(o)
+tofloat(::Type{F}, o::OneHotArray{N, <:AbstractArray}) where {F<:AbstractFloat,N} = Array{F}(o)
+
 Base.convert(::Type{OneHotVector}, x::Int) = OneHotVector(x & 0xffffffff, x >> 32)
 Base.convert(::Type{Int}, x::OneHotVector) = Int(x.ix)
 

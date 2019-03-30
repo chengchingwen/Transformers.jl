@@ -37,18 +37,20 @@ function (gpt::Gpt)(x::T, mask=nothing)::T where T
     t #size(t) == (size, seq_len, batch)
 end
 
-function lmloss(embed::Embed, et, t::AbstractMatrix, mask)
-    t = t[:, 1:end-1]
-    sim = logsoftmax(transpose(embed.embedding) * t)
-    logcrossentropy(et[:, 2:end], sim, mask[:, 2:end])
-end
 
-function lmloss(embed::Embed, et, t::Abstract3DTensor, mask)::eltype(t)
-    t = t[:, 1:end-1, :]
-    s = size(t)
-    sim = logsoftmax(transpose(embed.embedding) * reshape(t, s[1], :)) #(vocab, seq_len*batch)
-    sim = reshape(sim, :, s[2], s[3])
-    logcrossentropy(et[:, 2:end, :], sim, mask[:, 2:end, :])
+lmloss(embed::Embed, o::OneHotArray, t::AbstractArray{T}, mask) where T = lmloss(embed, tofloat(T, o), t, mask)
+function lmloss(embed::Embed, et, t::AbstractArray{T, N}, mask) where {T,N}
+    if N == 3
+        t = t[:, 1:end-1, :]
+        s = size(t)
+        sim = logsoftmax(transpose(embed.embedding) * reshape(t, s[1], :)) #(vocab, seq_len*batch)
+        sim = reshape(sim, :, s[2], s[3])
+        return logcrossentropy(et[:, 2:end, :], sim, mask[:, 2:end, :])
+    elseif N == 2
+        t = t[:, 1:end-1]
+        sim = logsoftmax(transpose(embed.embedding) * t)
+        return logcrossentropy(et[:, 2:end], sim, mask[:, 2:end])
+    end
 end
 
 function lmloss(gpt::Gpt, embed::Embed, x)
