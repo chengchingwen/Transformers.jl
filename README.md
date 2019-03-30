@@ -1,13 +1,13 @@
 
 # Table of Contents
 
-1.  [Transformers.jl](#org65cf6ea)
-2.  [implemented model](#org417a5ad)
-3.  [Issue](#orgb6d8d3f)
-4.  [Roadmap](#org63f3074)
+1.  [Transformers.jl](#org7f099b9)
+2.  [implemented model](#orgdf7e5fd)
+3.  [Issue](#orgd6197fd)
+4.  [Roadmap](#orgc0dc093)
 
 
-<a id="org65cf6ea"></a>
+<a id="org7f099b9"></a>
 
 # Transformers.jl
 
@@ -22,7 +22,7 @@ Install:
     ]add HTTP#master
 
 
-<a id="org417a5ad"></a>
+<a id="orgdf7e5fd"></a>
 
 # implemented model
 
@@ -30,14 +30,14 @@ Install:
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
 
-<a id="orgb6d8d3f"></a>
+<a id="orgd6197fd"></a>
 
 # Issue
 
-Currently the code is really ugly, need refactor, test and docs.
+Currently the code is really ugly, need refactor, test and docs. The grad of gather function is very slow on large array. need better implementation.
 
 
-<a id="org63f3074"></a>
+<a id="orgc0dc093"></a>
 
 # Roadmap
 
@@ -51,7 +51,7 @@ Currently the code is really ugly, need refactor, test and docs.
 -   [ ] text related util functions
 -   [ ] better dataset API
 -   [ ] more datasets
--   [X] openai gpt model
+-   [ ] openai gpt model
 -   [ ] openai gpt-2 model
 -   [ ] google bert model
 

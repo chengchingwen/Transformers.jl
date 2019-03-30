@@ -15,7 +15,7 @@ Install:
 + [[https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf][Improving Language Understanding by Generative Pre-Training]]
 
 * Issue
-Currently the code is really ugly, need refactor, test and docs.
+Currently the code is really ugly, need refactor, test and docs. The grad of gather function is very slow on large array. need better implementation.
 
 * Roadmap
   - [ ] write docs
@@ -28,6 +28,6 @@ Currently the code is really ugly, need refactor, test and docs.
   - [ ] text related util functions
   - [ ] better dataset API
   - [ ] more datasets
-  - [X] openai gpt model
+  - [ ] openai gpt model
   - [ ] openai gpt-2 model
   - [ ] google bert model
