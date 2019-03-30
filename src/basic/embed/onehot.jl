@@ -10,6 +10,7 @@ end
 
 Base.size(xs::OneHotArray) = (Int64(xs.dims), size(xs.data)...)
 
+Base.getindex(o::OneHotArray, i::Integer) = o[CartesianIndices(o)[i]]
 Base.getindex(o::OneHotArray, i::Integer, j::Integer) = o.data[j][i]
 Base.getindex(o::OneHotArray, i::Integer, j::Integer, I::Vararg{Int, N}) where N = o.data[j, I...][i]
 Base.getindex(o::OneHotArray, ::Colon, i::Integer) = o.data[i]
