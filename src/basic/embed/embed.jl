@@ -23,7 +23,9 @@ Embed(size::Int, vocab::Vocabulary) = Embed(vocab, param(randn(Float32, size, le
 
 
 (e::Embed)(x) = e.embedding * onehot(e, x)
-Flux.onehot(e::Embed, x) = onehotarray(length(e.Vocab), x)
+
+Flux.onehot(e::Embed, x) = onehot(e.Vocab, x)
+Flux.onehot(v::Vocabulary, x) = onehotarray(length(v), x)
 
 function Base.show(io::IO, e::Embed)
     print(io, "Embed($(size(e.embedding, 1)), ")
