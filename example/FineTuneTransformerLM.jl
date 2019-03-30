@@ -45,7 +45,7 @@ const delisym = "_deli_"
 const clfsym = "_clf_"
 const unksym = "<unk>"
 const anslabel = ["1", "2"]
-const anv = Vocabulary(anslabel, "0")
+const anv = Vocabulary(anslabel, "1")
 gptm, embedm, bpe = load_gpt_pretrain(12;
                                     startsym=startsym,
                                     delisym=delisym,
@@ -70,8 +70,8 @@ function transform(s1, s2, s3, s4, c1, c2, y)
 end
 
 function acc(p, y)
-    pred = onecold(collect(p), anslabel)
-    sum(pred .== y) / length(y)
+    pred = onecold(collect(p))
+    sum(pred .== collect(y)) / length(y)
 end
 
 function loss(x1, x2, y, x1_mask, x2_mask, c1_index, c2_index)
@@ -80,9 +80,8 @@ function loss(x1, x2, y, x1_mask, x2_mask, c1_index, c2_index)
     t1 = gpt(e1, x1_mask)
     t2 = gpt(e2, x2_mask)
     lm = lmloss(embed, onehot(embed, x1), t1, x1_mask) + lmloss(embed, onehot(embed, x2), t2, x2_mask)
-
-    c1 = gather(t1, c1_index)
-    c2 = gather(t2, c2_index)
+    c1 = gather(reshape(t1, size(t1,1), :), c1_index)
+    c2 = gather(reshape(t2, size(t2,1), :), c2_index)
     # c1 = hcat(map(enumerate(findfirst(isequal(clfsym), x) for x in x1)) do (i, ind)
     #           t1[:, ind, i]
     #           end...)
@@ -97,7 +96,7 @@ function loss(x1, x2, y, x1_mask, x2_mask, c1_index, c2_index)
     p = drop(p, 1)
 
     ##### handle data placement
-    yd = onehot(anv, y)
+    yd = tofloat(Float32, onehot(anv, y))
     # oy = onehotarray(y, anslabel)
     # yd = copyto!(similar(p), oy)
     #####
@@ -122,12 +121,11 @@ function test()
     while (batch = get_batch(devl, Batch)) !== nothing
         tdb = transform.(batch...)
         b1, b2, y = batched(tdb)
-        b1, b2, y = batched(tdb)
         b1_mask = getmask(b1)
         b2_mask = getmask(b2)
-        c1i = [findfirst(isequal(clfsym), x) for x in b1]
-        c2i = [findfirst(isequal(clfsym), x) for x in b2]
         b1, b2 = embed.Vocab.((b1,b2))
+        c1i = findall(isequal(embed.Vocab(clfsym)), reshape(b1, :))
+        c2i = findall(isequal(embed.Vocab(clfsym)), reshape(b2, :))
         y = anv(y)
         b1,b2,y,b1_mask,b2_mask,c1i,c2i = CuArray.((b1,b2,y,b1_mask,b2_mask,c1i,c2i))
 
@@ -153,9 +151,9 @@ function train!(epoch)
             b1, b2, y = batched(tdb)
             b1_mask = getmask(b1)
             b2_mask = getmask(b2)
-            c1i = [findfirst(isequal(clfsym), x) for x in b1]
-            c2i = [findfirst(isequal(clfsym), x) for x in b2]
             b1, b2 = embed.Vocab.((b1,b2))
+            c1i = findall(isequal(embed.Vocab(clfsym)), reshape(b1, :))
+            c2i = findall(isequal(embed.Vocab(clfsym)), reshape(b2, :))
             y = anv(y)
             b1,b2,y,b1_mask,b2_mask,c1i,c2i = CuArray.((b1,b2,y,b1_mask,b2_mask,c1i,c2i))
 
