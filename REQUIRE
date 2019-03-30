@@ -1,12 +1,10 @@
 julia 1.0
 Flux
-CuArrays
 NPZ
 LightXML
 JSON
 BytePairEncoding
 DataDeps
-CUDAnative
 ArgParse
 InternedStrings
 WordTokenizers

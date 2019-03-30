@@ -1,13 +1,13 @@
 
 # Table of Contents
 
-1.  [Transformers.jl](#org7f099b9)
-2.  [implemented model](#orgdf7e5fd)
-3.  [Issue](#orgd6197fd)
-4.  [Roadmap](#orgc0dc093)
+1.  [Transformers.jl](#orgd396d0c)
+2.  [implemented model](#orgb99b674)
+3.  [Issue](#orgc3ce3a4)
+4.  [Roadmap](#orgf8d9e4b)
 
 
-<a id="org7f099b9"></a>
+<a id="orgd396d0c"></a>
 
 # Transformers.jl
 
@@ -21,8 +21,23 @@ Install:
     #Currently the Dataset need the HTTP#master to download
     ]add HTTP#master
 
+For using GPU, install & build:
 
-<a id="orgdf7e5fd"></a>
+    ]add CuArrays
+    
+    ]build 
+    
+    julia> using CuArrays
+    
+    julia> using Transformers
+    
+    #run the model below
+    .
+    .
+    .
+
+
+<a id="orgb99b674"></a>
 
 # implemented model
 
@@ -30,14 +45,14 @@ Install:
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
 
-<a id="orgd6197fd"></a>
+<a id="orgc3ce3a4"></a>
 
 # Issue
 
 Currently the code is really ugly, need refactor, test and docs. The grad of gather function is very slow on large array. need better implementation.
 
 
-<a id="orgc0dc093"></a>
+<a id="orgf8d9e4b"></a>
 
 # Roadmap
 
@@ -45,7 +60,7 @@ Currently the code is really ugly, need refactor, test and docs. The grad of gat
 -   [ ] write test
 -   [ ] refactor code
 -   [X] better embedding functions
--   [ ] lazy CuArrays loading
+-   [X] lazy CuArrays loading
 -   [ ] using HTTP to handle dataset download (need HTTP.jl update)
 -   [ ] optimize performance
 -   [ ] text related util functions

@@ -1,6 +1,9 @@
 module Basic
 
 using Flux
+using Requires
+using Requires: @init
+
 using ..Transformers: Abstract3DTensor, Container, batchedmul
 
 export PositionEmbedding, Embed, getmask,
