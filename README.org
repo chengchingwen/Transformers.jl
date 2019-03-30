@@ -10,6 +10,23 @@ Install:
 ]add HTTP#master
 #+END_EXAMPLE
 
+For using GPU, install & build:
+#+BEGIN_EXAMPLE
+]add CuArrays
+
+]build 
+
+julia> using CuArrays
+
+julia> using Transformers
+
+#run the model below
+.
+.
+.
+
+#+END_EXAMPLE
+
 * implemented model
 + [[https://arxiv.org/abs/1706.03762][Attention is all you need]]
 + [[https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf][Improving Language Understanding by Generative Pre-Training]]
@@ -22,7 +39,7 @@ Currently the code is really ugly, need refactor, test and docs. The grad of gat
   - [ ] write test
   - [ ] refactor code
   - [X] better embedding functions
-  - [ ] lazy CuArrays loading
+  - [X] lazy CuArrays loading
   - [ ] using HTTP to handle dataset download (need HTTP.jl update)
   - [ ] optimize performance
   - [ ] text related util functions

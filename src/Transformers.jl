@@ -1,6 +1,8 @@
 module Transformers
 
 using Flux
+using Requires
+using Requires: @init
 
 export Transformer, TransformerDecoder
 export Stack, stack, @nntopo_str, show_stackfunc
