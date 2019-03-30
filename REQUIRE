@@ -1,11 +1,13 @@
 julia 1.0
-Flux
-NPZ
-LightXML
-JSON
+Adapt
+ArgParse
 BytePairEncoding
 DataDeps
-ArgParse
-InternedStrings
-WordTokenizers
+Flux
 HTTP # Requires master
+InternedStrings
+JSON
+LightXML
+NPZ
+Requires
+WordTokenizers
