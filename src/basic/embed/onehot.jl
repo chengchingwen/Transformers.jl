@@ -12,9 +12,10 @@ end
 Base.size(xs::OneHotArray) = (Int64(xs.dims), size(xs.data)...)
 
 Base.getindex(o::OneHotArray, i::Integer, j::Integer) = o.data[j][i]
+Base.getindex(o::OneHotArray, i::Integer, j::Integer, I::Vararg{Int, N}) where N = o.data[j, I...][i]
 Base.getindex(o::OneHotArray, ::Colon, i::Integer) = o.data[i]
 Base.getindex(o::OneHotArray, ::Colon, i::AbstractArray) = OneHotArray(o.dims, o.data[i])
-Base.getindex(o::OneHotArray, i::Integer, j::Integer, k...) = o.data[j, k...][i]
+
 
 OneHotArray(xs::A) where A = OneHotArray{ndims(A)+1, A}(Int(xs[1].of), xs)
 OneHotArray(nums::Int, xs::AbstractArray{Int}) = OneHotArray(nums, map(i->onehot(i, 1:nums), xs))
@@ -31,7 +32,7 @@ Base.similar(o::OneHotArray{N, <:CuArray}, dims::NTuple{N, Int}) where N = simil
 Base.similar(o::OneHotArray{N, <:CuArray}, dims::Int...) where N = similar(o, Bool, Tuple(dims))
 Base.similar(o::OneHotArray{N, <:CuArray}, T::Type) where N = similar(o, T, size(o))
 Base.similar(o::OneHotArray{N, <:CuArray}, T::Type, dims::Int...) where N = similar(o, T, Tuple(dims))
-Base.similar(o::OneHotArray{N, <:CuArray}, T::Type, dims::NTuple{N, Int}) where N = CuArray{T}(undef, size(o))
+Base.similar(o::OneHotArray{N, <:CuArray}, T::Type, dims::NTuple{N, Int}) where N = CuArray{T}(undef, dims)
 
 
 Base.convert(::Type{OneHotVector}, x::Int) = OneHotVector(x & 0xffffffff, x >> 32)

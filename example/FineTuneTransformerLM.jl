@@ -3,17 +3,19 @@ Reference: The origin code of GPT paper from openai (https://github.com/openai/f
 """
 
 using ArgParse
+using CuArrays
 
 using Flux
-using Flux: onecold, gradient, onehotbatch, logitcrossentropy, data
+using Flux: onecold, gradient, logitcrossentropy
 import Flux.Optimise: update!
 
 using BytePairEncoding
 
 using Transformers
-using Transformers.Basic: onehot
+using Transformers.Basic
 using Transformers.GenerativePreTrain
-using Transformers.Datasets: StoryCloze, Train, Test, batched
+using Transformers.Datasets
+using Transformers.Datasets: StoryCloze
 
 
 function parse_commandline()
@@ -38,22 +40,21 @@ end
 
 const args = parse_commandline()
 
-use_gpu(args["gpu"])
-
 const startsym = "_start_"
 const delisym = "_deli_"
 const clfsym = "_clf_"
 const unksym = "<unk>"
-const anslabel = ("1", "2")
+const anslabel = ["1", "2"]
+const anv = Vocabulary(anslabel, "0")
 gptm, embedm, bpe = load_gpt_pretrain(12;
                                     startsym=startsym,
                                     delisym=delisym,
                                     clfsym=clfsym,
                                     unksym=unksym)
 
-const gpt = device(gptm)
-const embed = device(embedm)
-const clf = device(Dense(768, 1))
+const gpt = gpu(gptm)
+const embed = gpu(embedm)
+const clf = gpu(Dense(768, 1))
 
 function transform(s1, s2, s3, s4, c1, c2, y)
     x = [startsym;
@@ -73,18 +74,21 @@ function acc(p, y)
     sum(pred .== y) / length(y)
 end
 
-function loss(x1, x2, y)
-    e1, e1_mask = embed(x1)
-    e2, e2_mask = embed(x2)
-    t1 = gpt(e1, e1_mask)
-    t2 = gpt(e2, e2_mask)
-    lm = lmloss(embed, onehot(embed, x1), t1, e1_mask) + lmloss(embed, onehot(embed, x2), t2, e2_mask)
-    c1 = hcat(map(enumerate(findfirst(isequal(clfsym), x) for x in x1)) do (i, ind)
-              t1[:, ind, i]
-              end...)
-    c2 = hcat(map(enumerate(findfirst(isequal(clfsym), x) for x in x2)) do (i, ind)
-              t2[:, ind, i]
-              end...)
+function loss(x1, x2, y, x1_mask, x2_mask, c1_index, c2_index)
+    e1 = embed(x1)
+    e2 = embed(x2)
+    t1 = gpt(e1, x1_mask)
+    t2 = gpt(e2, x2_mask)
+    lm = lmloss(embed, onehot(embed, x1), t1, x1_mask) + lmloss(embed, onehot(embed, x2), t2, x2_mask)
+
+    c1 = gather(t1, c1_index)
+    c2 = gather(t2, c2_index)
+    # c1 = hcat(map(enumerate(findfirst(isequal(clfsym), x) for x in x1)) do (i, ind)
+    #           t1[:, ind, i]
+    #           end...)
+    # c2 = hcat(map(enumerate(findfirst(isequal(clfsym), x) for x in x2)) do (i, ind)
+    #           t2[:, ind, i]
+    #           end...)
 
     drop = Dropout(0.1)
     p1 = clf(c1)
@@ -93,8 +97,9 @@ function loss(x1, x2, y)
     p = drop(p, 1)
 
     ##### handle data placement
-    oy = onehotbatch(y, anslabel)
-    yd = copyto!(similar(p), oy)
+    yd = onehot(anv, y)
+    # oy = onehotarray(y, anslabel)
+    # yd = copyto!(similar(p), oy)
     #####
 
     cl = logitcrossentropy(p, yd)
@@ -117,7 +122,16 @@ function test()
     while (batch = get_batch(devl, Batch)) !== nothing
         tdb = transform.(batch...)
         b1, b2, y = batched(tdb)
-        _, p = loss(b1, b2, y)
+        b1, b2, y = batched(tdb)
+        b1_mask = getmask(b1)
+        b2_mask = getmask(b2)
+        c1i = [findfirst(isequal(clfsym), x) for x in b1]
+        c2i = [findfirst(isequal(clfsym), x) for x in b2]
+        b1, b2 = embed.Vocab.((b1,b2))
+        y = anv(y)
+        b1,b2,y,b1_mask,b2_mask,c1i,c2i = CuArray.((b1,b2,y,b1_mask,b2_mask,c1i,c2i))
+
+        _, p = loss(b1, b2, y, b1_mask, b2_mask, c1i, c2i)
         a = acc(p, y)
         al += a
         i += 1
@@ -137,7 +151,15 @@ function train!(epoch)
         while (batch = get_batch(datas, Batch)) !== nothing
             tdb = transform.(batch...)
             b1, b2, y = batched(tdb)
-            l, p = loss(b1, b2, y)
+            b1_mask = getmask(b1)
+            b2_mask = getmask(b2)
+            c1i = [findfirst(isequal(clfsym), x) for x in b1]
+            c2i = [findfirst(isequal(clfsym), x) for x in b2]
+            b1, b2 = embed.Vocab.((b1,b2))
+            y = anv(y)
+            b1,b2,y,b1_mask,b2_mask,c1i,c2i = CuArray.((b1,b2,y,b1_mask,b2_mask,c1i,c2i))
+
+            l, p = loss(b1, b2, y, b1_mask, b2_mask, c1i, c2i)
             #@show l
             a = acc(p, y)
             al += a
