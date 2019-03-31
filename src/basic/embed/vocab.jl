@@ -17,12 +17,12 @@ end
 
 Base.length(v::Vocabulary) = v.siz
 
-encode(vocab::Vocabulary{T}, i::T) where T = something(findfirst(isequal(i), vocab.list), vocab.unki)
+encode(vocab::Vocabulary{T}, i::Union{T,W}) where {T,W} = something(findfirst(isequal(i), vocab.list), vocab.unki)
 
 
-encode(vocab::Vocabulary{T}, xs::Container{T}) where T = indices = map(x->encode(vocab, x), xs)
+encode(vocab::Vocabulary{T}, xs::Container{<:Union{T,W}}) where {T,W} = indices = map(x->encode(vocab, x), xs)
 
-function encode(vocab::Vocabulary{T}, xs::Container{<:Container{T}}) where T
+function encode(vocab::Vocabulary{T}, xs::Container{<:Container{<:Union{T,W}}}) where {T,W}
     lens = map(length, xs)
     indices = fill(vocab.unki, maximum(lens), length(xs))
     for (i, x) ∈ enumerate(xs)
