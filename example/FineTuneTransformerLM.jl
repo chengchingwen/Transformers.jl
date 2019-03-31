@@ -56,6 +56,8 @@ const gpt = gpu(gptm)
 const embed = gpu(embedm)
 const clf = gpu(Dense(768, 1))
 
+const ansdrop = Dropout(0.1)
+
 function transform(s1, s2, s3, s4, c1, c2, y)
     x = [startsym;
          segment(bpe, s1);
@@ -80,25 +82,17 @@ function loss(x1, x2, y, x1_mask, x2_mask, c1_index, c2_index)
     t1 = gpt(e1, x1_mask)
     t2 = gpt(e2, x2_mask)
     lm = lmloss(embed, onehot(embed, x1), t1, x1_mask) + lmloss(embed, onehot(embed, x2), t2, x2_mask)
-    c1 = gather(reshape(t1, size(t1,1), :), c1_index)
-    c2 = gather(reshape(t2, size(t2,1), :), c2_index)
-    # c1 = hcat(map(enumerate(findfirst(isequal(clfsym), x) for x in x1)) do (i, ind)
-    #           t1[:, ind, i]
-    #           end...)
-    # c2 = hcat(map(enumerate(findfirst(isequal(clfsym), x) for x in x2)) do (i, ind)
-    #           t2[:, ind, i]
-    #           end...)
 
-    drop = Dropout(0.1)
+    c1 = gather(t1, c1_index)
+    c2 = gather(t2, c2_index)
+
     p1 = clf(c1)
     p2 = clf(c2)
     p = vcat(p1, p2)
-    p = drop(p, 1)
+    p = ansdrop(p, 1)
 
-    ##### handle data placement
+    ##### turn onehot to real float array
     yd = tofloat(Float32, onehot(anv, y))
-    # oy = onehotarray(y, anslabel)
-    # yd = copyto!(similar(p), oy)
     #####
 
     cl = logitcrossentropy(p, yd)
@@ -114,6 +108,7 @@ const Batch = 4
 
 function test()
     Flux.testmode!(gpt)
+    Flux.testmode!(ansdrop)
     println("eval:")
     i::Int = 0
     al::Float64 = 0.
@@ -123,9 +118,9 @@ function test()
         b1, b2, y = batched(tdb)
         b1_mask = getmask(b1)
         b2_mask = getmask(b2)
+        c1i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b1)]
+        c2i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b2)]
         b1, b2 = embed.Vocab.((b1,b2))
-        c1i = findall(isequal(embed.Vocab(clfsym)), reshape(b1, :))
-        c2i = findall(isequal(embed.Vocab(clfsym)), reshape(b2, :))
         y = anv(y)
         b1,b2,y,b1_mask,b2_mask,c1i,c2i = CuArray.((b1,b2,y,b1_mask,b2_mask,c1i,c2i))
 
@@ -136,6 +131,7 @@ function test()
     end
     al /= i
     Flux.testmode!(gpt, false)
+    Flux.testmode!(ansdrop, false)
     @show al
 end
 
@@ -151,9 +147,9 @@ function train!(epoch)
             b1, b2, y = batched(tdb)
             b1_mask = getmask(b1)
             b2_mask = getmask(b2)
+            c1i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b1)]
+            c2i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b2)]
             b1, b2 = embed.Vocab.((b1,b2))
-            c1i = findall(isequal(embed.Vocab(clfsym)), reshape(b1, :))
-            c2i = findall(isequal(embed.Vocab(clfsym)), reshape(b2, :))
             y = anv(y)
             b1,b2,y,b1_mask,b2_mask,c1i,c2i = CuArray.((b1,b2,y,b1_mask,b2_mask,c1i,c2i))
 
