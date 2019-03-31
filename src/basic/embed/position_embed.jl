@@ -34,7 +34,7 @@ function (pe::PositionEmbedding)(x)
             error("position embedding length exceeded")
         else
             over = similar(pe.embedding, size(pe.embedding, 1), len)
-            selectdim(over, 2, 1:size(pe.embedding, 2)) .= pe.embedding
+            copyto!(over, 1, pe.embedding, 1, length(pe.embedding))
 
             for l = size(pe.embedding, 2)+1:len
                 map!(i->PE(size(pe.embedding, 1), l, i), selectdim(over, 2, l), 1:size(pe.embedding, 1))
@@ -43,7 +43,9 @@ function (pe::PositionEmbedding)(x)
             pe.embedding = over
         end
     end
-    pe.embedding[:, 1:len]
+
+    idx = cumsum(fill!(similar(pe.embedding, Int, len), one(Int)))
+    gather(pe.embedding, idx)
 end
 
 function Base.show(io::IO, pe::PositionEmbedding)
