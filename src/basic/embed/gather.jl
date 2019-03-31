@@ -23,7 +23,7 @@ function gather(w::AbstractArray{T}, xs::AbstractArray{<:Tuple}) where T
 end
 
 # cpu gather back
-function ∇gather(Δ::AbstractMatrix{T}, w::AbstractMatrix{T}, xs) where T
+function ∇gather(Δ::AbstractArray{T}, w::AbstractMatrix{T}, xs) where T
     ys = fill!(similar(w), zero(T))
 
     Threads.@threads for i = 1:length(xs)
@@ -79,7 +79,7 @@ end
     end
 
     #gpu gather back
-    function ∇gather(Δ::CuMatrix{T}, w::CuMatrix{T}, xs::CuArray{Int}) where T
+    function ∇gather(Δ::CuArray{T}, w::CuMatrix{T}, xs::CuArray{Int}) where T
         ys = fill!(similar(w), zero(T))
 
         function kernel!(ys::CuDeviceArray{T}, Δ::CuDeviceArray{T}, xs)
@@ -175,7 +175,7 @@ using Flux: Tracker, TrackedArray, TrackedMatrix, data
 using Flux.Tracker: @grad, track
 
 gather(w::TrackedMatrix, xs::OneHotArray) = gather(w, onehot2indices(xs))
-gather(W::TrackedMatrix, xs) = track(gather, w, xs)
+gather(w::TrackedMatrix, xs) = track(gather, w, xs)
 gather(w::TrackedArray, xs::AbstractArray{<:Tuple}) = track(gather, w, xs)
 
 @grad gather(w::TrackedArray, xs) = gather(data(w), xs), Δ->(∇gather(Δ, data(w), xs),nothing)
