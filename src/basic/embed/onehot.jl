@@ -31,6 +31,18 @@ tofloat(::Type{F}, o::OneHotArray{N, <:AbstractArray}) where {F<:AbstractFloat,N
 Base.convert(::Type{OneHotVector}, x::Int) = OneHotVector(x & 0xffffffff, x >> 32)
 Base.convert(::Type{Int}, x::OneHotVector) = Int(x.ix)
 
+Base.hcat(x::OneHotArray, xs::OneHotArray...) = begin
+    !all(isequal(x.dims), map(o->o.dims, xs)) && throw(DimensionMismatch("OneHot dimension are not all the same"))
+    OneHotArray(x.dims, vcat(x.data, map(o->o.data, xs)...))
+end
+
+Base.cat(x::OneHotArray, xs::OneHotArray...; dims::Int) = begin
+    !all(isequal(x.dims), map(o->o.dims, xs)) && throw(DimensionMismatch("OneHot dimension are not all the same"))
+    dims < 2 && error("OneHotArray concatenation at dimension $dims is not allow")
+    OneHotArray(x.dims, cat(x.data, map(o->o.data, xs)...; dims=dims-1))
+end
+
+
 "turn one hot encoding to indices"
 onehot2indices(xs::OneHotArray) = onehot2indices(xs.data)
 
@@ -74,19 +86,3 @@ import Base: *
 *(A::AbstractMatrix{T}, b::OneHotArray{N}) where {T,N} = invoke(gather, Tuple{AbstractMatrix, OneHotArray}, A, b)
 
 *(A::TrackedMatrix{T}, b::OneHotArray{N}) where {T,N} = invoke(gather, Tuple{TrackedMatrix, OneHotArray}, A, b)
-
-
-# ca = randn(512,  40000)
-# cb = OneHotArray(40000, [1,3,2,1,11,12,13, 15])
-
-# ca = randn(512,  40000)
-# cb = OneHotArray(40000, ones(Int, 20))
-
-
-# ga = cu(ca)
-# gb = cu(cb)
-
-# using Flux: back!, param
-# pca = param(ca)
-# pga = param(ga)
-
