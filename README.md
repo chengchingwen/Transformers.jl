@@ -1,20 +1,22 @@
-
-# Table of Contents
-
-1.  [Transformers.jl](#orgd396d0c)
-2.  [implemented model](#orgb99b674)
-3.  [Issue](#orgc3ce3a4)
-4.  [Roadmap](#orgf8d9e4b)
-
-
-<a id="orgd396d0c"></a>
-
 # Transformers.jl
 
 Julia implementation of NLP models, that based on google [transformer](https://arxiv.org/abs/1706.03762), with [Flux.jl](https://github.com/FluxML/Flux.jl).
 For using the model, see `example` folder.
 
-Install:
+
+# Table of Contents
+
+1.  [Installation](#orgcf1a8ed)
+2.  [implemented model](#orgd7f4e33)
+3.  [Issue](#org462b271)
+4.  [Roadmap](#org4c326d7)
+
+
+<a id="orgcf1a8ed"></a>
+
+# Installation
+
+In the Julia REPL:
 
     ]add Transformers
     
@@ -37,7 +39,7 @@ For using GPU, install & build:
     .
 
 
-<a id="orgb99b674"></a>
+<a id="orgd7f4e33"></a>
 
 # implemented model
 
@@ -45,28 +47,37 @@ For using GPU, install & build:
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
 
-<a id="orgc3ce3a4"></a>
+<a id="org462b271"></a>
 
 # Issue
 
-Currently the code is really ugly, need refactor, test and docs. The grad of gather function is very slow on large array. need better implementation.
+Currently the code is really ugly, need refactor, test and docs.
 
 
-<a id="orgf8d9e4b"></a>
+<a id="org4c326d7"></a>
 
 # Roadmap
 
 -   [ ] write docs
 -   [ ] write test
 -   [ ] refactor code
--   [X] better embedding functions
+-   <code>[60%]</code> better embedding functions
+    -   [X] gather function forward
+    -   [X] gather function backward (might be better)
+    -   [X] OneHotArray
+    -   [ ] more util functions
+    -   [ ] easy gpu data
 -   [X] lazy CuArrays loading
 -   [ ] using HTTP to handle dataset download (need HTTP.jl update)
 -   [ ] optimize performance
 -   [ ] text related util functions
 -   [ ] better dataset API
 -   [ ] more datasets
--   [ ] openai gpt model
+-   <code>[75%]</code> openai gpt model
+    -   [X] model implementation
+    -   [X] loading pretrain
+    -   [X] model example
+    -   [ ] more util functions
 -   [ ] openai gpt-2 model
 -   [ ] google bert model
 
