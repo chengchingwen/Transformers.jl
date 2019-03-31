@@ -2,7 +2,8 @@
 Julia implementation of NLP models, that based on google [[https://arxiv.org/abs/1706.03762][transformer]], with [[https://github.com/FluxML/Flux.jl][Flux.jl]].
 For using the model, see =example= folder.
 
-Install:
+* Installation
+In the Julia REPL:
 #+BEGIN_EXAMPLE
 ]add Transformers
 
@@ -32,19 +33,28 @@ julia> using Transformers
 + [[https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf][Improving Language Understanding by Generative Pre-Training]]
 
 * Issue
-Currently the code is really ugly, need refactor, test and docs. The grad of gather function is very slow on large array. need better implementation.
+Currently the code is really ugly, need refactor, test and docs.
 
 * Roadmap
   - [ ] write docs
   - [ ] write test
   - [ ] refactor code
-  - [X] better embedding functions
+  - [60%] better embedding functions
+    - [X] gather function forward
+    - [X] gather function backward (might be better)
+    - [X] OneHotArray
+    - [ ] more util functions
+    - [ ] easy gpu data
   - [X] lazy CuArrays loading
   - [ ] using HTTP to handle dataset download (need HTTP.jl update)
   - [ ] optimize performance
   - [ ] text related util functions
   - [ ] better dataset API
   - [ ] more datasets
-  - [ ] openai gpt model
+  - [75%] openai gpt model
+    - [X] model implementation
+    - [X] loading pretrain
+    - [X] model example
+    - [ ] more util functions
   - [ ] openai gpt-2 model
   - [ ] google bert model
