@@ -7,7 +7,7 @@ using Requires: @init
 using ..Transformers: Abstract3DTensor, Container, batchedmul
 
 export PositionEmbedding, Embed, getmask,
-    Vocabulary, gather
+    Vocabulary, gather, encode, decode
 export OneHotArray, indices2onehot, onehot2indices,
     onehotarray, onehot, tofloat
 export Transformer, TransformerDecoder

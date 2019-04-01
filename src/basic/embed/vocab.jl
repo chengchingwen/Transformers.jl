@@ -34,6 +34,7 @@ function encode(vocab::Vocabulary{T}, xs::Container{<:Container{<:Union{T,W}}}) 
 end
 
 (vocab::Vocabulary)(x) = encode(vocab, x)
+(vocab::Vocabulary)(x, xs...) = (encode(vocab, x), map(x->encode(vocab, x), xs)...)
 
 decode(vocab::Vocabulary{T}, i::Int) where T = 0 <= i <= length(vocab) ? vocab[i] : vocab.unk
 
