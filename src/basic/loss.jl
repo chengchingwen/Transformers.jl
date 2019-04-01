@@ -39,13 +39,3 @@ function logcrossentropy(q, logp)
     ce = q .* logp
     -sum(ce) / size(ce, 2)
 end
-
-"compute the cross entropy"
-# crossentropy(q::Abstract3DTensor{T},
-#              p::Abstract3DTensor{T}) where T =
-#                  -sum(reshape(sum(sum(q .* @toNd(logsoftmax(p)); dims=1); dims=2), :) ./ size(q, 2))
-
-# function crossentropy(q, p)
-#     ce = q .* logsoftmax(p)
-#     -sum(ce) / size(ce, 2)
-# end
