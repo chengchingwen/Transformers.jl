@@ -16,9 +16,9 @@ struct Vocabulary{T}
 end
 
 Base.length(v::Vocabulary) = v.siz
+Base.getindex(v::Vocabulary, i::Integer) = v.list[i]
 
 encode(vocab::Vocabulary{T}, i::Union{T,W}) where {T,W} = something(findfirst(isequal(i), vocab.list), vocab.unki)
-
 
 encode(vocab::Vocabulary{T}, xs::Container{<:Union{T,W}}) where {T,W} = indices = map(x->encode(vocab, x), xs)
 
@@ -35,5 +35,29 @@ end
 
 (vocab::Vocabulary)(x) = encode(vocab, x)
 
+decode(vocab::Vocabulary{T}, i::Int) where T = 0 <= i <= length(vocab) ? vocab[i] : vocab.unk
+
+decode(vocab::Vocabulary{T}, is::Container{Int}) where T = map(i->decode(vocab, i), is)
+
+function decode(vocab::Vocabulary{T}, is::Container{<:Container{Int}}) where T
+    tokens = Vector{Vector{T}}(undef, length(is))
+    for (idx, i) ∈ enumerate(is)
+        token = decode(vocab, i)
+        tokens[idx] = token
+    end
+    tokens
+end
+
+function decode(vocab::Vocabulary{T}, is::AbstractMatrix{Int}) where T
+    ilen, olen = size(is)
+    tokens = Vector{Vector{T}}(undef, olen)
+    for idx ∈ 1:olen
+        token = Vector{T}(undef, ilen)
+        for idy ∈ 1:ilen
+            token[idy] = decode(vocab, is[idy, idx])
+        end
+        tokens[idx] = token
+    end
+end
 
 Base.show(io::IO, v::Vocabulary) = print(io, "Vocabulary($(v.siz), unk=$(v.unk))")
