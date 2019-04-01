@@ -199,7 +199,11 @@ function loss(src, trg, src_mask, trg_mask)
     #label smoothing
     label = smooth(lab)[:, 2:end, :]
 
-    loss = logkldivergence(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
+    if mask == nothing
+        loss = logkldivergence(label, dec[:, 1:end-1, :])
+    else
+        loss = logkldivergence(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
+    end
 end
 
 function translate(x)

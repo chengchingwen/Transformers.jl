@@ -15,6 +15,12 @@ end
 
 @treelike MultiheadAttention
 
+"""
+    MultiheadAttention(head::Int, is::Int, hs::Int, os::Int; future::Bool=true, pdrop = 0.1)
+
+Multihead dot product Attention Layer, `head` is the number of head, `is` is the input size, `hs` is the hidden size of input projection layer of each head,
+`os` is the output size. When `future` is `false`, the k-th token can't see tokens at > k. `pdrop` is the dropout rate.
+"""
 MultiheadAttention(head::Int,
                    is::Int,
                    hs::Int,
