@@ -3,7 +3,6 @@ Reference: The Annotated Transformer (http://nlp.seas.harvard.edu/2018/04/03/att
 """
 
 using ArgParse
-using CuArrays
 
 using Flux
 using Flux: onecold, gradient
@@ -33,7 +32,11 @@ function parse_commandline()
     return parse_args(ARGS, s)
 end
 
-args = parse_commandline()
+const args = parse_commandline()
+
+if args["gpu"]
+    @eval using CuArrays
+end
 
 if args["task"] == "copy"
     const N = 2
@@ -65,7 +68,7 @@ if args["task"] == "copy"
             x_mask = getmask(x)
             t_mask = getmask(t)
             x, t = embed.Vocab.((x, t))
-            x, t, x_mask, t_mask = CuArray.((x,t,x_mask,t_mask))
+            x, t, x_mask, t_mask = todevice(x,t,x_mask,t_mask)
             l = loss(x, t, x_mask, t_mask)
             grad = gradient(()->l, ps)
             i%8 == 0 && @show l
@@ -110,7 +113,7 @@ elseif args["task"] == "wmt14" || args["task"] == "iwslt2016"
             x_mask = getmask(x)
             t_mask = getmask(t)
             x, t = embed.Vocab.((x, t))
-            x, t, x_mask, t_mask = CuArray.((x,t,x_mask,t_mask))
+            x, t, x_mask, t_mask = todevice(x,t,x_mask,t_mask)
             l = loss(x,t, x_mask, t_mask)
             grad = gradient(()->l, ps)
             i+=1
@@ -200,7 +203,7 @@ function loss(src, trg, src_mask, trg_mask)
 end
 
 function translate(x)
-    ix = CuArray(embed.Vocab(mkline(x)))
+    ix = todevice(embed.Vocab(mkline(x))
     seq = [startsym]
 
     src = embedding(ix)
@@ -208,7 +211,7 @@ function translate(x)
 
     len = length(ix)
     for i = 1:2len
-        trg = embedding(CuArray(embed.Vocab(seq)))
+        trg = embedding(todevice(embed.Vocab(seq)))
         dec = decoder(trg, enc, nothing)
         #move back to gpu due to argmax wrong result on CuArrays
         ntok = onecold(collect(dec), labels)

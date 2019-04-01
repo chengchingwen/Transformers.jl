@@ -3,7 +3,6 @@ Reference: The origin code of GPT paper from openai (https://github.com/openai/f
 """
 
 using ArgParse
-using CuArrays
 
 using Flux
 using Flux: onecold, gradient, logitcrossentropy
@@ -39,6 +38,10 @@ function parse_commandline()
 end
 
 const args = parse_commandline()
+
+if args["gpu"]
+    @eval using CuArrays
+end
 
 const startsym = "_start_"
 const delisym = "_deli_"
@@ -122,7 +125,7 @@ function test()
         c2i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b2)]
         b1, b2 = embed.Vocab.((b1,b2))
         y = anv(y)
-        b1,b2,y,b1_mask,b2_mask,c1i,c2i = CuArray.((b1,b2,y,b1_mask,b2_mask,c1i,c2i))
+        b1,b2,y,b1_mask,b2_mask,c1i,c2i = device(b1,b2,y,b1_mask,b2_mask,c1i,c2i)
 
         _, p = loss(b1, b2, y, b1_mask, b2_mask, c1i, c2i)
         a = acc(p, y)
@@ -151,7 +154,7 @@ function train!(epoch)
             c2i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b2)]
             b1, b2 = embed.Vocab.((b1,b2))
             y = anv(y)
-            b1,b2,y,b1_mask,b2_mask,c1i,c2i = CuArray.((b1,b2,y,b1_mask,b2_mask,c1i,c2i))
+            b1,b2,y,b1_mask,b2_mask,c1i,c2i = device(b1,b2,y,b1_mask,b2_mask,c1i,c2i)
 
             l, p = loss(b1, b2, y, b1_mask, b2_mask, c1i, c2i)
             #@show l
