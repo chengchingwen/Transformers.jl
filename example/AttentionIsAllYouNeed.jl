@@ -145,15 +145,12 @@ else
 end
 
 vocab = Vocabulary(labels, unksym)
-embed = gpu(Embed(512, vocab))
+const embed = gpu(Embed(512, vocab))
 
-function embedding(x)
-    em = embed(x)
-    #sqrt(512) makes type unstable
-    em ./ convert(Float32, sqrt(512))
-end
+embedding(x) = embed(x, inv(sqrt(512)))
 
-encoder = gpu(Stack(
+
+const encoder = gpu(Stack(
     NNTopo("e → pe:(e, pe) → x → x → $N"),
     PositionEmbedding(512),
     (e, pe) -> e .+ pe,
@@ -161,7 +158,7 @@ encoder = gpu(Stack(
     [Transformer(512, 8, 64, 2048) for i = 1:N]...
 ))
 
-decoder = gpu(Stack(
+const decoder = gpu(Stack(
     NNTopo("(e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c"),
     PositionEmbedding(512),
     (e, pe) -> e .+ pe,
@@ -170,8 +167,8 @@ decoder = gpu(Stack(
     Sequence(Dense(512, length(labels)), logsoftmax)
 ))
 
-ps = params(embed, encoder, decoder)
-opt = ADAM(lr)
+const ps = params(embed, encoder, decoder)
+const opt = ADAM(lr)
 
 function smooth(et)
     global Smooth
