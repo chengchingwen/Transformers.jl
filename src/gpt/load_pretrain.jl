@@ -47,6 +47,18 @@ end
 #            :xN,
 #            )
 
+"""
+    load_gpt_pretrain(n::Int=12;
+                      startsym="_start_",
+                      delisym="_delimiter_",
+                      clfsym="_classify_",
+                      unksym="<unk>")
+
+load the pretrain gpt model.
+`n` stand for the number of layers should load from pretrain model, maximum is 12.
+`startsym`, `delisym`, and `clfsym` is the special token mentioned in origin paper.
+`unksym` is the special token when the given token is unknown.
+"""
 function load_gpt_pretrain(n::Int=12;
                            startsym="_start_",
                            delisym="_delimiter_",
