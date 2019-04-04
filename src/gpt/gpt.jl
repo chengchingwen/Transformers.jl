@@ -15,6 +15,15 @@ end
 
 @treelike Gpt
 
+
+"""
+    Gpt(size::Int, head::Int, ps::Int, layer::Int;
+        max_len::Int = 512, trainable = true, act = gelu, pdrop = 0.1)
+    Gpt(size::Int, head::Int, hs::Int, ps::Int, layer::Int;
+        max_len::Int = 512, trainable = true, act = gelu, pdrop = 0.1)
+
+the Generative Pretrain model.
+"""
 function Gpt(size::Int, head::Int, ps::Int, layer::Int;
              max_len::Int = 512, trainable = true, act = gelu, pdrop = 0.1)
     rem(size, head) != 0 && error("size not divisible by head")
@@ -38,6 +47,13 @@ function (gpt::Gpt)(x::T, mask=nothing)::T where T
 end
 
 
+"""
+    lmloss(embed, onehot, encoding, mask)
+
+compute the language modeling loss for Gpt, onehot is the onehot array of the origin
+input sentence. encoding the output of Gpt, mask is the mask between input sentences.
+
+"""
 lmloss(embed::Embed, o::OneHotArray, t::AbstractArray{T}, mask) where T = lmloss(embed, tofloat(T, o), t, mask)
 function lmloss(embed::Embed, et, t::AbstractArray{T, N}, mask) where {T,N}
     if N == 3
