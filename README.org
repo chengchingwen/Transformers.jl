@@ -7,7 +7,7 @@ In the Julia REPL:
 #+BEGIN_EXAMPLE
 ]add Transformers
 
-#Currently the Dataset need the HTTP#master to download
+#Currently the Dataset need the HTTP#master to download WMT
 ]add HTTP#master
 #+END_EXAMPLE
 
@@ -32,6 +32,9 @@ julia> using Transformers
 + [[https://arxiv.org/abs/1706.03762][Attention is all you need]]
 + [[https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf][Improving Language Understanding by Generative Pre-Training]]
 
+* Usage
+Coming soon!
+
 * Issue
 Currently the code is really ugly, need refactor, test and docs.
 
@@ -39,12 +42,13 @@ Currently the code is really ugly, need refactor, test and docs.
   - [ ] write docs
   - [ ] write test
   - [ ] refactor code
-  - [60%] better embedding functions
+  - [50%] better embedding functions
     - [X] gather function forward
     - [X] gather function backward (might be better)
     - [X] OneHotArray
     - [ ] more util functions
     - [ ] easy gpu data
+    - [ ] remove Vocabulary
   - [X] lazy CuArrays loading
   - [ ] using HTTP to handle dataset download (need HTTP.jl update)
   - [ ] optimize performance
