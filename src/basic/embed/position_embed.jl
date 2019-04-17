@@ -1,3 +1,10 @@
+"""
+    PositionEmbedding(size::Int, max_len::Int = 1024; trainable::Bool = false)
+
+The position embedding layer. `size` is the number of neuron. `max_len` is the maximum acceptable length of input.
+If is not `trainable`, `max_len` will dynamically adjust to the longest input length. If `trainable`, use a random init
+embedding value, otherwise use a sin/cos position encoding.
+"""
 mutable struct PositionEmbedding{W}
     trainable::Bool
     embedding::W
