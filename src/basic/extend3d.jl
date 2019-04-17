@@ -1,10 +1,8 @@
 using Base: tail
 
 using Flux: applychain
-import Flux: logsoftmax, Dense
 
 """
-
     @toNd f(x, y, z; a=a, b=b, c=c) n
 
 macro for calling 2-d array function on N-d array by reshape input with reshape(x, size(x, 1), :)
@@ -31,20 +29,20 @@ macro toNd(ex, outref::Int=1)
 end
 
 """
-    Sequence(layers)
+    Positionwise(layers)
 
 just like Flux.Chain, but reshape input to 2d and reshape back when output.
 """
-struct Sequence{T<:Tuple}
+struct Positionwise{T<:Tuple}
     models::T
-    Sequence(xs...) = new{typeof(xs)}(xs)
+    Positionwise(xs...) = new{typeof(xs)}(xs)
 end
 
-Flux.children(s::Sequence) = s.models
-Flux.mapchildren(f, s::Sequence) = Sequence(f.(s.models)...)
+Flux.children(pw::Positionwise) = pw.models
+Flux.mapchildren(f, pw::Positionwise) = Positionwise(f.(pw.models)...)
 
-function (s::Sequence)(x)
+function (pw::Positionwise)(x)
     insize = size(x)
-    y = applychain(s.models, reshape(x, insize[1], :))
+    y = applychain(pw.models, reshape(x, insize[1], :))
     reshape(y, :, Base.tail(insize)...)
 end
