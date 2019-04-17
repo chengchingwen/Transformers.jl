@@ -1,3 +1,5 @@
+<a id="orga4283c7"></a>
+
 # Transformers.jl
 
 Julia implementation of NLP models, that based on google [transformer](https://arxiv.org/abs/1706.03762), with [Flux.jl](https://github.com/FluxML/Flux.jl).
@@ -6,13 +8,15 @@ For using the model, see `example` folder.
 
 # Table of Contents
 
-1.  [Installation](#orgcf1a8ed)
-2.  [implemented model](#orgd7f4e33)
-3.  [Issue](#org462b271)
-4.  [Roadmap](#org4c326d7)
+1.  [Transformers.jl](#orga4283c7)
+2.  [Installation](#org00b1de3)
+3.  [implemented model](#org49d1f93)
+4.  [Usage](#org918b0e5)
+5.  [Issue](#orgeff3c28)
+6.  [Roadmap](#orgdfdb546)
 
 
-<a id="orgcf1a8ed"></a>
+<a id="org00b1de3"></a>
 
 # Installation
 
@@ -20,7 +24,7 @@ In the Julia REPL:
 
     ]add Transformers
     
-    #Currently the Dataset need the HTTP#master to download
+    #Currently the Dataset need the HTTP#master to download WMT
     ]add HTTP#master
 
 For using GPU, install & build:
@@ -39,7 +43,7 @@ For using GPU, install & build:
     .
 
 
-<a id="orgd7f4e33"></a>
+<a id="org49d1f93"></a>
 
 # implemented model
 
@@ -47,26 +51,34 @@ For using GPU, install & build:
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
 
-<a id="org462b271"></a>
+<a id="org918b0e5"></a>
+
+# Usage
+
+Coming soon!
+
+
+<a id="orgeff3c28"></a>
 
 # Issue
 
 Currently the code is really ugly, need refactor, test and docs.
 
 
-<a id="org4c326d7"></a>
+<a id="orgdfdb546"></a>
 
 # Roadmap
 
 -   [ ] write docs
 -   [ ] write test
 -   [ ] refactor code
--   <code>[60%]</code> better embedding functions
+-   <code>[50%]</code> better embedding functions
     -   [X] gather function forward
     -   [X] gather function backward (might be better)
     -   [X] OneHotArray
     -   [ ] more util functions
     -   [ ] easy gpu data
+    -   [ ] remove Vocabulary
 -   [X] lazy CuArrays loading
 -   [ ] using HTTP to handle dataset download (need HTTP.jl update)
 -   [ ] optimize performance
