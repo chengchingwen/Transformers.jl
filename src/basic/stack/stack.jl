@@ -1,17 +1,16 @@
 using Flux
 
+
+"""
+    Stack(topo::NNTopo, layers...)
+
+like Flux.Chain, but you can use a NNTopo to define the order/structure of the function called.
+"""
 struct Stack{T<:Tuple}
     models::T
     topo::NNTopo
     Stack(topo, xs...) = new{typeof(xs)}(xs, topo)
 end
-
-
-# Stack(n::Int, x; topo::String = "") = Stack(n, x, topo == "" ? NNTopo("x => $n") : NNTopo(topo))
-# function Stack(n::Int, x, topo::NNTopo)
-#     models = stack(n, x)
-#     Stack(topo, models...)
-# end
 
 Flux.children(s::Stack) = s.models
 Flux.mapchildren(f, s::Stack) = Stack(s.topo, f.(s.models)...)
@@ -27,4 +26,5 @@ function Base.show(io::IO, s::Stack)
     print(io, ")")
 end
 
+"show the structure of the Stack function"
 show_stackfunc(s::Stack) = print_topo(s.topo; models=s.models)
