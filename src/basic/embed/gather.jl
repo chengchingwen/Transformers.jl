@@ -1,7 +1,15 @@
-"getting vector at the given indices"
+"
+    gather(w::AbstractMatrix{T}, xs::OneHotArray) where
+
+getting vector at the given onehot encoding.
+"
 gather(w::AbstractMatrix{T}, xs::OneHotArray) where T = gather(w, onehot2indices(xs))
 
-#cpu gather
+"
+    gather(w::AbstractMatrix{T}, xs) where
+
+getting vector at the given indices, `xs` is a array of indices(`Int` type).
+"
 function gather(w::AbstractMatrix{T}, xs) where T
     ys = similar(w, size(w, 1), size(xs)...)
 
@@ -12,6 +20,11 @@ function gather(w::AbstractMatrix{T}, xs) where T
     return ys
 end
 
+"
+    gather(w::AbstractArray{T}, xs) where
+
+getting vector at the given indices, `xs` is a array of cartesian indices(`Tuple{Int}` type).
+"
 function gather(w::AbstractArray{T}, xs::AbstractArray{<:Tuple}) where T
     ys = similar(w, size(w, 1), size(xs)...)
 
