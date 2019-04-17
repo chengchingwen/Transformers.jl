@@ -1,19 +1,21 @@
 using Flux
 using Flux: @treelike
 
-struct Positionwise
+struct PwFFN
     din::Dense
     dout::Dense
 end
 
-@treelike Positionwise
+@treelike PwFFN
 
-Positionwise(size::Int, h::Int, act = relu) = Positionwise(
+
+"just a wrapper for two dense layer."
+PwFFN(size::Int, h::Int, act = relu) = PwFFN(
     Dense(size, h, act),
     Dense(h, size)
 )
 
-function (pw::Positionwise)(x)::AbstractMatrix
+function (pw::PwFFN)(x)::AbstractMatrix
     # size(x) == (dims, seq_len)
     pw.dout(pw.din(x))
 end
@@ -21,7 +23,7 @@ end
 struct Transformer
     mh::MultiheadAttention
     mhn::LayerNorm
-    pw::Positionwise
+    pw::PwFFN
     pwn::LayerNorm
     drop::Dropout
 end
@@ -47,7 +49,7 @@ end
 Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true, act = relu, pdrop = 0.1) = Transformer(
     MultiheadAttention(head, size, hs, size; future=future, pdrop=pdrop),
     LayerNorm(size),
-    Positionwise(size, ps, act),
+    PwFFN(size, ps, act),
     LayerNorm(size),
     Dropout(pdrop),
 )
@@ -92,7 +94,7 @@ struct TransformerDecoder
     mhn::LayerNorm
     imh::MultiheadAttention
     imhn::LayerNorm
-    pw::Positionwise
+    pw::PwFFN
     pwn::LayerNorm
     drop::Dropout
 end
@@ -119,7 +121,7 @@ TransformerDecoder(size::Int, head::Int, hs::Int, ps::Int; act = relu, pdrop = 0
     LayerNorm(size),
     MultiheadAttention(head, size, hs, size; future=true, pdrop=pdrop),
     LayerNorm(size),
-    Positionwise(size, ps, act),
+    PwFFN(size, ps, act),
     LayerNorm(size),
     Dropout(pdrop),
 )

@@ -15,7 +15,7 @@ export Transformer, TransformerDecoder
 export NNTopo, @nntopo_str, @nntopo
 export Stack, show_stackfunc, stack
 
-export @toNd, Sequence
+export @toNd, Positionwise
 
 export logkldivergence, logcrossentropy
 
