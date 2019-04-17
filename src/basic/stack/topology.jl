@@ -229,34 +229,3 @@ function to_code(ex::Expr)
     code = _to_code(ex)
     _postcode(code)
 end
-
-
-# is_sublayer(x, ex) = startswith(String(ex), string(x, "_"))
-# macro topology(pattern)
-#     @show pattern
-#     # for i in ins.args
-#     #     is_sublayer(m, i) && @show i
-#     # end
-#     !islegal(pattern) && error("topo pattern illegal")
-
-#     m = gensym(:model)
-#     fname = gensym(:topo_func)
-
-#     code = to_code(pattern)
-
-#     if isa(code.in, Symbol)
-#         fname = Expr(:call, fname, m, code.in)
-#     else
-#         fname = Expr(:call, fname, m, code.in.args...)
-#     end
-
-#     fbody = Any[:block]
-#     for (i, l) ∈ enumerate(code.lines)
-#         push!(fbody, genline(l..., m, i))
-#     end
-
-#     push!(fbody, code.out)
-#     Expr(:function, fname, Expr(fbody...))
-# end
-
-
