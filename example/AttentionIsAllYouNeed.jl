@@ -154,7 +154,7 @@ embedding(x) = embed(x, inv(sqrt(512)))
 
 
 const encoder = gpu(Stack(
-    NNTopo("e → pe:(e, pe) → x → x → $N"),
+    @nntopo(e → pe:(e, pe) → x → x → $N),
     PositionEmbedding(512),
     (e, pe) -> e .+ pe,
     Dropout(0.1),
@@ -162,7 +162,7 @@ const encoder = gpu(Stack(
 ))
 
 const decoder = gpu(Stack(
-    NNTopo("(e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c"),
+    @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
     PositionEmbedding(512),
     (e, pe) -> e .+ pe,
     Dropout(0.1),

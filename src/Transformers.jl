@@ -5,7 +5,7 @@ using Requires
 using Requires: @init
 
 export Transformer, TransformerDecoder
-export Stack, stack, @nntopo_str, show_stackfunc
+export Stack, stack, @nntopo_str, @nntopo, show_stackfunc
 
 export dataset, datafile, get_batch, get_vocab
 
