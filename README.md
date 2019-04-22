@@ -123,7 +123,7 @@ with the given model.
 
 ### NNTopo Syntax
 
-we call the DSL NNTopo for "Neural Network Topology", but actually it is just use to define where the input & output should be in a sequence of 
+we call the DSL NNTopo for "Neural Network Topology", but actually it is just used to define where the input & output should be in a sequence of 
 function, or the complex version of the `|>` function in Julia.
 
 1.  "Chain" the functions
@@ -167,7 +167,7 @@ y = topo((f,f,f,f, g), x) # f can also be different
 
 3.  Multiple argument & jump connection
 
-    As we metioned above, the original intention was to handle the case that we have more than one input & output. So, we can do this we the following syntax: 
+    As we metioned above, the original intention was to handle the case that we have more than one input & output. So, we can do this with the following syntax: 
 
 ```julia
 # a complex structure
@@ -207,7 +207,7 @@ print_topo(topo; models=(f, g, h, k))
 
 5.  Interpolation
 
-    we also support interpolation, so you can use a variable to hold to substructure or the unroll number.
+    we also support interpolation, so you can use a variable to hold a substructure or the unroll number.
 
 ```julia
 N = 3
