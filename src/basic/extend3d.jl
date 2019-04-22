@@ -3,7 +3,7 @@ using Base: tail
 using Flux: applychain
 
 """
-    @toNd f(x, y, z; a=a, b=b, c=c) n
+    @toNd f(x, y, z...; a=a, b=b, c=c...) n
 
 macro for calling 2-d array function on N-d array by reshape input with reshape(x, size(x, 1), :)
 and reshape back with reshape(out, :, input[n][2:end]...) where n is the n-th input(default=1).

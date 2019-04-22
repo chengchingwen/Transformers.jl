@@ -31,7 +31,7 @@ function load_gpt_pretrain_params()
     shapes = JSON.parsefile(joinpath(dirname(@__FILE__), "pretrain/params_shapes.json"))
     offsets = accumulate(+, prod.(shapes))
     shapes = map(s -> length(s) > 1 ? (s[end], s[end-1]) : s, shapes)
-    params = cat( [npzread(joinpath(dirname(@__FILE__), "pretrain/params_$(i).npy")) for i = 0:9]..., dims=1)
+    params = cat([npzread(joinpath(dirname(@__FILE__), "pretrain/params_$(i).npy")) for i = 0:9]..., dims=1)
     params = [collect(reshape(selectdim(params, 1, a+1:b), s...)) for (a, b, s) in zip([0;offsets[1:end-1]], offsets, shapes)]
     params
 end
