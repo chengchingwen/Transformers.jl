@@ -10,7 +10,7 @@ gather(w::AbstractMatrix{T}, xs::OneHotArray) where T = gather(w, onehot2indices
 
 getting vector at the given indices, `xs` is a array of indices(`Int` type).
 "
-function gather(w::AbstractMatrix{T}, xs) where T
+function gather(w::AbstractMatrix{T}, xs::AbstractArray{Int}) where T
     ys = similar(w, size(w, 1), size(xs)...)
 
     Threads.@threads for i = 1:length(xs)
@@ -36,7 +36,7 @@ function gather(w::AbstractArray{T}, xs::AbstractArray{<:Tuple}) where T
 end
 
 # cpu gather back
-function ∇gather(Δ::AbstractArray{T}, w::AbstractMatrix{T}, xs) where T
+function ∇gather(Δ::AbstractArray{T}, w::AbstractMatrix{T}, xs::AbstractArray{Int}) where T
     ys = fill!(similar(w), zero(T))
 
     Threads.@threads for i = 1:length(xs)
@@ -188,7 +188,7 @@ using Flux: Tracker, TrackedArray, TrackedMatrix, data
 using Flux.Tracker: @grad, track
 
 gather(w::TrackedMatrix, xs::OneHotArray) = gather(w, onehot2indices(xs))
-gather(w::TrackedMatrix, xs) = track(gather, w, xs)
+gather(w::TrackedMatrix, xs::AbstractArray{Int}) = track(gather, w, xs)
 gather(w::TrackedArray, xs::AbstractArray{<:Tuple}) = track(gather, w, xs)
 
 @grad gather(w::TrackedArray, xs) = gather(data(w), xs), Δ->(∇gather(Δ, data(w), xs),nothing)
