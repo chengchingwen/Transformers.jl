@@ -1,4 +1,5 @@
-<a id="orgbabee23"></a>
+
+<a id="orgc036636"></a>
 
 # Transformers.jl
 
@@ -8,20 +9,20 @@ For using the model, see `example` folder.
 
 # Table of Contents
 
-1.  [Transformers.jl](#orgbabee23)
-2.  [Installation](#orgf62c626)
-3.  [implemented model](#org7c18070)
-4.  [Usage](#org2c0f92f)
-    1.  [Transformer](#orgb8f0cea)
-    2.  [Positionwise](#org1387d50)
-    3.  [The Stack NNTopo DSL](#orgfb04c63)
-        1.  [NNTopo Syntax](#orgfe3fefe)
-        2.  [Stack](#orgf4a6d11)
-5.  [Issue](#org3cddcdf)
-6.  [Roadmap](#org2c950f4)
+1.  [Transformers.jl](#orgc036636)
+2.  [Installation](#org7cd262e)
+3.  [implemented model](#org8f711d9)
+4.  [Usage](#orgce3be42)
+    1.  [Transformer](#orgdd10aa8)
+    2.  [Positionwise](#orga7cff19)
+    3.  [The Stack NNTopo DSL](#orga82ed26)
+        1.  [NNTopo Syntax](#org2f49cf2)
+        2.  [Stack](#orgdbe1060)
+5.  [Issue](#org40d94bc)
+6.  [Roadmap](#orge253f99)
 
 
-<a id="orgf62c626"></a>
+<a id="org7cd262e"></a>
 
 # Installation
 
@@ -48,7 +49,7 @@ For using GPU, install & build:
     .
 
 
-<a id="org7c18070"></a>
+<a id="org8f711d9"></a>
 
 # implemented model
 
@@ -56,38 +57,41 @@ For using GPU, install & build:
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
 
-<a id="org2c0f92f"></a>
+<a id="orgce3be42"></a>
 
 # Usage
 
 
-<a id="orgb8f0cea"></a>
+<a id="orgdd10aa8"></a>
 
 ## Transformer
 
-The \`Transformer\` and \`TransformerDecoder\` is the encoder and decoder block of the origin paper, and they are all implement as the 
-regular Flux Layer, so you can treat them just as the \`Dense\` layer. See the docstring for the argument. However, for the sequence 
-data input, we usually have a 3 dimensional input of shape \`(hidden size, sequence length, batch size)\` instead of just \`(hidden size, batch size)\`. 
-Therefore, we implement both 2d & 3d operation according to the input type (The \`N\` of \`Array{T, N}\`). We are able to handle both input of shape 
-\`(hidden size, sequence length, batch size)\` and \`(hidden size, sequence length)\` for the case with only 1 input.
+The `Transformer` and `TransformerDecoder` is the encoder and decoder block of the origin paper, and they are all implement as the 
+regular Flux Layer, so you can treat them just as the `Dense` layer. See the docstring for the argument. However, for the sequence 
+data input, we usually have a 3 dimensional input of shape `(hidden size, sequence length, batch size)` instead of just `(hidden size, batch size)`. 
+Therefore, we implement both 2d & 3d operation according to the input type (The `N` of `Array{T, N}`). We are able to handle both input of shape 
+`(hidden size, sequence length, batch size)` and `(hidden size, sequence length)` for the case with only 1 input.
 
+```julia
     using Transfomers
     
     m = Transformer(512, 8, 64, 2048) #define a Transformer block with 8 head and 64 neuron for each head
     x = randn(512, 30, 3) #fake data of length 30
     
     y = m(x)
+```
 
 
-<a id="org1387d50"></a>
+<a id="orga7cff19"></a>
 
 ## Positionwise
 
 For the sequential task, we need to handle the 3 dimensional input. However, most of the layer in Flux only support input with shape 
-\`(hidden size, batch size)\`. In order to tackle this problem, we implement the \`Positionwise\` helper function that is almost the same 
-as \`Flux.Chain\` but it will run the model position-wisely. (internally it just reshape the input to 2d and apply the model then reshape 
+`(hidden size, batch size)`. In order to tackle this problem, we implement the `Positionwise` helper function that is almost the same 
+as `Flux.Chain` but it will run the model position-wisely. (internally it just reshape the input to 2d and apply the model then reshape 
 back). 
 
+```julia
     using Transformers
     using Flux
     
@@ -103,28 +107,30 @@ back).
     # x2 = randn(10, 30)
     # x3 = randn(10, 30)
     # y = cat(m(x1), m(x2), m(x3); dims=3)
+```
 
 
-<a id="orgfb04c63"></a>
+<a id="orga82ed26"></a>
 
 ## The Stack NNTopo DSL
 
-Since the \`TransformerDecoder\` require more than one input, it's not convenient to use with \`Chain\`. Therefore, we implement a very simple 
-DSL(Domain Specific Language) to handle the function structure. You can use the \`@nntopo\` macro to define the structure then call the function 
+Since the `TransformerDecoder` require more than one input, it's not convenient to use with `Chain`. Therefore, we implement a very simple 
+DSL(Domain Specific Language) to handle the function structure. You can use the `@nntopo` macro to define the structure then call the function 
 with the given model.
 
 
-<a id="orgfe3fefe"></a>
+<a id="org2f49cf2"></a>
 
 ### NNTopo Syntax
 
 we call the DSL NNTopo for "Neural Network Topology", but actually it is just use to define where the input & output should be in a sequence of 
-function, or the complex version of the \`|>\` function in Julia.
+function, or the complex version of the `|>` function in Julia.
 
 1.  "Chain" the functions
 
     For example:
-    
+
+```julia
         y = h(f(g(x))) #a chain of function call
         
         # or 
@@ -135,13 +141,16 @@ function, or the complex version of the \`|>\` function in Julia.
         # is equivalent to 
         topo = @nntopo x => a => b => y # first we define the topology/architecture
         y = topo((g, f, h), x) #then call on the given functions
-    
-    each \`=>\` is a function call, left hand side is the input argument and right hand side is the output name.
+```
+
+    each `=>` is a function call, left hand side is the input argument and right hand side is the output name.
+
 
 2.  Loop unrolling
 
     you can also unroll a loop:
-    
+
+```julia
         y = g(f(f(f(f(x)))))
         
         # or 
@@ -154,11 +163,13 @@ function, or the complex version of the \`|>\` function in Julia.
         # is equivalent to 
         topo = @nntopo x => 4 => y
         y = topo((f,f,f,f, g), x) # f can also be different
+```
 
 3.  Multiple argument & jump connection
 
     As we metioned above, the original intention was to handle the case that we have more than one input & output. So, we can do this we the following syntax: 
-    
+
+```julia
         # a complex structure
         # x1 to x4 in the given inputs
         t = f(x1, x2)
@@ -183,11 +194,12 @@ function, or the complex version of the \`|>\` function in Julia.
         #         y = k(x2, z2, w)
         #         y
         # end
+```
 
 4.  Specify the variables you want
 
-    Notice that we use a \`:\` to seperate the input/output variables name for each function call, if the \`:\` is not present, we will by default assume 
-    the output variables are all the inputs of the next function call. i.e. \`x => (t1, t2) => y\` is equal to \`x => (t1, t2):(t1, t2) => y\`. 
+    Notice that we use a `:` to seperate the input/output variables name for each function call, if the `:` is not present, we will by default assume 
+    the output variables are all the inputs of the next function call. i.e. `x => (t1, t2) => y` is equal to `x => (t1, t2):(t1, t2) => y`. 
     
     We can also return multiple variables, so the complete syntax can be viewed as:
     
@@ -196,7 +208,8 @@ function, or the complex version of the \`|>\` function in Julia.
 5.  Interpolation
 
     we also support interpolation, so you can use a variable to hold to substructure or the unroll number.
-    
+
+```julia
         N = 3
         topo = @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c)
         
@@ -213,11 +226,13 @@ function, or the complex version of the \`|>\` function in Julia.
         #         c = model[7](t)
         #         c
         # end
+```
 
 6.  Nested Structure
 
-    you can also use the \`()\` to create a nested structure for the unroll.
-    
+    you can also use the `()` to create a nested structure for the unroll.
+
+```julia
         topo = @nntopo x => ((y => z => t) => 3 => w) => 2
         print_topo(topo)
         # 
@@ -240,15 +255,16 @@ function, or the complex version of the \`|>\` function in Julia.
         #         w = model[15](t)
         #         w
         # end
+```
 
-
-<a id="orgf4a6d11"></a>
+<a id="orgdbe1060"></a>
 
 ### Stack
 
-With the NNTopo DSL, now we can simple use the NNTopo with our Stack type, which is also like the \`Chain\` but we also need to pass in the 
-\`topo\` for the architecture.
+With the NNTopo DSL, now we can simple use the NNTopo with our Stack type, which is also like the `Chain` but we also need to pass in the 
+`topo` for the architecture.
 
+```julia
     #The Decoder Example in Attention is All you need
     Stack(
         @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
@@ -258,16 +274,16 @@ With the NNTopo DSL, now we can simple use the NNTopo with our Stack type, which
         [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
         Positionwise(Dense(512, length(labels)), logsoftmax)
     )
+```
 
-
-<a id="org3cddcdf"></a>
+<a id="org40d94bc"></a>
 
 # Issue
 
 Currently the code is really ugly, need refactor, test and docs.
 
 
-<a id="org2c950f4"></a>
+<a id="orge253f99"></a>
 
 # Roadmap
 

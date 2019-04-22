@@ -34,11 +34,11 @@ julia> using Transformers
 
 * Usage
 ** Transformer
-   The `Transformer` and `TransformerDecoder` is the encoder and decoder block of the origin paper, and they are all implement as the 
-   regular Flux Layer, so you can treat them just as the `Dense` layer. See the docstring for the argument. However, for the sequence 
-   data input, we usually have a 3 dimensional input of shape `(hidden size, sequence length, batch size)` instead of just `(hidden size, batch size)`. 
-   Therefore, we implement both 2d & 3d operation according to the input type (The `N` of `Array{T, N}`). We are able to handle both input of shape 
-   `(hidden size, sequence length, batch size)` and `(hidden size, sequence length)` for the case with only 1 input.
+   The =Transformer= and =TransformerDecoder= is the encoder and decoder block of the origin paper, and they are all implement as the 
+   regular Flux Layer, so you can treat them just as the =Dense= layer. See the docstring for the argument. However, for the sequence 
+   data input, we usually have a 3 dimensional input of shape =(hidden size, sequence length, batch size)= instead of just =(hidden size, batch size)=. 
+   Therefore, we implement both 2d & 3d operation according to the input type (The =N= of =Array{T, N}=). We are able to handle both input of shape 
+   =(hidden size, sequence length, batch size)= and =(hidden size, sequence length)= for the case with only 1 input.
 
 #+BEGIN_SRC julia
 using Transfomers
@@ -52,8 +52,8 @@ y = m(x)
 
 ** Positionwise
    For the sequential task, we need to handle the 3 dimensional input. However, most of the layer in Flux only support input with shape 
-   `(hidden size, batch size)`. In order to tackle this problem, we implement the `Positionwise` helper function that is almost the same 
-   as `Flux.Chain` but it will run the model position-wisely. (internally it just reshape the input to 2d and apply the model then reshape 
+   =(hidden size, batch size)=. In order to tackle this problem, we implement the =Positionwise= helper function that is almost the same 
+   as =Flux.Chain= but it will run the model position-wisely. (internally it just reshape the input to 2d and apply the model then reshape 
    back). 
 
 #+BEGIN_SRC julia
@@ -77,13 +77,13 @@ y = m(x)
 
 
 ** The Stack NNTopo DSL
-   Since the `TransformerDecoder` require more than one input, it's not convenient to use with `Chain`. Therefore, we implement a very simple 
-   DSL(Domain Specific Language) to handle the function structure. You can use the `@nntopo` macro to define the structure then call the function 
+   Since the =TransformerDecoder= require more than one input, it's not convenient to use with =Chain=. Therefore, we implement a very simple 
+   DSL(Domain Specific Language) to handle the function structure. You can use the =@nntopo= macro to define the structure then call the function 
    with the given model.
 
 *** NNTopo Syntax
     we call the DSL NNTopo for "Neural Network Topology", but actually it is just use to define where the input & output should be in a sequence of 
-    function, or the complex version of the `|>` function in Julia.
+    function, or the complex version of the =|>= function in Julia.
 
 **** "Chain" the functions
      For example:
@@ -102,7 +102,7 @@ y = topo((g, f, h), x) #then call on the given functions
 
 #+END_SRC
 
-    each `=>` is a function call, left hand side is the input argument and right hand side is the output name.
+    each ==>= is a function call, left hand side is the input argument and right hand side is the output name.
 
 **** Loop unrolling
      you can also unroll a loop:
@@ -155,8 +155,8 @@ print_topo(topo; models=(f, g, h, k))
 #+END_SRC
 
 **** Specify the variables you want
-    Notice that we use a `:` to seperate the input/output variables name for each function call, if the `:` is not present, we will by default assume 
-    the output variables are all the inputs of the next function call. i.e. `x => (t1, t2) => y` is equal to `x => (t1, t2):(t1, t2) => y`. 
+    Notice that we use a =:= to seperate the input/output variables name for each function call, if the =:= is not present, we will by default assume 
+    the output variables are all the inputs of the next function call. i.e. =x => (t1, t2) => y= is equal to =x => (t1, t2):(t1, t2) => y=. 
 
     We can also return multiple variables, so the complete syntax can be viewed as:
 
@@ -189,7 +189,7 @@ print_topo(topo)
 #+END_SRC
 
 **** Nested Structure
-     you can also use the `()` to create a nested structure for the unroll.
+     you can also use the =()= to create a nested structure for the unroll.
 
 #+BEGIN_SRC julia
 topo = @nntopo x => ((y => z => t) => 3 => w) => 2
@@ -218,8 +218,8 @@ print_topo(topo)
 #+END_SRC
 
 *** Stack
-    With the NNTopo DSL, now we can simple use the NNTopo with our Stack type, which is also like the `Chain` but we also need to pass in the 
-    `topo` for the architecture.
+    With the NNTopo DSL, now we can simple use the NNTopo with our Stack type, which is also like the =Chain= but we also need to pass in the 
+    =topo= for the architecture.
 
 #+BEGIN_SRC julia
 #The Decoder Example in Attention is All you need
