@@ -73,12 +73,12 @@ Therefore, we implement both 2d & 3d operation according to the input type (The 
 `(hidden size, sequence length, batch size)` and `(hidden size, sequence length)` for the case with only 1 input.
 
 ```julia
-    using Transfomers
-    
-    m = Transformer(512, 8, 64, 2048) #define a Transformer block with 8 head and 64 neuron for each head
-    x = randn(512, 30, 3) #fake data of length 30
-    
-    y = m(x)
+using Transfomers
+
+m = Transformer(512, 8, 64, 2048) #define a Transformer block with 8 head and 64 neuron for each head
+x = randn(512, 30, 3) #fake data of length 30
+
+y = m(x)
 ```
 
 
@@ -92,21 +92,21 @@ as `Flux.Chain` but it will run the model position-wisely. (internally it just r
 back). 
 
 ```julia
-    using Transformers
-    using Flux
-    
-    m = Positionwise(Dense(10, 5), Dense(5, 2), softmax)
-    x = randn(10, 30, 3)
-    
-    y = m(x)
-    
-    # which is equivalent to 
-    # 
-    # m = Chain(Dense(10, 5), Dense(5, 2), softmax)
-    # x1 = randn(10, 30)
-    # x2 = randn(10, 30)
-    # x3 = randn(10, 30)
-    # y = cat(m(x1), m(x2), m(x3); dims=3)
+using Transformers
+using Flux
+
+m = Positionwise(Dense(10, 5), Dense(5, 2), softmax)
+x = randn(10, 30, 3)
+
+y = m(x)
+
+# which is equivalent to 
+# 
+# m = Chain(Dense(10, 5), Dense(5, 2), softmax)
+# x1 = randn(10, 30)
+# x2 = randn(10, 30)
+# x3 = randn(10, 30)
+# y = cat(m(x1), m(x2), m(x3); dims=3)
 ```
 
 
@@ -131,16 +131,16 @@ function, or the complex version of the `|>` function in Julia.
     For example:
 
 ```julia
-        y = h(f(g(x))) #a chain of function call
-        
-        # or 
-        a = g(x)
-        b = f(a)
-        y = h(b)
-        
-        # is equivalent to 
-        topo = @nntopo x => a => b => y # first we define the topology/architecture
-        y = topo((g, f, h), x) #then call on the given functions
+y = h(f(g(x))) #a chain of function call
+
+# or 
+a = g(x)
+b = f(a)
+y = h(b)
+
+# is equivalent to 
+topo = @nntopo x => a => b => y # first we define the topology/architecture
+y = topo((g, f, h), x) #then call on the given functions
 ```
 
     each `=>` is a function call, left hand side is the input argument and right hand side is the output name.
@@ -151,18 +151,18 @@ function, or the complex version of the `|>` function in Julia.
     you can also unroll a loop:
 
 ```julia
-        y = g(f(f(f(f(x)))))
-        
-        # or 
-        tmp = x
-        for i = 1:4
-          tmp = f(tmp)
-        end
-        y = g(tmp)
-        
-        # is equivalent to 
-        topo = @nntopo x => 4 => y
-        y = topo((f,f,f,f, g), x) # f can also be different
+y = g(f(f(f(f(x)))))
+
+# or 
+tmp = x
+for i = 1:4
+tmp = f(tmp)
+end
+y = g(tmp)
+
+# is equivalent to 
+topo = @nntopo x => 4 => y
+y = topo((f,f,f,f, g), x) # f can also be different
 ```
 
 3.  Multiple argument & jump connection
@@ -170,30 +170,30 @@ function, or the complex version of the `|>` function in Julia.
     As we metioned above, the original intention was to handle the case that we have more than one input & output. So, we can do this we the following syntax: 
 
 ```julia
-        # a complex structure
-        # x1 to x4 in the given inputs
-        t = f(x1, x2)
-        z1, z2 = g(t, x3)
-        w = h(x4, z1)
-        y = k(x2, z2, w)
-        
-        # is equivalent to 
-        topo = @nntopo (x1, x2, x3, x4):(x1, x2) => t:(t, x3) => (z1, z2):(x4, z1) => w:(x2, z2, w) => y
-        y = topo((f, g, h, k), x1, x2, x3, x4)
-        
-        # you can also see the function with `print_topo` function
-        using Transformers.Basic: print_topo
-        
-        print_topo(topo; models=(f, g, h, k))
-        # 
-        # NNTopo{"(x1, x2, x3, x4):(x1, x2) => (t:(t, x3) => ((z1, z2):(x4, z1) => (w:(x2, z2, w) => y)))"}
-        # topo_func(model, x1, x2, x3, x4)
-        #         t = f(x1, x2)
-        #         (z1, z2) = g(t, x3)
-        #         w = h(x4, z1)
-        #         y = k(x2, z2, w)
-        #         y
-        # end
+# a complex structure
+# x1 to x4 in the given inputs
+t = f(x1, x2)
+z1, z2 = g(t, x3)
+w = h(x4, z1)
+y = k(x2, z2, w)
+
+# is equivalent to 
+topo = @nntopo (x1, x2, x3, x4):(x1, x2) => t:(t, x3) => (z1, z2):(x4, z1) => w:(x2, z2, w) => y
+y = topo((f, g, h, k), x1, x2, x3, x4)
+
+# you can also see the function with `print_topo` function
+using Transformers.Basic: print_topo
+
+print_topo(topo; models=(f, g, h, k))
+# 
+# NNTopo{"(x1, x2, x3, x4):(x1, x2) => (t:(t, x3) => ((z1, z2):(x4, z1) => (w:(x2, z2, w) => y)))"}
+# topo_func(model, x1, x2, x3, x4)
+#         t = f(x1, x2)
+#         (z1, z2) = g(t, x3)
+#         w = h(x4, z1)
+#         y = k(x2, z2, w)
+#         y
+# end
 ```
 
 4.  Specify the variables you want
@@ -210,22 +210,22 @@ function, or the complex version of the `|>` function in Julia.
     we also support interpolation, so you can use a variable to hold to substructure or the unroll number.
 
 ```julia
-        N = 3
-        topo = @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c)
-        
-        print_topo(topo)
-        # 
-        # NNTopo{"(e, m, mask):e → (pe:(e, pe) → (t → ((t:(t, m, mask) → t:(t, m, mask)) → (3:t → c))))"}
-        # topo_func(model, e, m, mask)
-        #         pe = model[1](e)
-        #         t = model[2](e, pe)
-        #         t = model[3](t)
-        #         t = model[4](t, m, mask)
-        #         t = model[5](t, m, mask)
-        #         t = model[6](t, m, mask)
-        #         c = model[7](t)
-        #         c
-        # end
+N = 3
+topo = @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c)
+
+print_topo(topo)
+# 
+# NNTopo{"(e, m, mask):e → (pe:(e, pe) → (t → ((t:(t, m, mask) → t:(t, m, mask)) → (3:t → c))))"}
+# topo_func(model, e, m, mask)
+#         pe = model[1](e)
+#         t = model[2](e, pe)
+#         t = model[3](t)
+#         t = model[4](t, m, mask)
+#         t = model[5](t, m, mask)
+#         t = model[6](t, m, mask)
+#         c = model[7](t)
+#         c
+# end
 ```
 
 6.  Nested Structure
@@ -233,28 +233,28 @@ function, or the complex version of the `|>` function in Julia.
     you can also use the `()` to create a nested structure for the unroll.
 
 ```julia
-        topo = @nntopo x => ((y => z => t) => 3 => w) => 2
-        print_topo(topo)
-        # 
-        # NNTopo{"x => (((y => (z => t)) => (3 => w)) => 2)"}
-        # topo_func(model, x)
-        #         y = model[1](x)
-        #         z = model[2](y)
-        #         t = model[3](z)
-        #         z = model[4](t)
-        #         t = model[5](z)
-        #         z = model[6](t)
-        #         t = model[7](z)
-        #         w = model[8](t)
-        #         z = model[9](w)
-        #         t = model[10](z)
-        #         z = model[11](t)
-        #         t = model[12](z)
-        #         z = model[13](t)
-        #         t = model[14](z)
-        #         w = model[15](t)
-        #         w
-        # end
+topo = @nntopo x => ((y => z => t) => 3 => w) => 2
+print_topo(topo)
+# 
+# NNTopo{"x => (((y => (z => t)) => (3 => w)) => 2)"}
+# topo_func(model, x)
+#         y = model[1](x)
+#         z = model[2](y)
+#         t = model[3](z)
+#         z = model[4](t)
+#         t = model[5](z)
+#         z = model[6](t)
+#         t = model[7](z)
+#         w = model[8](t)
+#         z = model[9](w)
+#         t = model[10](z)
+#         z = model[11](t)
+#         t = model[12](z)
+#         z = model[13](t)
+#         t = model[14](z)
+#         w = model[15](t)
+#         w
+# end
 ```
 
 <a id="orgdbe1060"></a>
@@ -265,15 +265,15 @@ With the NNTopo DSL, now we can simple use the NNTopo with our Stack type, which
 `topo` for the architecture.
 
 ```julia
-    #The Decoder Example in Attention is All you need
-    Stack(
-        @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
-        PositionEmbedding(512),
-        (e, pe) -> e .+ pe,
-        Dropout(0.1),
-        [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
-        Positionwise(Dense(512, length(labels)), logsoftmax)
-    )
+#The Decoder Example in Attention is All you need
+Stack(
+@nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
+PositionEmbedding(512),
+(e, pe) -> e .+ pe,
+Dropout(0.1),
+[TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
+Positionwise(Dense(512, length(labels)), logsoftmax)
+)
 ```
 
 <a id="org40d94bc"></a>
