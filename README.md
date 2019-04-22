@@ -1,4 +1,4 @@
-<a id="orga4283c7"></a>
+<a id="orgbabee23"></a>
 
 # Transformers.jl
 
@@ -8,15 +8,20 @@ For using the model, see `example` folder.
 
 # Table of Contents
 
-1.  [Transformers.jl](#orga4283c7)
-2.  [Installation](#org00b1de3)
-3.  [implemented model](#org49d1f93)
-4.  [Usage](#org918b0e5)
-5.  [Issue](#orgeff3c28)
-6.  [Roadmap](#orgdfdb546)
+1.  [Transformers.jl](#orgbabee23)
+2.  [Installation](#orgf62c626)
+3.  [implemented model](#org7c18070)
+4.  [Usage](#org2c0f92f)
+    1.  [Transformer](#orgb8f0cea)
+    2.  [Positionwise](#org1387d50)
+    3.  [The Stack NNTopo DSL](#orgfb04c63)
+        1.  [NNTopo Syntax](#orgfe3fefe)
+        2.  [Stack](#orgf4a6d11)
+5.  [Issue](#org3cddcdf)
+6.  [Roadmap](#org2c950f4)
 
 
-<a id="org00b1de3"></a>
+<a id="orgf62c626"></a>
 
 # Installation
 
@@ -43,7 +48,7 @@ For using GPU, install & build:
     .
 
 
-<a id="org49d1f93"></a>
+<a id="org7c18070"></a>
 
 # implemented model
 
@@ -51,26 +56,225 @@ For using GPU, install & build:
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
 
-<a id="org918b0e5"></a>
+<a id="org2c0f92f"></a>
 
 # Usage
 
-Coming soon!
+
+<a id="orgb8f0cea"></a>
+
+## Transformer
+
+The \`Transformer\` and \`TransformerDecoder\` is the encoder and decoder block of the origin paper, and they are all implement as the 
+regular Flux Layer, so you can treat them just as the \`Dense\` layer. See the docstring for the argument. However, for the sequence 
+data input, we usually have a 3 dimensional input of shape \`(hidden size, sequence length, batch size)\` instead of just \`(hidden size, batch size)\`. 
+Therefore, we implement both 2d & 3d operation according to the input type (The \`N\` of \`Array{T, N}\`). We are able to handle both input of shape 
+\`(hidden size, sequence length, batch size)\` and \`(hidden size, sequence length)\` for the case with only 1 input.
+
+    using Transfomers
+    
+    m = Transformer(512, 8, 64, 2048) #define a Transformer block with 8 head and 64 neuron for each head
+    x = randn(512, 30, 3) #fake data of length 30
+    
+    y = m(x)
 
 
-<a id="orgeff3c28"></a>
+<a id="org1387d50"></a>
+
+## Positionwise
+
+For the sequential task, we need to handle the 3 dimensional input. However, most of the layer in Flux only support input with shape 
+\`(hidden size, batch size)\`. In order to tackle this problem, we implement the \`Positionwise\` helper function that is almost the same 
+as \`Flux.Chain\` but it will run the model position-wisely. (internally it just reshape the input to 2d and apply the model then reshape 
+back). 
+
+    using Transformers
+    using Flux
+    
+    m = Positionwise(Dense(10, 5), Dense(5, 2), softmax)
+    x = randn(10, 30, 3)
+    
+    y = m(x)
+    
+    # which is equivalent to 
+    # 
+    # m = Chain(Dense(10, 5), Dense(5, 2), softmax)
+    # x1 = randn(10, 30)
+    # x2 = randn(10, 30)
+    # x3 = randn(10, 30)
+    # y = cat(m(x1), m(x2), m(x3); dims=3)
+
+
+<a id="orgfb04c63"></a>
+
+## The Stack NNTopo DSL
+
+Since the \`TransformerDecoder\` require more than one input, it's not convenient to use with \`Chain\`. Therefore, we implement a very simple 
+DSL(Domain Specific Language) to handle the function structure. You can use the \`@nntopo\` macro to define the structure then call the function 
+with the given model.
+
+
+<a id="orgfe3fefe"></a>
+
+### NNTopo Syntax
+
+we call the DSL NNTopo for "Neural Network Topology", but actually it is just use to define where the input & output should be in a sequence of 
+function, or the complex version of the \`|>\` function in Julia.
+
+1.  "Chain" the functions
+
+    For example:
+    
+        y = h(f(g(x))) #a chain of function call
+        
+        # or 
+        a = g(x)
+        b = f(a)
+        y = h(b)
+        
+        # is equivalent to 
+        topo = @nntopo x => a => b => y # first we define the topology/architecture
+        y = topo((g, f, h), x) #then call on the given functions
+    
+    each \`=>\` is a function call, left hand side is the input argument and right hand side is the output name.
+
+2.  Loop unrolling
+
+    you can also unroll a loop:
+    
+        y = g(f(f(f(f(x)))))
+        
+        # or 
+        tmp = x
+        for i = 1:4
+          tmp = f(tmp)
+        end
+        y = g(tmp)
+        
+        # is equivalent to 
+        topo = @nntopo x => 4 => y
+        y = topo((f,f,f,f, g), x) # f can also be different
+
+3.  Multiple argument & jump connection
+
+    As we metioned above, the original intention was to handle the case that we have more than one input & output. So, we can do this we the following syntax: 
+    
+        # a complex structure
+        # x1 to x4 in the given inputs
+        t = f(x1, x2)
+        z1, z2 = g(t, x3)
+        w = h(x4, z1)
+        y = k(x2, z2, w)
+        
+        # is equivalent to 
+        topo = @nntopo (x1, x2, x3, x4):(x1, x2) => t:(t, x3) => (z1, z2):(x4, z1) => w:(x2, z2, w) => y
+        y = topo((f, g, h, k), x1, x2, x3, x4)
+        
+        # you can also see the function with `print_topo` function
+        using Transformers.Basic: print_topo
+        
+        print_topo(topo; models=(f, g, h, k))
+        # 
+        # NNTopo{"(x1, x2, x3, x4):(x1, x2) => (t:(t, x3) => ((z1, z2):(x4, z1) => (w:(x2, z2, w) => y)))"}
+        # topo_func(model, x1, x2, x3, x4)
+        #         t = f(x1, x2)
+        #         (z1, z2) = g(t, x3)
+        #         w = h(x4, z1)
+        #         y = k(x2, z2, w)
+        #         y
+        # end
+
+4.  Specify the variables you want
+
+    Notice that we use a \`:\` to seperate the input/output variables name for each function call, if the \`:\` is not present, we will by default assume 
+    the output variables are all the inputs of the next function call. i.e. \`x => (t1, t2) => y\` is equal to \`x => (t1, t2):(t1, t2) => y\`. 
+    
+    We can also return multiple variables, so the complete syntax can be viewed as:
+    
+        (input arguments):(function1 inputs) => (function1 outputs):(function2 inputs):(function2 outputs) => .... => (function_n outputs):(return variables)
+
+5.  Interpolation
+
+    we also support interpolation, so you can use a variable to hold to substructure or the unroll number.
+    
+        N = 3
+        topo = @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c)
+        
+        print_topo(topo)
+        # 
+        # NNTopo{"(e, m, mask):e → (pe:(e, pe) → (t → ((t:(t, m, mask) → t:(t, m, mask)) → (3:t → c))))"}
+        # topo_func(model, e, m, mask)
+        #         pe = model[1](e)
+        #         t = model[2](e, pe)
+        #         t = model[3](t)
+        #         t = model[4](t, m, mask)
+        #         t = model[5](t, m, mask)
+        #         t = model[6](t, m, mask)
+        #         c = model[7](t)
+        #         c
+        # end
+
+6.  Nested Structure
+
+    you can also use the \`()\` to create a nested structure for the unroll.
+    
+        topo = @nntopo x => ((y => z => t) => 3 => w) => 2
+        print_topo(topo)
+        # 
+        # NNTopo{"x => (((y => (z => t)) => (3 => w)) => 2)"}
+        # topo_func(model, x)
+        #         y = model[1](x)
+        #         z = model[2](y)
+        #         t = model[3](z)
+        #         z = model[4](t)
+        #         t = model[5](z)
+        #         z = model[6](t)
+        #         t = model[7](z)
+        #         w = model[8](t)
+        #         z = model[9](w)
+        #         t = model[10](z)
+        #         z = model[11](t)
+        #         t = model[12](z)
+        #         z = model[13](t)
+        #         t = model[14](z)
+        #         w = model[15](t)
+        #         w
+        # end
+
+
+<a id="orgf4a6d11"></a>
+
+### Stack
+
+With the NNTopo DSL, now we can simple use the NNTopo with our Stack type, which is also like the \`Chain\` but we also need to pass in the 
+\`topo\` for the architecture.
+
+    #The Decoder Example in Attention is All you need
+    Stack(
+        @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
+        PositionEmbedding(512),
+        (e, pe) -> e .+ pe,
+        Dropout(0.1),
+        [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
+        Positionwise(Dense(512, length(labels)), logsoftmax)
+    )
+
+
+<a id="org3cddcdf"></a>
 
 # Issue
 
 Currently the code is really ugly, need refactor, test and docs.
 
 
-<a id="orgdfdb546"></a>
+<a id="org2c950f4"></a>
 
 # Roadmap
 
--   [ ] write docs
--   [ ] write test
+-   <code>[50%]</code> write docs
+    -   [X] docstring
+    -   [ ] examples
+-   [X] write test
 -   [ ] refactor code
 -   <code>[50%]</code> better embedding functions
     -   [X] gather function forward
