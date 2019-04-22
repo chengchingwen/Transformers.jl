@@ -1,4 +1,4 @@
-@testset "Embed" begin
+@testset "EmbedOnehot" begin
     using Flux: onehot, onecold, data
     multi(x, n) = collect(Iterators.repeated(x, n))
 
