@@ -4,6 +4,7 @@ using Test
 
 const tests = [
     "transformer",
+    "nntopo",
     "embed",
 ]
 
@@ -14,7 +15,7 @@ end
 @testset "Transformers" begin
     for t in tests
         fp = joinpath(dirname(@__FILE__), "test_$t.jl")
-        @info "Test $t"
+        @info "Test $(uppercase(t))"
         include(fp)
     end
 end

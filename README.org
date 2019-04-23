@@ -166,7 +166,8 @@ print_topo(topo; models=(f, g, h, k))
 
 
 **** Interpolation
-     we also support interpolation, so you can use a variable to hold a substructure or the unroll number.
+     we also support interpolation, so you can use a variable to hold a substructure or the unroll number. But *notice* that the 
+     interpolation variable should always be at the top level of the module since we can only get that value with =eval=
 
 #+BEGIN_SRC julia
 N = 3
