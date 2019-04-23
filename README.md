@@ -3,6 +3,8 @@
 
 # Transformers.jl
 
+[![Build Status](https://travis-ci.com/chengchingwen/Transformers.jl.svg?branch=master)](https://travis-ci.com/chengchingwen/Transformers.jl)
+
 Julia implementation of NLP models, that based on google [transformer](https://arxiv.org/abs/1706.03762), with [Flux.jl](https://github.com/FluxML/Flux.jl).
 For using the model, see `example` folder.
 
