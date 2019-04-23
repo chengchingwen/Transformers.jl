@@ -8,14 +8,17 @@ julia:
   - 1.1
   - nightly
 
+matrix:
+  allow_failures:
+    - julia: nightly
+
+
 branch:
   only:
     - master
 
 after_success:
-  - if [[ $TRAVIS_JULIA_VERSION = 1.1 ]] && [[ $TRAVIS_OS_NAME = linux ]]; then
-      julia -e 'cd(Pkg.dir("Transformers")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
-    fi
+  - julia -e 'cd(Pkg.dir("Transformers")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
 
 notifications:
   email: false
