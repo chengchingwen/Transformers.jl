@@ -18,3 +18,6 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NPZ = "15e1cf62-19b3-5cfa-8e77-841668bca605"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
+
+[compat]
+julia = "0.7, 1"
