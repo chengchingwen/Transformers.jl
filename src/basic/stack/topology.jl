@@ -26,32 +26,6 @@ macro nntopo(expr)
     NNTopo(interpolate(__module__, expr))
 end
 
-tofunc(s::Symbol) = tofunc(string(s))
-tofunc(sf::String) = tofunc(Meta.parse(sf))
-function tofunc(pattern)
-    m = gensym(:model)
-    fname = gensym(:topo_func)
-
-    code = to_code(pattern)
-
-    if istuple(code.in)
-        fname = Expr(:call, fname, m, code.in.args...)
-    else
-        fname = Expr(:call, fname, m, code.in)
-    end
-
-    fbody = Any[:block]
-    for (i, l) ∈ enumerate(code.lines)
-        push!(fbody, genline(l..., m, i))
-    end
-
-    push!(fbody, code.out)
-    func = Expr(:function, fname, Expr(fbody...))
-
-    func
-end
-
-
 const legalsym = (:(=>),:→,:(:))
 
 islegal(ex) = false
@@ -70,11 +44,6 @@ function islegal(ex::Expr)
             length(ex.args) == 3 && islegal(ex.args[2]) && islegal(ex.args[3])
     end
 end
-
-
-
-genline(name, arg::Symbol, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), arg))
-genline(name, args::Expr, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), args.args...))
 
 struct Code
     in
@@ -236,6 +205,9 @@ Base.getproperty(::NNTopo{FS}, ::Val{:fs}) where FS = string(FS)
 
 NNTopo(s::String) = NNTopo(Meta.parse(s))
 NNTopo(ex::Expr) = islegal(ex) ? NNTopo{Symbol(ex)}() : error("topo pattern illegal")
+
+genline(name, arg::Symbol, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), arg))
+genline(name, args::Expr, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), args.args...))
 
 nntopo_impl(s::Symbol) = nntopo_impl(string(s))
 nntopo_impl(sf::String) = nntopo_impl(Meta.parse(sf))

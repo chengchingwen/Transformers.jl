@@ -202,7 +202,7 @@ print_topo(topo; models=(f, g, h, k))
 4.  Specify the variables you want
 
     Notice that we use a `:` to seperate the input/output variables name for each function call, if the `:` is not present, we will by default assume 
-    the output variables are all the inputs of the next function call. i.e. `x => (t1, t2) => y` is equal to `x => (t1, t2):(t1, t2) => y`. 
+    the output variables are all the inputs of the next function call. i.e. `x => (t1, t2) => y` is equal to `x => (t1, t2):(t1, t2) => y**. 
     
     We can also return multiple variables, so the complete syntax can be viewed as:
     
@@ -210,7 +210,8 @@ print_topo(topo; models=(f, g, h, k))
 
 5.  Interpolation
 
-    we also support interpolation, so you can use a variable to hold a substructure or the unroll number.
+    we also support interpolation, so you can use a variable to hold a substructure or the unroll number. But **notice** that the 
+    interpolation variable should always be at the top level of the module since we can only get that value with `eval`.
 
 ```julia
 N = 3
