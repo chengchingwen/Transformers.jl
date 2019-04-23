@@ -1,8 +1,7 @@
-"""
+#=
     borrow from https://github.com/Roger-luo/BatchedRoutines.jl
-"""
+=#
 
-#import LinearAlgebra: BLAS
 import LinearAlgebra
 
 @init @require CuArrays="3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin
