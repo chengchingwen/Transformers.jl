@@ -1,10 +1,9 @@
 language: julia
 os:
   - linux
-  - osx
+  # - osx
 
 julia:
-  - 0.7
   - 1.0
   - 1.1
   - nightly
@@ -15,8 +14,9 @@ branch:
 
 after_success:
   - if [[ $TRAVIS_JULIA_VERSION = 1.1 ]] && [[ $TRAVIS_OS_NAME = linux ]]; then
-      julia --project=test/coverage -e 'using Pkg; Pkg.instantiate();
-          using Coverage; Codecov.submit(Codecov.process_folder())';
+      julia -e 'cd(Pkg.dir("MyPkg")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+      # julia --project=test/coverage -e 'using Pkg; Pkg.instantiate();
+      #     using Coverage; Codecov.submit(Codecov.process_folder())';
     fi
 
 notifications:
