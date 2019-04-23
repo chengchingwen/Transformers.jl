@@ -7,13 +7,14 @@ const tests = [
     "embed",
 ]
 
-
-@test isempty(detect_ambiguities(Transformers, Transformers.GenerativePreTrain, Transformers.Basic, Transformers.Datasets))
+if v"1.0.0" <= VERSION  <= v"1.1.0"
+    @test isempty(detect_ambiguities(Transformers, Transformers.GenerativePreTrain, Transformers.Basic, Transformers.Datasets))
+end
 
 @testset "Transformers" begin
     for t in tests
         fp = joinpath(dirname(@__FILE__), "test_$t.jl")
-        println("$fp ...")
+        @info "Test $t"
         include(fp)
     end
 end
