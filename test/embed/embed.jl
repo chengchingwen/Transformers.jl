@@ -23,4 +23,6 @@
     @test onecold(e, onehot(e, multi_after_enc)) == multi(before_unk_enc,5)
     @test onecold(e, onehot(e, before_enc)) == before_unk_enc
     @test onecold(e, onehot(e, after_enc)) == before_unk_enc
+
+    @test eltype(data(e(after_enc, 0.5))) == Float32
 end
