@@ -29,6 +29,8 @@ julia> using Transformers
 #+END_EXAMPLE
 
 * implemented model
+You can find the code in =example= folder.
+
 + [[https://arxiv.org/abs/1706.03762][Attention is all you need]]
 + [[https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf][Improving Language Understanding by Generative Pre-Training]]
 
@@ -236,12 +238,14 @@ Stack(
 
 
 * Issue
-Currently the code is really ugly, need refactor, test and docs.
+Currently the code only work without problems on linux. For Mac/Windows, it will show a large amount of warning. Unfortunately, I haven't figure out what 
+is wrong and I don't have a Mac/Windows machine to test, so if you happend to know how to handle it, Please fire an Issue/PR.
 
 * Roadmap
-  - [50%] write docs
+  - [33%] write docs
     - [X] docstring
     - [ ] examples
+    - [ ] make docs site
   - [X] write test
   - [ ] refactor code
   - [50%] better embedding functions

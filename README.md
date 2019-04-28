@@ -55,6 +55,7 @@ For using GPU, install & build:
 <a id="org8f711d9"></a>
 
 # implemented model
+You can find the code in `example` folder.
 
 -   [Attention is all you need](https://arxiv.org/abs/1706.03762)
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
@@ -131,7 +132,7 @@ function, or the complex version of the `|>` function in Julia.
 
 1.  "Chain" the functions
 
-    For example:
+For example:
 
 ```julia
 y = h(f(g(x))) #a chain of function call
@@ -146,12 +147,12 @@ topo = @nntopo x => a => b => y # first we define the topology/architecture
 y = topo((g, f, h), x) #then call on the given functions
 ```
 
-    each `=>` is a function call, left hand side is the input argument and right hand side is the output name.
+each `=>` is a function call, left hand side is the input argument and right hand side is the output name.
 
 
 2.  Loop unrolling
 
-    you can also unroll a loop:
+you can also unroll a loop:
 
 ```julia
 y = g(f(f(f(f(x)))))
@@ -170,7 +171,7 @@ y = topo((f,f,f,f, g), x) # f can also be different
 
 3.  Multiple argument & jump connection
 
-    As we metioned above, the original intention was to handle the case that we have more than one input & output. So, we can do this with the following syntax: 
+As we metioned above, the original intention was to handle the case that we have more than one input & output. So, we can do this with the following syntax: 
 
 ```julia
 # a complex structure
@@ -201,17 +202,17 @@ print_topo(topo; models=(f, g, h, k))
 
 4.  Specify the variables you want
 
-    Notice that we use a `:` to seperate the input/output variables name for each function call, if the `:` is not present, we will by default assume 
-    the output variables are all the inputs of the next function call. i.e. `x => (t1, t2) => y` is equal to `x => (t1, t2):(t1, t2) => y**. 
-    
-    We can also return multiple variables, so the complete syntax can be viewed as:
+Notice that we use a `:` to seperate the input/output variables name for each function call, if the `:` is not present, we will by default assume 
+the output variables are all the inputs of the next function call. i.e. `x => (t1, t2) => y` is equal to `x => (t1, t2):(t1, t2) => y**. 
+
+We can also return multiple variables, so the complete syntax can be viewed as:
     
         (input arguments):(function1 inputs) => (function1 outputs):(function2 inputs):(function2 outputs) => .... => (function_n outputs):(return variables)
 
 5.  Interpolation
 
-    we also support interpolation, so you can use a variable to hold a substructure or the unroll number. But **notice** that the 
-    interpolation variable should always be at the top level of the module since we can only get that value with `eval`.
+we also support interpolation, so you can use a variable to hold a substructure or the unroll number. But **notice** that the 
+interpolation variable should always be at the top level of the module since we can only get that value with `eval`.
 
 ```julia
 N = 3
@@ -234,7 +235,7 @@ print_topo(topo)
 
 6.  Nested Structure
 
-    you can also use the `()` to create a nested structure for the unroll.
+you can also use the `()` to create a nested structure for the unroll.
 
 ```julia
 topo = @nntopo x => ((y => z => t) => 3 => w) => 2
@@ -284,16 +285,19 @@ Positionwise(Dense(512, length(labels)), logsoftmax)
 
 # Issue
 
-Currently the code is really ugly, need refactor, test and docs.
+Currently the code only work without problems on linux. For Mac/Windows, it will show a large amount of warning. Unfortunately, I haven't figure out what 
+is wrong and I don't have a Mac/Windows machine to test, so if you happend to know how to handle it, Please fire an Issue/PR.
+
 
 
 <a id="orge253f99"></a>
 
 # Roadmap
 
--   <code>[50%]</code> write docs
+-   <code>[33%]</code> write docs
     -   [X] docstring
     -   [ ] examples
+    -   [ ] make docs site
 -   [X] write test
 -   [ ] refactor code
 -   <code>[50%]</code> better embedding functions
