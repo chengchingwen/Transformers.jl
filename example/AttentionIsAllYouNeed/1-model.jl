@@ -1,0 +1,95 @@
+"""
+Reference: The Annotated Transformer (http://nlp.seas.harvard.edu/2018/04/03/attention.html)
+"""
+
+using Flux
+using Flux: onecold, gradient
+import Flux.Optimise: update!
+
+using WordTokenizers
+
+using Transformers
+using Transformers.Basic
+
+include("./0-data.jl")
+
+vocab = Vocabulary(labels, unksym)
+const embed = gpu(Embed(512, vocab))
+
+embedding(x) = embed(x, inv(sqrt(512)))
+
+
+const encoder = gpu(Stack(
+    @nntopo(e → pe:(e, pe) → x → x → $N),
+    PositionEmbedding(512),
+    (e, pe) -> e .+ pe,
+    Dropout(0.1),
+    [Transformer(512, 8, 64, 2048) for i = 1:N]...
+))
+
+const decoder = gpu(Stack(
+    @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
+    PositionEmbedding(512),
+    (e, pe) -> e .+ pe,
+    Dropout(0.1),
+    [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
+    Positionwise(Dense(512, length(labels)), logsoftmax)
+))
+
+const ps = params(embed, encoder, decoder)
+const opt = ADAM(lr)
+
+function smooth(et)
+    global Smooth
+    sm = fill!(similar(et, Float32), Smooth/length(embed.Vocab))
+    p = sm .* (1 .+ -et)
+    label = p .+ et .* (1 - convert(Float32, Smooth))
+    label
+end
+
+function loss(src, trg, src_mask, trg_mask)
+    lab = onehot(embed, trg)
+
+    src = embedding(src)
+    trg = embedding(trg)
+
+    if src_mask === nothing || trg_mask === nothing
+        mask = nothing
+    else
+        mask = getmask(src_mask, trg_mask)
+    end
+
+    enc = encoder(src)
+    dec = decoder(trg, enc, mask)
+
+    #label smoothing
+    label = smooth(lab)[:, 2:end, :]
+
+    if mask == nothing
+        loss = logkldivergence(label, dec[:, 1:end-1, :])
+    else
+        loss = logkldivergence(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
+    end
+end
+
+function translate(x)
+    ix = todevice(embed.Vocab(mkline(x)))
+    seq = [startsym]
+
+    src = embedding(ix)
+    enc = encoder(src)
+
+    len = length(ix)
+    for i = 1:2len
+        trg = embedding(todevice(embed.Vocab(seq)))
+        dec = decoder(trg, enc, nothing)
+        #move back to gpu due to argmax wrong result on CuArrays
+        ntok = onecold(collect(dec), labels)
+        push!(seq, ntok[end])
+        ntok[end] == endsym && break
+    end
+    seq
+end
+
+
+train!()
