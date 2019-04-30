@@ -9,20 +9,19 @@
     after_enc = [2,2,4,5,6,1,1]
     multi_after_enc = hcat(multi(after_enc, 5)...)
 
-    e = Embed(10, v)
+    e = Embed(10, length(v))
 
     @test data(e(after_enc)) == data(hcat(map(i->e.embedding[:,i], after_enc)...))
-    @test data(e(before_enc)) == data(hcat(map(x->e.embedding[:, v(x)], before_unk_enc)...))
-    @test onehot(e, before_enc) == onehotarray(length(v), v(before_unk_enc))
-    @test onehot(e, after_enc) == onehotarray(length(v), after_enc)
 
-    @test onehot(e, multi(before_enc,5)) == onehotarray(length(v), v(multi(before_unk_enc,5)))
-    @test onehot(e, multi_after_enc) == onehotarray(length(v), multi_after_enc)
+    @test onehot(v, before_enc) == onehotarray(length(v), v(before_unk_enc))
+    @test onehot(v, after_enc) == onehotarray(length(v), after_enc)
+    @test onehot(v, multi(before_enc,5)) == onehotarray(length(v), v(multi(before_unk_enc,5)))
+    @test onehot(v, multi_after_enc) == onehotarray(length(v), multi_after_enc)
 
-    @test onecold(e, onehot(e, multi(before_enc,5))) == multi(before_unk_enc,5)
-    @test onecold(e, onehot(e, multi_after_enc)) == multi(before_unk_enc,5)
-    @test onecold(e, onehot(e, before_enc)) == before_unk_enc
-    @test onecold(e, onehot(e, after_enc)) == before_unk_enc
+    @test onecold(v, onehot(v, multi(before_enc,5))) == multi(before_unk_enc,5)
+    @test onecold(v, onehot(v, multi_after_enc)) == multi(before_unk_enc,5)
+    @test onecold(v, onehot(v, before_enc)) == before_unk_enc
+    @test onecold(v, onehot(v, after_enc)) == before_unk_enc
 
     @test eltype(data(e(after_enc, 0.5))) == Float32
 end
