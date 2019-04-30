@@ -320,4 +320,5 @@ is wrong and I don't have a Mac/Windows machine to test, so if you happend to kn
     -   [ ] more util functions
 -   [ ] openai gpt-2 model
 -   [ ] google bert model
-
+-   [ ] TPU support
+-   [ ] openai sparse transformer
