@@ -28,11 +28,52 @@ julia> using Transformers
 
 #+END_EXAMPLE
 
-* implemented model
+* Implemented model
 You can find the code in =example= folder.
 
 + [[https://arxiv.org/abs/1706.03762][Attention is all you need]]
 + [[https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf][Improving Language Understanding by Generative Pre-Training]]
+
+* Example
+Take a simple encoder-decoder model construction for machine translation task. With =Transformers.jl= we can easily define/stack the models. 
+
+#+BEGIN_SRC julia
+using Transformers
+using Transformers.Basic
+
+encoder = Stack(
+    @nntopo(e → pe:(e, pe) → x → x → $N),
+    PositionEmbedding(512),
+    (e, pe) -> e .+ pe,
+    Dropout(0.1),
+    [Transformer(512, 8, 64, 2048) for i = 1:N]...
+)
+
+decoder = Stack(
+    @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
+    PositionEmbedding(512),
+    (e, pe) -> e .+ pe,
+    Dropout(0.1),
+    [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
+    Positionwise(Dense(512, length(labels)), logsoftmax)
+)
+
+function loss(src, trg, src_mask, trg_mask)
+    label = onehot(vocab, trg)
+
+    src = embedding(src)
+    trg = embedding(trg)
+
+    mask = getmask(src_mask, trg_mask)
+
+    enc = encoder(src)
+    dec = decoder(trg, enc, mask)
+
+    loss = logkldivergence(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
+end
+#+END_SRC
+
+See =example= folder for the complete example.
 
 * Usage
 ** Transformer
@@ -50,7 +91,6 @@ x = randn(512, 30, 3) #fake data of length 30
 
 y = m(x)
 #+END_SRC
-
 
 ** Positionwise
    For the sequential task, we need to handle the 3 dimensional input. However, most of the layer in Flux only support input with shape 
@@ -76,7 +116,6 @@ y = m(x)
 # y = cat(m(x1), m(x2), m(x3); dims=3)
 
 #+END_SRC
-
 
 ** The Stack NNTopo DSL
    Since the =TransformerDecoder= require more than one input, it's not convenient to use with =Chain=. Therefore, we implement a very simple 
@@ -166,7 +205,6 @@ print_topo(topo; models=(f, g, h, k))
 (input arguments):(function1 inputs) => (function1 outputs):(function2 inputs):(function2 outputs) => .... => (function_n outputs):(return variables)
 #+END_EXAMPLE 
 
-
 **** Interpolation
      we also support interpolation, so you can use a variable to hold a substructure or the unroll number. But *notice* that the 
      interpolation variable should always be at the top level of the module since we can only get that value with =eval=
@@ -235,7 +273,6 @@ Stack(
     Positionwise(Dense(512, length(labels)), logsoftmax)
 )
 #+END_SRC
-
 
 * Issue
 Currently the code only work without problems on linux. For Mac/Windows, it will show a large amount of warning. Unfortunately, I haven't figure out what 

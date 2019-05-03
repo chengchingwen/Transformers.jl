@@ -14,15 +14,16 @@ For using the model, see `example` folder.
 
 1.  [Transformers.jl](#orgc036636)
 2.  [Installation](#org7cd262e)
-3.  [implemented model](#org8f711d9)
-4.  [Usage](#orgce3be42)
+3.  [Implemented model](#org8f711d9)
+4.  [Example](#orgeeeeeee)
+5.  [Usage](#orgce3be42)
     1.  [Transformer](#orgdd10aa8)
     2.  [Positionwise](#orga7cff19)
     3.  [The Stack NNTopo DSL](#orga82ed26)
         1.  [NNTopo Syntax](#org2f49cf2)
         2.  [Stack](#orgdbe1060)
-5.  [Issue](#org40d94bc)
-6.  [Roadmap](#orge253f99)
+6.  [Issue](#org40d94bc)
+7.  [Roadmap](#orge253f99)
 
 
 <a id="org7cd262e"></a>
@@ -54,11 +55,55 @@ For using GPU, install & build:
 
 <a id="org8f711d9"></a>
 
-# implemented model
+# Implemented model
 You can find the code in `example` folder.
 
 -   [Attention is all you need](https://arxiv.org/abs/1706.03762)
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
+
+
+<a id="orgeeeeeee"></a>
+
+# Example
+Take a simple encoder-decoder model construction of machine translation task. With `Transformers.jl` we can easily define/stack the models. 
+
+```julia
+using Transformers
+using Transformers.Basic
+
+encoder = Stack(
+    @nntopo(e → pe:(e, pe) → x → x → $N),
+    PositionEmbedding(512),
+    (e, pe) -> e .+ pe,
+    Dropout(0.1),
+    [Transformer(512, 8, 64, 2048) for i = 1:N]...
+)
+
+decoder = Stack(
+    @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
+    PositionEmbedding(512),
+    (e, pe) -> e .+ pe,
+    Dropout(0.1),
+    [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
+    Positionwise(Dense(512, length(labels)), logsoftmax)
+)
+
+function loss(src, trg, src_mask, trg_mask)
+    label = onehot(vocab, trg)
+
+    src = embedding(src)
+    trg = embedding(trg)
+
+    mask = getmask(src_mask, trg_mask)
+
+    enc = encoder(src)
+    dec = decoder(trg, enc, mask)
+
+    loss = logkldivergence(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
+end
+```
+
+See `example` folder for the complete example.
 
 
 <a id="orgce3be42"></a>
