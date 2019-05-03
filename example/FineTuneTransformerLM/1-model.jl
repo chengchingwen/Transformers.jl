@@ -20,11 +20,11 @@ const clfsym = "_clf_"
 const unksym = "<unk>"
 const anslabel = ["1", "2"]
 const anv = Vocabulary(anslabel, "1")
-gptm, embedm, bpe = load_gpt_pretrain(12;
-                                    startsym=startsym,
-                                    delisym=delisym,
-                                    clfsym=clfsym,
-                                    unksym=unksym)
+gptm, embedm, bpe, vocab = load_gpt_pretrain(12;
+                                             startsym=startsym,
+                                             delisym=delisym,
+                                             clfsym=clfsym,
+                                             unksym=unksym)
 
 const gpt = gpu(gptm)
 const embed = gpu(embedm)
@@ -42,7 +42,7 @@ function loss(x1, x2, y, x1_mask, x2_mask, c1_index, c2_index)
     e2 = embed(x2)
     t1 = gpt(e1, x1_mask)
     t2 = gpt(e2, x2_mask)
-    lm = lmloss(embed, onehot(embed, x1), t1, x1_mask) + lmloss(embed, onehot(embed, x2), t2, x2_mask)
+    lm = lmloss(embed, onehot(vocab, x1), t1, x1_mask) + lmloss(embed, onehot(vocab, x2), t2, x2_mask)
 
     c1 = gather(t1, c1_index)
     c2 = gather(t2, c2_index)
@@ -64,7 +64,5 @@ end
 const rocs = StoryCloze()
 const ps = params(embed, gpt, clf)
 const opt = ADAM(6.25e-5)
-
-end
 
 train!(args["epoch"])
