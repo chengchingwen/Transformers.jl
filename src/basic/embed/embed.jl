@@ -22,29 +22,26 @@ getmask(m1::A, m2::A) where A <: Abstract3DTensor = permutedims(m1, [2,1,3]) .* 
 
 
 """
-    Embed(size::Int, Vocab::Vocabulary)
+    Embed(size::Int, vocab_size::Int)
 
-The Embedding Layer, `size` is the hidden size. `Vocab` is vocabulary set.
+The Embedding Layer, `size` is the hidden size. `vocab_size` is the number of the vocabulary. Just a wrapper for embedding matrix.
 """
-struct Embed{F ,W <: AbstractArray{F}, T}
-    Vocab::Vocabulary{T}
+struct Embed{F ,W <: AbstractArray{F}}
     embedding::W
 end
 
 @treelike Embed
 
-Embed(size::Int, vocab::Vocabulary) = Embed(vocab, param(randn(Float32, size, length(vocab))))
+Base.size(e::Embed, s...) = size(e.embedding, s...)
 
-(e::Embed)(x::AbstractArray{Int}) = e.embedding * onehotarray(length(e.Vocab), x)
-(e::Embed{F,W,T})(x::Container{<:Union{T, Container{T}}}) where {F,W,T} = e.embedding * onehot(e, x)
+Embed(size::Int, vocab_size::Int) = Embed(param(randn(Float32, size, vocab_size)))
+
+(e::Embed)(x::AbstractArray{Int}) = gather(e.embedding, x)
 (e::Embed{F})(x, scale) where {F} = e(x) .* convert(F, scale)
 
-Flux.onehot(e::Embed{F, W, T}, x::Container{<:Union{T, Container{T}}}) where {F,W,T} = onehot(e.Vocab, x)
 Flux.onehot(v::Vocabulary{T}, x::Container{<:Union{T, Container{T}}}) where T = onehot(v, v(x))
-Flux.onehot(e::Embed, x::AbstractArray{Int}) = onehot(e.Vocab, x)
 Flux.onehot(v::Vocabulary, x::AbstractArray{Int}) = onehotarray(length(v), x)
 
-Flux.onecold(e::Embed, p) = Flux.onecold(e.Vocab, p)
 Flux.onecold(v::Vocabulary{T}, p) where T = decode(v, _onecold(p))
 
 function _onecold(p)
@@ -57,8 +54,4 @@ function _onecold(p)
     y
 end
 
-function Base.show(io::IO, e::Embed)
-    print(io, "Embed($(size(e.embedding, 1)), ")
-    show(io,  e.Vocab)
-    print(io, ")")
-end
+Base.show(io::IO, e::Embed) = print(io, "Embed($(size(e.embedding, 1)))")
