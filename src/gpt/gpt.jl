@@ -69,10 +69,10 @@ function lmloss(embed::Embed, et, t::AbstractArray{T, N}, mask) where {T,N}
     end
 end
 
-function lmloss(gpt::Gpt, embed::Embed, x)
-    e, mask = embed(x)
+function lmloss(gpt::Gpt, embed::Embed, vocab::Vocabulary, x, mask=nothing)
+    e = embed(x)
     t = gpt(e, mask)
-    lmloss(embed, onehot(embed, x), t, mask)
+    lmloss(embed, onehot(vocab, x), t, mask)
 end
 
 function Base.show(io::IO, gpt::Gpt)

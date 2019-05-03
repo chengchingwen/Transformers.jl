@@ -58,9 +58,9 @@ function test()
         b2_mask = getmask(b2)
         c1i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b1)]
         c2i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b2)]
-        b1, b2 = embed.Vocab(b1,b2)
+        b1, b2 = vocab(b1,b2)
         y = anv(y)
-        b1,b2,y,b1_mask,b2_mask,c1i,c2i = device(b1,b2,y,b1_mask,b2_mask,c1i,c2i)
+        b1,b2,y,b1_mask,b2_mask,c1i,c2i = todevice(b1,b2,y,b1_mask,b2_mask,c1i,c2i)
 
         _, p = loss(b1, b2, y, b1_mask, b2_mask, c1i, c2i)
         a = acc(p, y)
@@ -87,9 +87,9 @@ function train!(epoch)
             b2_mask = getmask(b2)
             c1i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b1)]
             c2i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b2)]
-            b1, b2 = embed.Vocab(b1,b2)
+            b1, b2 = vocab(b1,b2)
             y = anv(y)
-            b1,b2,y,b1_mask,b2_mask,c1i,c2i = device(b1,b2,y,b1_mask,b2_mask,c1i,c2i)
+            b1,b2,y,b1_mask,b2_mask,c1i,c2i = todevice(b1,b2,y,b1_mask,b2_mask,c1i,c2i)
 
             l, p = loss(b1, b2, y, b1_mask, b2_mask, c1i, c2i)
             #@show l
@@ -102,3 +102,4 @@ function train!(epoch)
         end
         test()
     end
+end
