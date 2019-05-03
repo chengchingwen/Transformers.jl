@@ -13,8 +13,8 @@ using Transformers.Basic
 
 include("./0-data.jl")
 
-vocab = Vocabulary(labels, unksym)
-const embed = gpu(Embed(512, vocab))
+const vocab = Vocabulary(labels, unksym)
+const embed = gpu(Embed(512, length(vocab)))
 
 embedding(x) = embed(x, inv(sqrt(512)))
 
@@ -41,14 +41,14 @@ const opt = ADAM(lr)
 
 function smooth(et)
     global Smooth
-    sm = fill!(similar(et, Float32), Smooth/length(embed.Vocab))
+    sm = fill!(similar(et, Float32), Smooth/size(embed, 2))
     p = sm .* (1 .+ -et)
     label = p .+ et .* (1 - convert(Float32, Smooth))
     label
 end
 
 function loss(src, trg, src_mask, trg_mask)
-    lab = onehot(embed, trg)
+    lab = onehot(vocab, trg)
 
     src = embedding(src)
     trg = embedding(trg)
@@ -73,7 +73,7 @@ function loss(src, trg, src_mask, trg_mask)
 end
 
 function translate(x)
-    ix = todevice(embed.Vocab(mkline(x)))
+    ix = todevice(vocab(mkline(x)))
     seq = [startsym]
 
     src = embedding(ix)
@@ -81,7 +81,7 @@ function translate(x)
 
     len = length(ix)
     for i = 1:2len
-        trg = embedding(todevice(embed.Vocab(seq)))
+        trg = embedding(todevice(vocab(seq)))
         dec = decoder(trg, enc, nothing)
         #move back to gpu due to argmax wrong result on CuArrays
         ntok = onecold(collect(dec), labels)
