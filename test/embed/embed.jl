@@ -24,4 +24,8 @@
     @test onecold(v, onehot(v, after_enc)) == before_unk_enc
 
     @test eltype(data(e(after_enc, 0.5))) == Float32
+
+    @test size(e) == (10, 6)
+    @test size(e, 1) == 10
+    @test size(e, 2) == 6 == length(v)
 end

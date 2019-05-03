@@ -32,6 +32,8 @@ end
 
 @treelike Embed
 
+Base.size(e::Embed, s...) = size(e.embedding, s...)
+
 Embed(size::Int, vocab_size::Int) = Embed(param(randn(Float32, size, vocab_size)))
 
 (e::Embed)(x::AbstractArray{Int}) = gather(e.embedding, x)
