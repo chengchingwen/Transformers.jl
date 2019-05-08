@@ -39,20 +39,23 @@ end
 function ∇gather(Δ::AbstractArray{T}, w::AbstractMatrix{T}, xs::AbstractArray{Int}) where T
     ys = fill!(similar(w), zero(T))
 
-    Threads.@threads for i = 1:length(xs)
-        ind = Tuple(CartesianIndices(xs)[i])
-        @inbounds ys[:, xs[i]] .+= Δ[:, ind...]
+    Threads.@threads for xi = 1:size(ys, 1)
+        for i = 1:length(xs)
+            ind = Tuple(CartesianIndices(xs)[i])
+            ys[xi, xs[i]] += Δ[xi, ind...]
+        end
     end
-
     return ys
 end
 
 function ∇gather(Δ::AbstractArray{T}, w::AbstractArray{T}, xs::AbstractArray{<:Tuple}) where T
     ys = fill!(similar(w), zero(T))
 
-    Threads.@threads for i = 1:length(xs)
-        ind = Tuple(CartesianIndices(xs)[i])
-        @inbounds ys[:, xs[i]] .+= Δ[:, ind...]
+    Threads.@threads for xi = 1:size(ys, 1)
+        for i = 1:length(xs)
+            ind = Tuple(CartesianIndices(xs)[i])
+            ys[xi, xs[i]...] += Δ[xi, ind...]
+        end
     end
 
     return ys
