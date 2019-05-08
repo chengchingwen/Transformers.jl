@@ -5,7 +5,7 @@ using Requires
 using Requires: @init
 
 export Transformer, TransformerDecoder
-export Stack, stack, @nntopo_str, @nntopo, show_stackfunc
+export Stack, @nntopo_str, @nntopo
 
 export dataset, datafile, get_batch, get_vocab
 
@@ -35,11 +35,13 @@ include("./fix/batchedmul.jl")
 include("./fix/dropout.jl")
 
 include("./basic/Basic.jl")
+include("./stacks/Stacks.jl")
 include("./datasets/Datasets.jl")
 
 include("./gpt/GenerativePreTrain.jl")
 
 using .Basic
+using .Stacks
 using .Datasets
 using .GenerativePreTrain
 
