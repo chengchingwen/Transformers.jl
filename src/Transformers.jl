@@ -31,9 +31,6 @@ end
 #implement batchmul for flux
 include("./fix/batchedmul.jl")
 
-#implement of gelu for gpu
-include("./fix/gelu.jl")
-
 #dropout noise shape impl
 include("./fix/dropout.jl")
 
