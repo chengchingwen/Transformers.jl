@@ -6,7 +6,7 @@ h1(a, b) = a^b
 k(a, b, c) = (a + b) / c
 
 @testset "NNTopo" begin
-    using Transformers.Basic: print_topo
+    using Transformers.Stacks: print_topo
     f(x) = x+1
     g(x) = x+2
     h(x) = x+3
