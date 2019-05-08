@@ -345,13 +345,13 @@ is wrong and I don't have a Mac/Windows machine to test, so if you happend to kn
     -   [ ] make docs site
 -   [X] write test
 -   [ ] refactor code
--   <code>[50%]</code> better embedding functions
+-   <code>[83%]</code> better embedding functions
     -   [X] gather function forward
     -   [X] gather function backward (might be better)
     -   [X] OneHotArray
     -   [ ] more util functions
-    -   [ ] easy gpu data
-    -   [ ] remove Vocabulary
+    -   [X] easy gpu data
+    -   [X] remove Vocabulary
 -   [X] lazy CuArrays loading
 -   [ ] using HTTP to handle dataset download (need HTTP.jl update)
 -   [ ] optimize performance
@@ -367,3 +367,4 @@ is wrong and I don't have a Mac/Windows machine to test, so if you happend to kn
 -   [ ] google bert model
 -   [ ] TPU support
 -   [ ] openai sparse transformer
+-   [ ] benchmarks
