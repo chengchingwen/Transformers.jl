@@ -79,3 +79,40 @@ function decode(vocab::Vocabulary{T}, is::AbstractMatrix{Int}) where T
 end
 
 Base.show(io::IO, v::Vocabulary) = print(io, "Vocabulary($(v.siz), unk=$(v.unk))")
+
+Flux.onehot(v::Vocabulary{T}, x::Container{<:Union{T, Container{T}}}) where T = onehot(v, v(x))
+Flux.onehot(v::Vocabulary, x::AbstractArray{Int}) = onehotarray(length(v), x)
+
+Flux.onecold(v::Vocabulary{T}, p) where T = decode(v, _onecold(p))
+function _onecold(p)
+    p = collect(p)
+    y = Array{Int}(undef, Base.tail(size(p)))
+    for i = 1:length(y)
+        ind = Tuple(CartesianIndices(y)[i])
+        y[i] = argmax(@view(p[:, ind...]))
+    end
+    y
+end
+
+"""
+    getmask(ls::Container{<:Container})
+
+get the mask for batched data.
+"""
+function getmask(ls::Container{<:Container})
+    lens = map(length, ls)
+    m = zeros(Float32, maximum(lens), length(lens))
+
+    for (i, l) ∈ enumerate(ls)
+        selectdim(selectdim(m, 2, i), 1, 1:length(l)) .= 1
+    end
+    reshape(m, (1, size(m)...))
+end
+
+"""
+    getmask(m1::A, m2::A) where A <: Abstract3DTensor
+
+get the mask for the covariance matrix.
+"""
+getmask(m1::A, m2::A) where A <: Abstract3DTensor = permutedims(m1, [2,1,3]) .* m2
+
