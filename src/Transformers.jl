@@ -24,7 +24,7 @@ todevice(x, xs...) = (x, xs...)
 
     "move data to device, basically = `CuArrays.cu` except `AbstractArray{Int}` become `CuArray{Int}`"
     todevice(x, xs...) = (todevice(x), todevice.(xs)...)
-    todevice(x::AbstractArray{Int}) = CuArray(x)
+    todevice(x::AbstractArray{Int}) = CuArrays.CuArray(x)
     todevice(x) = CuArrays.cu(x)
 end
 
