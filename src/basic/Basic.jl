@@ -17,7 +17,7 @@ export @toNd, Positionwise
 export logkldivergence, logcrossentropy
 
 include("./extend3d.jl")
-include("./embed/Embed.jl")
+include("./embeds/Embeds.jl")
 include("./mh_atten.jl")
 include("./transformer.jl")
 include("./loss.jl")
