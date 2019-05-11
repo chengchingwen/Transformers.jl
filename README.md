@@ -1,6 +1,3 @@
-
-<a id="orgc036636"></a>
-
 # Transformers.jl
 
 [![Build Status](https://travis-ci.com/chengchingwen/Transformers.jl.svg?branch=master)](https://travis-ci.com/chengchingwen/Transformers.jl)
@@ -10,23 +7,6 @@
 Julia implementation of NLP models, that based on google [transformer](https://arxiv.org/abs/1706.03762), with [Flux.jl](https://github.com/FluxML/Flux.jl).
 For using the model, see `example` folder.
 
-
-# Table of Contents
-
-1.  [Transformers.jl](#orgc036636)
-2.  [Installation](#org7cd262e)
-3.  [Implemented model](#org8f711d9)
-4.  [Example](#orgeeeeeee)
-5.  [Usage](#orgce3be42)
-    1.  [Transformer](#orgdd10aa8)
-    2.  [Positionwise](#orga7cff19)
-    3.  [The Stack NNTopo DSL](#orga82ed26)
-        1.  [NNTopo Syntax](#org2f49cf2)
-        2.  [Stack](#orgdbe1060)
-6.  [Roadmap](#orge253f99)
-
-
-<a id="org7cd262e"></a>
 
 # Installation
 
@@ -53,16 +33,12 @@ For using GPU, install & build:
     .
 
 
-<a id="org8f711d9"></a>
-
 # Implemented model
 You can find the code in `example` folder.
 
 -   [Attention is all you need](https://arxiv.org/abs/1706.03762)
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 
-
-<a id="orgeeeeeee"></a>
 
 # Example
 Take a simple encoder-decoder model construction of machine translation task. With `Transformers.jl` we can easily define/stack the models. 
@@ -106,12 +82,7 @@ end
 See `example` folder for the complete example.
 
 
-<a id="orgce3be42"></a>
-
 # Usage
-
-
-<a id="orgdd10aa8"></a>
 
 ## Transformer
 
@@ -130,8 +101,6 @@ x = randn(512, 30, 3) #fake data of length 30
 y = m(x)
 ```
 
-
-<a id="orga7cff19"></a>
 
 ## Positionwise
 
@@ -159,16 +128,33 @@ y = m(x)
 ```
 
 
-<a id="orga82ed26"></a>
+## PositionEmbedding
+
+We implement two kinds of position embedding, one is based on the sin/cos function (mentioned in the paper, 
+attention is all you need). Another one just like regular word embedding but with the position index. The 
+first argument is the `size`. Since the position embedding is only related to the length of the input (
+we use `size(input, 2)` as the length), the return value of the layer will be the embedding of the given 
+length without duplicate to the batch size. you can/should use broadcast add to get the desired output.
+
+```julia
+# sin/cos based position embedding which is not trainable
+pe = PositionEmbedding(10) # or PositionEmbedding(10; trainable = false)
+
+# trainable position embedding need to specify the maximum length
+pe = PositionEmbedding(10, 1024; trainable = true)
+
+x = randn(Float32, 10, 6, 3) #fake data of shape (10, length = 6, batched_size = 3)
+
+e = pe(x) #get the position embedding
+y = x .+ e # add the position embedding to each sample
+```
+
 
 ## The Stack NNTopo DSL
 
 Since the `TransformerDecoder` require more than one input, it's not convenient to use with `Chain`. Therefore, we implement a very simple 
 DSL(Domain Specific Language) to handle the function structure. You can use the `@nntopo` macro to define the structure then call the function 
 with the given model.
-
-
-<a id="org2f49cf2"></a>
 
 ### NNTopo Syntax
 
@@ -307,8 +293,6 @@ print_topo(topo)
 # end
 ```
 
-<a id="orgdbe1060"></a>
-
 ### Stack
 
 With the NNTopo DSL, now we can simple use the NNTopo with our Stack type, which is also like the `Chain` but we also need to pass in the 
@@ -326,8 +310,6 @@ Positionwise(Dense(512, length(labels)), logsoftmax)
 )
 ```
 
-
-<a id="orge253f99"></a>
 
 # Roadmap
 
