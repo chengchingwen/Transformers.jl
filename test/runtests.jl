@@ -2,6 +2,8 @@ using Transformers
 using Transformers.Basic
 using Test
 
+import Flux
+
 const tests = [
     "transformer",
     "nntopo",
