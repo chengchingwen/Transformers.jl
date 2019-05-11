@@ -131,7 +131,7 @@ y = m(x)
 ## PositionEmbedding
 
 We implement two kinds of position embedding, one is based on the sin/cos function (mentioned in the paper, 
-attention is all you need). Another one just like regular word embedding but with the position index. The 
+attention is all you need). Another one is just like regular word embedding but with the position index. The 
 first argument is the `size`. Since the position embedding is only related to the length of the input (
 we use `size(input, 2)` as the length), the return value of the layer will be the embedding of the given 
 length without duplicate to the batch size. you can/should use broadcast add to get the desired output.
@@ -317,6 +317,7 @@ Positionwise(Dense(512, length(labels)), logsoftmax)
 
 -   `Transformer` and `TransformerDecoder` support for both 2d & 3d data.
 -   `PositionEmbedding` implementation.
+-   `Positionwise` for handling 2d & 3d input.
 -   docstring for most of the functions.
 -   runable examples (see `example` folder)
 
