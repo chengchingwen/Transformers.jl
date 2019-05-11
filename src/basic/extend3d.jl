@@ -31,7 +31,8 @@ end
 """
     Positionwise(layers)
 
-just like Flux.Chain, but reshape input to 2d and reshape back when output.
+just like `Flux.Chain`, but reshape input to 2d and reshape back when output. Work exactly the same as
+`Flux.Chain` when input is 2d array.
 """
 struct Positionwise{T<:Tuple}
     models::T
@@ -41,6 +42,7 @@ end
 Flux.children(pw::Positionwise) = pw.models
 Flux.mapchildren(f, pw::Positionwise) = Positionwise(f.(pw.models)...)
 
+(pw::Positionwise)(x::A) where A <: AbstractMatrix = applychain(pw.models, x)
 function (pw::Positionwise)(x)
     insize = size(x)
     y = applychain(pw.models, reshape(x, insize[1], :))
