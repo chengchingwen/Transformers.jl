@@ -248,7 +248,7 @@ print_topo(topo; models=(f, g, h, k))
 4.  Specify the variables you want
 
 Notice that we use a `:` to seperate the input/output variables name for each function call, if the `:` is not present, we will by default assume 
-the output variables are all the inputs of the next function call. i.e. `x => (t1, t2) => y` is equal to `x => (t1, t2):(t1, t2) => y**. 
+the output variables are all the inputs of the next function call. i.e. `x => (t1, t2) => y` is equal to `x => (t1, t2):(t1, t2) => y`. 
 
 We can also return multiple variables, so the complete syntax can be viewed as:
     
@@ -331,6 +331,33 @@ Positionwise(Dense(512, length(labels)), logsoftmax)
 
 # Roadmap
 
+## What we have in v0.1.0
+
+-   `Transformer` and `TransformerDecoder` support for both 2d & 3d data.
+-   `PositionEmbedding` implementation.
+-   docstring for most of the functions.
+-   runable examples (see `example` folder)
+
+
+## What we will have in v0.2.0
+
+-   The BERT model (since it's part of the JSoC 2019)
+-   tutorials
+-   complete GPT APIs
+-   GPT-2 model
+-   docs site for this project
+-   benchmarks
+-   more examples
+
+
+## What we might have in v0.2.0 (If we are lucky)
+-   TPU support with XLA.jl
+-   complete docs for datasets
+-   more datasets support
+
+
+## Messy checklist
+
 -   <code>[33%]</code> write docs
     -   [X] docstring
     -   [ ] examples
@@ -360,3 +387,5 @@ Positionwise(Dense(512, length(labels)), logsoftmax)
 -   [ ] TPU support
 -   [ ] openai sparse transformer
 -   [ ] benchmarks
+
+
