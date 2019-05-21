@@ -67,7 +67,11 @@ function collectcollect(ex::Expr)
         push!(ret, first(e.args))
       end
     end
-    Expr(:tuple, ret...)
+    if length(ret) == 1
+      return ret[1]
+    else
+      return Expr(:tuple, ret...)
+    end
   end
 end
 
