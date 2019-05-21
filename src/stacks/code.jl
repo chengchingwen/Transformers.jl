@@ -118,8 +118,8 @@ function Base.show(io::IO, code::Code)
   io
 end
 
-out(code::Code) = code.out
-out(c) = c
+@inline out(code::Code) = code.out
+@inline out(c) = c
 
 function add(code1::Code, code2::Code)
   in = code1.in
@@ -158,9 +158,15 @@ function duplicate(c, n::Int)
   Code(in, out, lines)
 end
 
-getint(ex::Int) = ex
-getint(ex::Expr) = getleft(ex) isa Int ? getleft(ex) : getright(ex)
-getsym(ex::Expr) = getleft(ex) isa Int ? getright(ex) : getleft(ex)
+@inline getint(ex::Int) = ex
+@inline getint(ex::Expr) = getleft(ex) isa Int ? getleft(ex) : getright(ex)
+@inline getsym(ex::Expr) = getleft(ex) isa Int ? getright(ex) : getleft(ex)
+
+@inline getin(ex::Expr) = iscolon(ex) ? getleft(ex) : ex
+@inline getin(x::Symbol) = x
+@inline getout(ex::Expr) = iscolon(ex) ? getright(ex) : ex
+@inline getout(x::Symbol) = x
+
 
 function _to_code(node)
   if !isleaf(getleft(node))
@@ -193,11 +199,6 @@ function _to_code(node)
 
   code
 end
-
-getin(ex::Expr) = iscolon(ex) ? getleft(ex) : ex
-getin(x::Symbol) = x
-getout(ex::Expr) = iscolon(ex) ? getright(ex) : ex
-getout(x::Symbol) = x
 
 function _postcode(code::Code)
   in = getin(code.in)

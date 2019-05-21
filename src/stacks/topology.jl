@@ -6,7 +6,6 @@ x => 3 ==> x => a => a => a ==> x = m[1](a); a = m[1](a); a = m[1](a)
 ((x, m) => x) => 3 ==> (x = m[1](x, m)); (x = m[2](x, m)); (x = m[3](x, m))
 (((x, m) => x:(x, m)) => 3) ==> (x = m[1](x,m)); (x = m[2](x,m)) ;(x = m[3](x,m))
 =#
-include("./new_topo.jl")
 
 """
     nntopo"pattern"
@@ -25,7 +24,6 @@ create the function according to the given pattern
 macro nntopo(expr)
   NNTopo(interpolate(__module__, expr))
 end
-
 
 isinterpolate(x) = false
 isinterpolate(ex::Expr) = ex.head == :($)
@@ -124,16 +122,25 @@ end
 
 print_topo(nt::NNTopo; models=nothing) = print_topo(stdout, nt; models=models)
 function print_topo(io::IO, nt::NNTopo; models=nothing)
-  code = to_code(Meta.parse(nt.fs))
-  farg = istuple(code.in) ? join(code.in.args, ", ") : string(code.in)
+  body = nntopo_impl(Meta.parse(nt.fs)).args
+  farg = join(body[1].args[1].args, ", ")
   println(io, "topo_func(model, $farg)")
-  for (i, l) ∈ enumerate(code.lines)
-    name = string(l[1])
-    args = istuple(l[2]) ? string(l[2]) : "($(l[2]))"
-    model = models === nothing ? "model[$i]" : string(models[i])
-    println(io, "\t$name = $model$args")
+  i = 1
+  for l ∈ @view(body[2:end-1])
+    name = string(l.args[1])
+    if occursin("#", name)
+      args = string(l.args[2])
+      name = replace(name, "#" => "")
+      println(io, "\t$name = $args")
+    else
+      args = join(l.args[2].args[2:end], ", ")
+      model = models === nothing ? "model[$i]" : string(models[i])
+      println(io, "\t$name = $model($args)")
+      i+=1
+    end
   end
-  println(io, "\t$(code.out)")
+  out = replace(string(body[end]), "#" => "")
+  println(io, "\t$out")
   println("end")
 end
 
