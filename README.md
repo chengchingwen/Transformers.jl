@@ -293,13 +293,48 @@ print_topo(topo)
 # end
 ```
 
+7. Collect Variables
+
+you can also collect some variables that you are interested in with `'` on that variable. For example:
+
+```julia
+julia> @nntopo x => y' => 3 => z
+NNTopo{"x => (y' => (3 => z))"}
+topo_func(model, x)
+        y = model[1](x)
+        %1 = y
+        y = model[2](y)
+        %2 = y
+        y = model[3](y)
+        %3 = y
+        y = model[4](y)
+        %4 = y
+        z = model[5](y)
+        (z, (%1, %2, %3, %4))
+end
+
+julia> @nntopo (x,y) => (a,b,c,d') => (w',r',y) => (m,n)' => z
+NNTopo{"(x, y) => ((a, b, c, d') => ((w', r', y) => (((m, n))' => z)))"}
+topo_func(model, x, y)
+        (a, b, c, d) = model[1](x, y)
+        %1 = d
+        (w, r, y) = model[2](a, b, c, d)
+        %2 = (w, r)
+        (m, n) = model[3](w, r, y)
+        %3 = (m, n)
+        z = model[4](m, n)
+        (z, (%1, %2, %3))
+end
+```
+
 ### Stack
 
 With the NNTopo DSL, now we can simple use the NNTopo with our Stack type, which is also like the `Chain` but we also need to pass in the 
-`topo` for the architecture.
+`topo` for the architecture. You can check the actual function call with `show_stackfunc`.
 
 ```julia
 #The Decoder Example in Attention is All you need
+using Transformers.Stacks
 Stack(
 @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
 PositionEmbedding(512),
@@ -308,6 +343,18 @@ Dropout(0.1),
 [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
 Positionwise(Dense(512, length(labels)), logsoftmax)
 )
+
+julia> show_stackfunc(s)
+topo_func(model, e, m, mask)
+        pe = PositionEmbedding(512)(e)
+        t = getfield(Main, Symbol("##23#25"))()(e, pe)
+        t = Dropout{Float64}(0.1, true)(t)
+        t = TransformerDecoder(head=8, head_size=64, pwffn_size=2048, size=512, dropout=0.1)(t, m, mask)
+        t = TransformerDecoder(head=8, head_size=64, pwffn_size=2048, size=512, dropout=0.1)(t, m, mask)
+        t = TransformerDecoder(head=8, head_size=64, pwffn_size=2048, size=512, dropout=0.1)(t, m, mask)
+        c = Positionwise{Tuple{Dense{typeof(identity),TrackedArray{…,Array{Float32,2}},TrackedArray{…,Array{Float32,1}}},typeof(logsoftmax)}}((Dense(512, 12), NNlib.logsoftmax))(t)
+        c
+end
 ```
 
 
