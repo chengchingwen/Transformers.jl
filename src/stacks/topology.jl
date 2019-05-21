@@ -14,7 +14,7 @@ include("./new_topo.jl")
 the @nntopo string
 """
 macro nntopo_str(str)
-    NNTopo(str)
+  NNTopo(str)
 end
 
 """
@@ -23,7 +23,7 @@ end
 create the function according to the given pattern
 """
 macro nntopo(expr)
-    NNTopo(interpolate(__module__, expr))
+  NNTopo(interpolate(__module__, expr))
 end
 
 
@@ -31,14 +31,14 @@ isinterpolate(x) = false
 isinterpolate(ex::Expr) = ex.head == :($)
 interpolate(m::Module, x) = x
 function interpolate(m::Module, ex::Expr)
-    if isinterpolate(ex)
-        return @eval(m, $(ex.args[1]))
-    else
-        for (i, e) ∈ enumerate(ex.args)
-            ex.args[i] = interpolate(m, e)
-        end
+  if isinterpolate(ex)
+    return @eval(m, $(ex.args[1]))
+  else
+    for (i, e) ∈ enumerate(ex.args)
+      ex.args[i] = interpolate(m, e)
     end
-    ex
+  end
+  ex
 end
 
 """
@@ -62,50 +62,78 @@ genline(name, args::Expr, m, i::Int) = Expr(:(=), name, Expr(:call, :($m[$i]), a
 nntopo_impl(s::Symbol) = nntopo_impl(string(s))
 nntopo_impl(sf::String) = nntopo_impl(Meta.parse(sf))
 function nntopo_impl(pattern)
-    m = :model
-    xs = :xs
+  m = :model
+  xs = :xs
 
-    code = to_code(pattern)
+  collectsyms = Any[]
 
-    if istuple(code.in)
-        pref = Expr(:(=), code.in, xs)
-    else
-        pref = Expr(:(=), Expr(:tuple, code.in), xs)
+  code = to_code(pattern)
+
+  if istuple(code.in)
+    pref = Expr(:(=), code.in, xs)
+  else
+    pref = Expr(:(=), Expr(:tuple, code.in), xs)
+  end
+
+  fbody = Any[:block]
+  push!(fbody, pref)
+  for (i, l) ∈ enumerate(code.lines)
+    (name, args) = l
+    if hascollect(args)
+      colname = gensym(:%)
+      push!(fbody, Expr(:(=), colname, collectcollect(args)))
+      push!(collectsyms, colname)
     end
 
-    fbody = Any[:block]
-    push!(fbody, pref)
-    for (i, l) ∈ enumerate(code.lines)
-        push!(fbody, genline(l..., m, i))
+    push!(fbody, genline(removecollect(name), removecollect(args), m, i))
+
+    if hascollect(name)
+      colname = gensym(:%)
+      push!(fbody, Expr(:(=), colname, collectcollect(name)))
+      push!(collectsyms, colname)
     end
+  end
 
-    push!(fbody, code.out)
+  duplicatedcollect = filter(2:length(fbody)-1) do i
+      fbody[i].args[2] == fbody[i+1].args[2]
+  end
 
-    Expr(fbody...)
+  deleteat!(fbody, duplicatedcollect)
+
+
+  if isempty(collectsyms)
+    push!(fbody, removecollect(code.out))
+  else
+    push!(fbody, Expr(:tuple,
+                      removecollect(code.out),
+                      Expr(:tuple, collectsyms...)))
+  end
+
+  Expr(fbody...)
 end
 
 @generated function (nt::NNTopo{FS})(model, xs...) where {FS}
-    return nntopo_impl(FS)
+  return nntopo_impl(FS)
 end
 
 function Base.show(io::IO, nt::NNTopo)
-    println(io, "NNTopo{\"$(nt.fs)\"}")
-    print_topo(io, nt)
-    io
+  println(io, "NNTopo{\"$(nt.fs)\"}")
+  print_topo(io, nt)
+  io
 end
 
 print_topo(nt::NNTopo; models=nothing) = print_topo(stdout, nt; models=models)
 function print_topo(io::IO, nt::NNTopo; models=nothing)
-    code = to_code(Meta.parse(nt.fs))
-    farg = istuple(code.in) ? join(code.in.args, ", ") : string(code.in)
-    println(io, "topo_func(model, $farg)")
-    for (i, l) ∈ enumerate(code.lines)
-        name = string(l[1])
-        args = istuple(l[2]) ? string(l[2]) : "($(l[2]))"
-        model = models === nothing ? "model[$i]" : string(models[i])
-        println(io, "\t$name = $model$args")
-    end
-    println(io, "\t$(code.out)")
-    println("end")
+  code = to_code(Meta.parse(nt.fs))
+  farg = istuple(code.in) ? join(code.in.args, ", ") : string(code.in)
+  println(io, "topo_func(model, $farg)")
+  for (i, l) ∈ enumerate(code.lines)
+    name = string(l[1])
+    args = istuple(l[2]) ? string(l[2]) : "($(l[2]))"
+    model = models === nothing ? "model[$i]" : string(models[i])
+    println(io, "\t$name = $model$args")
+  end
+  println(io, "\t$(code.out)")
+  println("end")
 end
 
