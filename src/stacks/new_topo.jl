@@ -37,6 +37,40 @@ leftmostnode(ex) = isleaf(getleft(ex)) ? ex : leftmostnode(getleft(ex))
 @inline hascollect(ex::Expr) = iscollect(ex) || any(iscollect, ex.args)
 @inline hascollect(ex) = false
 
+removecollect(ex) = ex
+function removecollect(ex::Expr)
+  if hascollect(ex)
+    if iscollect(ex)
+      return first(ex.args)
+    else
+      ret = copy(ex)
+      for (i, e) ∈ enumerate(ex.args)
+        if iscollect(e)
+          ret.args[i] = first(e.args)
+        end
+      end
+      return ret
+    end
+  else
+    return ex
+  end
+end
+
+collectcollect(ex) = :(())
+function collectcollect(ex::Expr)
+  if iscollect(ex)
+    return first(ex.args)
+  else
+    ret = Any[]
+    for (i, e) ∈ enumerate(ex.args)
+      if iscollect(e)
+        push!(ret, first(e.args))
+      end
+    end
+    Expr(:tuple, ret...)
+  end
+end
+
 const legalsym = (:(=>),:→)
 
 @inline islegal(ex::Symbol) = true
@@ -68,60 +102,60 @@ function islegal(ex::Expr)
 end
 
 struct Code
-    in
-    out
-    lines::Vector{Tuple}
+  in
+  out
+  lines::Vector{Tuple}
 end
 
 Code(in, out) = Code(in, out, [(out, in)])
 
 function Base.show(io::IO, code::Code)
-    println(io, "Code: input: $(code.in), output: $(code.out)")
-    println(io, "body: ")
-    for l in code.lines
-        println("\t$(l[1]) = $(l[2])")
-    end
-    io
+  println(io, "Code: input: $(code.in), output: $(code.out)")
+  println(io, "body: ")
+  for l in code.lines
+    println("\t$(l[1]) = $(l[2])")
+  end
+  io
 end
 
 out(code::Code) = code.out
 out(c) = c
 
 function add(code1::Code, code2::Code)
-    in = code1.in
-    out = code2.out
-    lines = cat(code1.lines, code2.lines; dims=1)
-    Code(in, out, lines)
+  in = code1.in
+  out = code2.out
+  lines = cat(code1.lines, code2.lines; dims=1)
+  Code(in, out, lines)
 end
 
 function add(code::Code, newline)
-    in = code.in
-    out = newline
-    lines = [code.lines..., (out, code.out)]
-    Code(in, out, lines)
+  in = code.in
+  out = newline
+  lines = [code.lines..., (out, code.out)]
+  Code(in, out, lines)
 end
 
 function add(left, right)
-    in = left
-    out = right
-    Code(in, out)
+  in = left
+  out = right
+  Code(in, out)
 end
 
 function duplicate(code::Code, n::Int)
-    in = code.in
-    out = code.out
+  in = code.in
+  out = code.out
 
-    tp_cls = [(first(code.lines)[1], out), code.lines[2:end]...]
-    tp_cls = [tp_cls for i = 1:(n-1)]
+  tp_cls = [(first(code.lines)[1], out), code.lines[2:end]...]
+  tp_cls = [tp_cls for i = 1:(n-1)]
 
-    Code(in, out, cat(code.lines, tp_cls...; dims=1))
+  Code(in, out, cat(code.lines, tp_cls...; dims=1))
 end
 
 function duplicate(c, n::Int)
-    in = c
-    out = c
-    lines = [(c, c) for i = 1:n]
-    Code(in, out, lines)
+  in = c
+  out = c
+  lines = [(c, c) for i = 1:n]
+  Code(in, out, lines)
 end
 
 getint(ex::Int) = ex
@@ -129,35 +163,35 @@ getint(ex::Expr) = getleft(ex) isa Int ? getleft(ex) : getright(ex)
 getsym(ex::Expr) = getleft(ex) isa Int ? getright(ex) : getleft(ex)
 
 function _to_code(node)
-    if !isleaf(getleft(node))
-        pre_code = _to_code(getleft(node))
+  if !isleaf(getleft(node))
+    pre_code = _to_code(getleft(node))
+  else
+    pre_code = getleft(node)
+  end
+
+  rL = leftmost(getright(node)) #Symbol(or tuple) or Int
+  if isdup(rL)#rL isa Int
+    rightnode = getright(node)
+    if isdup(rightnode)#getright(node) isa Int
+      node.args[3] = rL isa Int ? out(pre_code) : getsym(rL)
     else
-        pre_code = getleft(node)
+      leftmostnode(rightnode).args[2] = rL isa Int ? out(pre_code) : getsym(rL)
     end
-
-    rL = leftmost(getright(node)) #Symbol(or tuple) or Int
-    if isdup(rL)#rL isa Int
-        rightnode = getright(node)
-        if isdup(rightnode)#getright(node) isa Int
-            node.args[3] = rL isa Int ? out(pre_code) : getsym(rL)
-        else
-            leftmostnode(rightnode).args[2] = rL isa Int ? out(pre_code) : getsym(rL)
-        end
-        if getint(rL) == 1 #don't need duplicate
-            code = pre_code
-        else
-            code = duplicate(pre_code, getint(rL))
-        end
+    if getint(rL) == 1 #don't need duplicate
+      code = pre_code
     else
-        code = add(pre_code, rL)
+      code = duplicate(pre_code, getint(rL))
     end
+  else
+    code = add(pre_code, rL)
+  end
 
-    if !isleaf(getright(node))
-        next_code = _to_code(getright(node))
-        code = add(code, next_code)
-    end
+  if !isleaf(getright(node))
+    next_code = _to_code(getright(node))
+    code = add(code, next_code)
+  end
 
-    code
+  code
 end
 
 getin(ex::Expr) = iscolon(ex) ? getleft(ex) : ex
@@ -166,15 +200,15 @@ getout(ex::Expr) = iscolon(ex) ? getright(ex) : ex
 getout(x::Symbol) = x
 
 function _postcode(code::Code)
-    in = getin(code.in)
-    out = getin(code.out)
-    lines = map(code.lines) do (vab, farg)
-        (getin(vab), getout(farg))
-    end
-    Code(in, out, lines)
+  in = getin(code.in)
+  out = getin(code.out)
+  lines = map(code.lines) do (vab, farg)
+    (getin(vab), getout(farg))
+  end
+  Code(in, out, lines)
 end
 
 function to_code(ex::Expr)
-    code = _to_code(ex)
-    _postcode(code)
+  code = _to_code(ex)
+  _postcode(code)
 end
