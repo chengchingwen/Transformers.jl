@@ -92,16 +92,20 @@ function nntopo_impl(pattern)
     end
   end
 
-  duplicatedcollect = filter(2:length(fbody)-1) do i
-      fbody[i].args[2] == fbody[i+1].args[2]
-  end
-
-  deleteat!(fbody, duplicatedcollect)
-
-
   if isempty(collectsyms)
     push!(fbody, removecollect(code.out))
   else
+    duplicatedcollect = filter(2:length(fbody)-1) do i
+      fbody[i].args[2] == fbody[i+1].args[2]
+    end
+
+    erasedidx = map(duplicatedcollect) do i
+      findfirst(isequal(fbody[i].args[1]), collectsyms)
+    end
+
+    deleteat!(fbody, duplicatedcollect)
+    deleteat!(collectsyms, erasedidx)
+
     push!(fbody, Expr(:tuple,
                       removecollect(code.out),
                       Expr(:tuple, collectsyms...)))
@@ -126,12 +130,15 @@ function print_topo(io::IO, nt::NNTopo; models=nothing)
   farg = join(body[1].args[1].args, ", ")
   println(io, "topo_func(model, $farg)")
   i = 1
+  sname = Dict{String, String}()
+  si = 1
   for l ∈ @view(body[2:end-1])
     name = string(l.args[1])
     if occursin("#", name)
       args = string(l.args[2])
-      name = replace(name, "#" => "")
-      println(io, "\t$name = $args")
+      sname[name] = "%$si"
+      println(io, "\t$(sname[name]) = $args")
+      si+=1
     else
       args = join(l.args[2].args[2:end], ", ")
       model = models === nothing ? "model[$i]" : string(models[i])
@@ -139,7 +146,7 @@ function print_topo(io::IO, nt::NNTopo; models=nothing)
       i+=1
     end
   end
-  out = replace(string(body[end]), "#" => "")
+  out = replace(string(body[end]), r"##%#\d+" => s->sname[s])
   println(io, "\t$out")
   println("end")
 end
