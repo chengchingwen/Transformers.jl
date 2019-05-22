@@ -13,7 +13,7 @@ x => 3 ==> x => a => a => a ==> x = m[1](a); a = m[1](a); a = m[1](a)
 the @nntopo string
 """
 macro nntopo_str(str)
-  NNTopo(str)
+  :(NNTopo($(esc(str))))
 end
 
 """
