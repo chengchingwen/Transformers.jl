@@ -11,6 +11,7 @@ export dataset, datafile, get_batch, get_vocab
 
 export todevice
 export Gpt, load_gpt_pretrain, lmloss
+export Bert
 
 const Abstract3DTensor{T} = AbstractArray{T, 3}
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
@@ -39,10 +40,12 @@ include("./stacks/Stacks.jl")
 include("./datasets/Datasets.jl")
 
 include("./gpt/GenerativePreTrain.jl")
+include("./bert/Berts.jl")
 
 using .Basic
 using .Stacks
 using .Datasets
 using .GenerativePreTrain
+using .Berts
 
 end # module
