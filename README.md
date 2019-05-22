@@ -243,11 +243,15 @@ We can also return multiple variables, so the complete syntax can be viewed as:
 5.  Interpolation
 
 we also support interpolation, so you can use a variable to hold a substructure or the unroll number. But **notice** that the 
-interpolation variable should always be at the top level of the module since we can only get that value with `eval`.
+interpolation variable should always be at the top level of the module since we can only get that value with `eval`. To use 
+interpolte local variables, use `@nntopo_str "topo_pattern"` instead.
 
 ```julia
 N = 3
 topo = @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c)
+
+# or
+# topo = @nntopo_str "(e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c"
 
 print_topo(topo)
 # 
