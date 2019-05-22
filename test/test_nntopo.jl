@@ -76,6 +76,35 @@ end
 """
     end
 
+    localn = 3
+    topo = @nntopo_str "(e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $localn:t → c"
+
+
+    let STDOUT = stdout
+        (outRead, outWrite) = redirect_stdout()
+
+        print_topo(outWrite, topo)
+        close(outWrite)
+
+        topo_string = String(readavailable(outRead))
+        close(outRead)
+
+        redirect_stdout(STDOUT)
+
+        @test topo_string == """topo_func(model, e, m, mask)
+	pe = model[1](e)
+	t = model[2](e, pe)
+	t = model[3](t)
+	t = model[4](t, m, mask)
+	t = model[5](t, m, mask)
+	t = model[6](t, m, mask)
+	c = model[7](t)
+	c
+end
+"""
+    end
+
+
     let STDOUT = stdout
         (outRead, outWrite) = redirect_stdout()
 
@@ -106,6 +135,57 @@ end
 	t = model[14](z)
 	w = model[15](t)
 	w
+end
+"""
+    end
+
+    let STDOUT = stdout
+        (outRead, outWrite) = redirect_stdout()
+
+        topo = @nntopo x => y' => 3 => z
+        print_topo(outWrite, topo)
+        close(outWrite)
+
+        topo_string = String(readavailable(outRead))
+        close(outRead)
+
+        redirect_stdout(STDOUT)
+        @test topo_string == """topo_func(model, x)
+	y = model[1](x)
+	%1 = y
+	y = model[2](y)
+	%2 = y
+	y = model[3](y)
+	%3 = y
+	y = model[4](y)
+	%4 = y
+	z = model[5](y)
+	(z, (%1, %2, %3, %4))
+end
+"""
+    end
+
+
+    let STDOUT = stdout
+        (outRead, outWrite) = redirect_stdout()
+
+        topo = @nntopo (x,y) => (a,b,c,d') => (w',r',y) => (m,n)' => z
+        print_topo(outWrite, topo)
+        close(outWrite)
+
+        topo_string = String(readavailable(outRead))
+        close(outRead)
+
+        redirect_stdout(STDOUT)
+        @test topo_string == """topo_func(model, x, y)
+	(a, b, c, d) = model[1](x, y)
+	%1 = d
+	(w, r, y) = model[2](a, b, c, d)
+	%2 = (w, r)
+	(m, n) = model[3](w, r, y)
+	%3 = (m, n)
+	z = model[4](m, n)
+	(z, (%1, %2, %3))
 end
 """
     end
