@@ -3,7 +3,7 @@
 
 The Embedding Layer, `size` is the hidden size. `vocab_size` is the number of the vocabulary. Just a wrapper for embedding matrix.
 """
-struct Embed{F ,W <: AbstractArray{F}}
+struct Embed{F ,W <: AbstractArray{F}} <: AbstractEmbed{F}
     embedding::W
 end
 
