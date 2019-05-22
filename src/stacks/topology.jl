@@ -68,9 +68,9 @@ function nntopo_impl(pattern)
   code = to_code(pattern)
 
   if istuple(code.in)
-    pref = Expr(:(=), code.in, xs)
+    pref = Expr(:(=), removecollect(code.in), xs)
   else
-    pref = Expr(:(=), Expr(:tuple, code.in), xs)
+    pref = Expr(:(=), removecollect(Expr(:tuple, code.in)), xs)
   end
 
   fbody = Any[:block]
