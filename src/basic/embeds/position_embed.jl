@@ -5,12 +5,14 @@ The position embedding layer. `size` is the number of neuron. `max_len` is the m
 If is not `trainable`, `max_len` will dynamically adjust to the longest input length. If `trainable`, use a random init
 embedding value, otherwise use a sin/cos position encoding.
 """
-mutable struct PositionEmbedding{W}
+mutable struct PositionEmbedding{F, W <: AbstractArray{F}} <: AbstractBroadcastEmbed{F}
     trainable::Bool
     embedding::W
 end
 
 @treelike PositionEmbedding
+
+get_value(e::PositionEmbedding, name::Symbol, xs::NamedTuple) = e(first(xs))
 
 function PE(size, pos, i::Int)
     if rem(i, 2) == 0
@@ -32,8 +34,9 @@ function PositionEmbedding(size::Int, max_len::Int = 1024; trainable::Bool = fal
     PositionEmbedding(trainable, embedding)
 end
 
-function (pe::PositionEmbedding)(x)
-    len = size(x, 2)
+(pe::PositionEmbedding)(x::AbstractArray{Int}) = pe(size(x, 1))
+(pe::PositionEmbedding{F})(x::AbstractArray{F}) where F = pe(size(x, 2))
+function (pe::PositionEmbedding)(len::Int)
     max_len = size(pe.embedding, 2)
 
     if len > max_len
