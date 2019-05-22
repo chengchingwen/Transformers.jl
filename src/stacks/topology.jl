@@ -50,7 +50,7 @@ Base.getproperty(nt::NNTopo, s::Symbol) = s == :fs ? Base.getproperty(nt, Val(:f
 Base.getproperty(::NNTopo{FS}, ::Val{:fs}) where FS = string(FS)
 
 NNTopo(s::String) = NNTopo(Meta.parse(s))
-NNTopo(ex::Expr) = islegal(ex) && !hascollect(getin(leftmost(ex))) ?
+NNTopo(ex::Expr) = islegal(ex) ?
   NNTopo{Symbol(ex)}() :
   error("topo pattern illegal")
 
@@ -95,6 +95,12 @@ function nntopo_impl(pattern)
   if isempty(collectsyms)
     push!(fbody, removecollect(code.out))
   else
+    if hascollect(code.out)
+      colname = gensym(:%)
+      push!(fbody, Expr(:(=), colname, collectcollect(code.out)))
+      push!(collectsyms, colname)
+    end
+
     duplicatedcollect = filter(2:length(fbody)-1) do i
       fbody[i].args[2] == fbody[i+1].args[2]
     end
