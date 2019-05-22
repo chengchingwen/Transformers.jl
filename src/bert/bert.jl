@@ -31,12 +31,12 @@ function Bert(size::Int, head::Int, hs::Int, ps::Int, layer::Int; max_len::Int =
     Dropout(pdrop))
 end
 
-function (bert::Bert)(x::T, mask=nothing, all=false) where T
+function (bert::Bert)(x::T, mask=nothing; all=false) where T
     pe = bert.pe(x)
     e = x .+ pe
     e = bert.drop(e)
     t, ts = bert.ts(e)
-    t = mask === noothing ? t : t .* mask
+    t = mask === nothing ? t : t .* mask
     if all
         t, ts
     else
