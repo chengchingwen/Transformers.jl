@@ -1,5 +1,4 @@
 @testset "Gather" begin
-    @info "Test Gather"
     w = cu(randn(10,10))
     wh = cu(randn(10,5,4,3))
 
