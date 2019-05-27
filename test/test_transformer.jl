@@ -1,8 +1,8 @@
 @testset "Transformer" begin
     t = Transformer(10, 3, 15, 20)
     td = TransformerDecoder(10, 3, 15, 20)
-    x = randn(10, 7, 3)
-    y = randn(10, 6, 3)
+    x = randn(Float32, 10, 7, 3)
+    y = randn(Float32, 10, 6, 3)
 
     m1 = reshape(Float32[1. 1. 1. 1. 0. 0. 0.; 1. 1. 1. 1. 1. 1. 0.; 1. 1. 1. 1. 1. 1. 1.]', 1, 7, 3)
     m2 = reshape(Float32[1. 1. 1. 0. 0. 0.; 1. 1. 1. 1. 1. 0.; 1. 1. 1. 1. 1. 1.]', 1, 6, 3)
