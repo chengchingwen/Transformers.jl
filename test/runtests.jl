@@ -21,4 +21,8 @@ end
         @info "Test $(uppercase(t))"
         include(fp)
     end
+
+    if Base.find_package("CuArrays") != nothing
+        include("test_cuda.jl")
+    end
 end
