@@ -20,6 +20,7 @@ Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
 
 [compat]
+HTTP = ">= 0.8.1"
 Flux = ">= 0.7.3"
 julia = "^1"
 
