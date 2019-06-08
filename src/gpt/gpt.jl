@@ -1,20 +1,18 @@
 using Flux: @treelike
 
 using ..Basic
-using ..Basic: onehot
-
+using ..Basic: onehot, AbstractTransformer
+using ..Stacks
 
 export Gpt, lmloss
 export load_gpt_pretrain
 
-struct Gpt
-    pe::PositionEmbedding
-    ts::Chain
+struct Gpt <: AbstractTransformer
+    ts::Stack
     drop::Dropout
 end
 
 @treelike Gpt
-
 
 """
     Gpt(size::Int, head::Int, ps::Int, layer::Int;
@@ -25,25 +23,34 @@ end
 the Generative Pretrain model.
 """
 function Gpt(size::Int, head::Int, ps::Int, layer::Int;
-             max_len::Int = 512, trainable = true, act = gelu, pdrop = 0.1)
+             act = gelu, pdrop = 0.1)
     rem(size, head) != 0 && error("size not divisible by head")
-    Gpt(size, head, div(size, head), ps, layer; max_len=max_len, trainable=trainable, act=act, pdrop=pdrop)
+    Gpt(size, head, div(size, head), ps, layer; act=act, pdrop=pdrop)
 end
 
 function Gpt(size::Int, head::Int, hs::Int, ps::Int, layer::Int;
-             max_len::Int = 512, trainable = true, act = gelu, pdrop = 0.1)
-    Gpt(PositionEmbedding(size, max_len; trainable=trainable),
-        Chain([Transformer(size, head, hs, ps; future=false, act=act, pdrop=pdrop) for i = 1:layer]...),
-        Dropout(pdrop))
+             act = gelu, pdrop = 0.1)
+    Gpt(
+        Stack(
+            @nntopo_str("x':x => $layer"),
+            [
+                Transformer(size, head, hs, ps; future=false, act=act, pdrop=pdrop)
+                for i = 1:layer
+            ]...
+        ),
+        Dropout(pdrop)
+    )
 end
 
-function (gpt::Gpt)(x::T, mask=nothing)::T where T
-    pe = gpt.pe(x)
-    e = x .+ pe
-    e = gpt.drop(e)::T
-    t = gpt.ts(e)::T
+function (gpt::Gpt)(x::T, mask=nothing; all::Bool=false)::T where T
+    e = gpt.drop(x)
+    t, ts = gpt.ts(e)
     t = mask === nothing ? t : t .* mask
-    t #size(t) == (size, seq_len, batch)
+    if all
+        t, ts
+    else
+        t #size(t) == (size, seq_len, batch)
+    end
 end
 
 
@@ -54,8 +61,8 @@ compute the language modeling loss for Gpt, onehot is the onehot array of the or
 input sentence. encoding the output of Gpt, mask is the mask between input sentences.
 
 """
-lmloss(embed::Embed, o::OneHotArray, t::AbstractArray{T}, mask) where T = lmloss(embed, tofloat(T, o), t, mask)
-function lmloss(embed::Embed, et, t::AbstractArray{T, N}, mask) where {T,N}
+lmloss(embed::Embed{T}, o::OneHotArray, t::AbstractArray{T}, mask) where T = lmloss(embed, tofloat(T, o), t, mask)
+function lmloss(embed::Embed{T}, et, t::AbstractArray{T, N}, mask) where {T,N}
     if N == 3
         t = t[:, 1:end-1, :]
         s = size(t)
@@ -69,18 +76,12 @@ function lmloss(embed::Embed, et, t::AbstractArray{T, N}, mask) where {T,N}
     end
 end
 
-function lmloss(gpt::Gpt, embed::Embed, vocab::Vocabulary, x, mask=nothing)
-    e = embed(x)
-    t = gpt(e, mask)
-    lmloss(embed, onehot(vocab, x), t, mask)
-end
-
 function Base.show(io::IO, gpt::Gpt)
     hs = div(size(gpt.ts[1].mh.iqproj.W)[1], gpt.ts[1].mh.head)
     h, ps = size(gpt.ts[1].pw.dout.W)
 
     print(io, "Gpt(")
-    print(io, "layers=$(length(gpt.ts.layers)), ")
+    print(io, "layers=$(length(gpt.ts)), ")
     print(io, "head=$(gpt.ts[1].mh.head), ")
     print(io, "head_size=$(hs), ")
     print(io, "pwffn_size=$(ps), ")
