@@ -3,7 +3,9 @@ using Flux: @treelike
 using Flux.Tracker: data
 using LinearAlgebra: tril!
 
-struct MultiheadAttention
+abstract type AbstractAttention end
+
+struct MultiheadAttention <: AbstractAttention
     head::Int
     future::Bool
     iqproj::Dense

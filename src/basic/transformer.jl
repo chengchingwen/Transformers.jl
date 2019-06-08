@@ -1,6 +1,8 @@
 using Flux
 using Flux: @treelike
 
+abstract type AbstractTransformer end
+
 struct PwFFN
     din::Dense
     dout::Dense
@@ -20,7 +22,7 @@ function (pw::PwFFN)(x)::AbstractMatrix
     pw.dout(pw.din(x))
 end
 
-struct Transformer
+struct Transformer <: AbstractTransformer
     mh::MultiheadAttention
     mhn::LayerNorm
     pw::PwFFN
@@ -89,7 +91,7 @@ function Base.show(io::IO, t::Transformer)
     end
 end
 
-struct TransformerDecoder
+struct TransformerDecoder <: AbstractTransformer
     mh::MultiheadAttention
     mhn::LayerNorm
     imh::MultiheadAttention
