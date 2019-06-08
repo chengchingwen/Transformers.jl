@@ -1,0 +1,29 @@
+variables:
+  CI_IMAGE_TAG: 'cuda'
+
+include:
+  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v3/common.yml'
+  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v3/coverage_v1.1.yml'
+  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v3/coverage_v1.0.yml'
+
+.gpu:
+  extends: .test
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - mkdir $JULIA_DEPOT_PATH # Pkg3.jl#325
+    - julia --project -e 'using Pkg;
+                          Pkg.add("CuArrays");
+                          Pkg.instantiate();
+                          Pkg.build();
+                          Pkg.test(; coverage=true);'
+
+test:v1.0:
+  extends: .gpu
+  variables:
+    CI_VERSION_TAG: 'v1.0'
+
+test:v1.1:
+  extends: .gpu
+  variables:
+    CI_VERSION_TAG: 'v1.1'

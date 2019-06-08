@@ -142,9 +142,9 @@ version = "0.10.3"
 
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "MbedTLS", "Sockets"]
-git-tree-sha1 = "bf00993b8a4c1bc65b0d7ee7667b1837e501d892"
+git-tree-sha1 = "854fad2a2b9cc6678f70ed15a65fc7e572056d39"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "0.8.1"
+version = "0.8.2"
 
 [[IniFile]]
 deps = ["Test"]
@@ -231,10 +231,10 @@ uuid = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 version = "0.6.0"
 
 [[NPZ]]
-deps = ["Compat", "Test", "ZipFile"]
-git-tree-sha1 = "73aabbee4f023b53b669e747e7b1081a1884cccf"
+deps = ["Compat", "ZipFile"]
+git-tree-sha1 = "a9837d6dc62c8a159f8e788d51c81ccee248db0e"
 uuid = "15e1cf62-19b3-5cfa-8e77-841668bca605"
-version = "0.3.0"
+version = "0.4.0"
 
 [[NaNMath]]
 deps = ["Compat"]
@@ -310,10 +310,10 @@ uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
 version = "0.7.2"
 
 [[StaticArrays]]
-deps = ["InteractiveUtils", "LinearAlgebra", "Random", "Statistics", "Test"]
-git-tree-sha1 = "3841b39ed5f047db1162627bf5f80a9cd3e39ae2"
+deps = ["LinearAlgebra", "Random", "Statistics"]
+git-tree-sha1 = "db23bbf50064c582b6f2b9b043c8e7e98ea8c0c6"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "0.10.3"
+version = "0.11.0"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -379,7 +379,7 @@ uuid = "796a5d58-b03d-544a-977e-18100b691f6e"
 version = "0.4.0"
 
 [[ZipFile]]
-deps = ["BinaryProvider", "Libdl", "Printf", "Test"]
-git-tree-sha1 = "5f6f663890dfb9bad6af75a86a43f67904e5050e"
+deps = ["BinaryProvider", "Libdl", "Printf"]
+git-tree-sha1 = "580ce62b6c14244916cc28ad54f8a2e2886f843d"
 uuid = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
-version = "0.8.1"
+version = "0.8.3"
