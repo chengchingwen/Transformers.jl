@@ -76,12 +76,14 @@ function load_gpt_pretrain(n::Int=12;
 
     vocab = Vocabulary(vocab, unksym)
     embed = Embed(768, length(vocab))
-    gpt = Gpt(768, 12, 768*4, 12; max_len=512, trainable=true, act=gelu, pdrop=0.1)
+    pe = PositionEmbedding(768, 512; trainable=true)
+    ce = CompositeEmbedding(tok=embed, pe=pe)
+    gpt = Gpt(768, 12, 768*4, 12; act=gelu, pdrop=0.1)
 
     pms = load_gpt_pretrain_params()
     loadparams!(embed, [hcat(pms[2],
                              randn(768, 3) .* 0.02)])
-    loadparams!(gpt.pe, [pms[1]])
+    loadparams!(pe, [pms[1]])
     for i = 1:n
         mhW = pms[12(i-1) + 3]
         mhb = pms[12(i-1) + 4]
@@ -102,5 +104,7 @@ function load_gpt_pretrain(n::Int=12;
         loadparams!(gpt.ts[i].pwn,[pms[12(i-1) + 13],
                                    pms[12(i-1) + 14]])
     end
-    gpt, embed, bpe, vocab
+
+    #gpt, embed, bpe, vocab
+    TransformerModel(ce, gpt), bpe, vocab
 end
