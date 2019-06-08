@@ -1,5 +1,5 @@
 using Flux
-
+using MacroTools: @forward
 
 """
     Stack(topo::NNTopo, layers...)
@@ -16,6 +16,8 @@ Flux.children(s::Stack) = s.models
 Flux.mapchildren(f, s::Stack) = Stack(s.topo, f.(s.models)...)
 
 (s::Stack)(xs...) = s.topo(s.models, xs...)
+
+@forward Stack.models Base.getindex, Base.length
 
 "return a list of n model with give args"
 stack(n, modeltype::DataType, args...; kwargs...) = [modeltype(args...; kwargs...) for i = 1:n]
