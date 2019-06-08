@@ -22,5 +22,6 @@ include("./embeds/Embeds.jl")
 include("./mh_atten.jl")
 include("./transformer.jl")
 include("./loss.jl")
+include("./model.jl")
 
 end
