@@ -1,4 +1,4 @@
-module Berts
+module BidirectionalEncoder
 
 export Bert
 
