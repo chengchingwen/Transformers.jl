@@ -8,6 +8,8 @@ using TensorFlow
 using Flux
 using Flux: loadparams!
 
+using ..Basic
+
 iszip(s) = endswith(s, ".zip")
 
 function tfckpt2bson(path; saveto="./", confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
@@ -55,9 +57,70 @@ function ckptfolder(dir, saveto; confname = "bert_config.json", ckptname = "bert
   bsonname
 end
 
+
 bson2bert(path::AbstractString) = bson2bert(BSON.load(path))
 function bson2bert(bson::Dict{Symbol, Any})
-  
-
+    vocab = load_vocab(bson)
+    bert = load_model(bson)
+    bert, vocab
 end
 
+function load_vocab(bson) end
+
+function get_activation(act_string)
+    if act_string == "gelu"
+        gelu
+    elseif act_string == "relu"
+        relu
+    elseif act_string == "tanh"
+        tanh
+    elseif act_string == "linear"
+        identity
+    else
+        throw(DomainError(act_string, "activation support: linear, gelu, relu, tanh"))
+    end
+end
+
+function load_model(bson)
+    config = bson[:config]
+
+    bert = Bert(
+        config["hidden_size"],
+        config["num_attention_heads"],
+        config["intermediate_size"],
+        config["num_hidden_layers"];
+        act = get_activation(config["hidden_act"]),
+        pdrop = config["hidden_dropout_prob"],
+        att_pdrop = config["attention_probs_dropout_prob"]
+    )
+
+    tok_emb = Embed(
+        config["hidden_size"],
+        config["vocab_size"]
+    )
+
+    seg_emb = Embed(
+        config["hidden_size"],
+        config["type_vocab_size"]
+    )
+
+    posi_emb = PositionEmbedding(
+        config["hidden_size"],
+        config["max_position_embeddings"];
+        trainable = true
+    )
+
+    emb_post = Positionwise(LayerNorm(
+        config["hidden_size"]
+    ))
+
+    embed = CompositeEmbedding(
+        tok=tok_emb,
+        pe=posi_emb,
+        segment=seg_emb,
+        postprocessor=emb_post
+    )
+
+
+
+end
