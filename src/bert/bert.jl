@@ -50,3 +50,15 @@ function (bert::Bert)(x::T, mask=nothing; all::Bool=false) where T
         t
     end
 end
+
+function Base.show(io::IO, bert::Bert)
+    hs = div(size(bert.ts[1].mh.iqproj.W)[1], bert.ts[1].mh.head)
+    h, ps = size(bert.ts[1].pw.dout.W)
+
+    print(io, "Bert(")
+    print(io, "layers=$(length(bert.ts)), ")
+    print(io, "head=$(bert.ts[1].mh.head), ")
+    print(io, "head_size=$(hs), ")
+    print(io, "pwffn_size=$(ps), ")
+    print(io, "size=$(h))")
+end
