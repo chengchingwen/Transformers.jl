@@ -1,9 +1,7 @@
 # turn a tf bert format to bson
 
 using JSON
-using BSON
 # using ZipFile
-using TensorFlow
 
 using Flux
 using Flux: loadparams!
@@ -12,60 +10,64 @@ using ..Basic
 
 iszip(s) = endswith(s, ".zip")
 
-function tfckpt2bson(path; saveto="./", confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
+function tfckpt2bson(path; raw=false, saveto="./", confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
   if iszip(path)
-    error("not implement yet")
+    error("not implement yet. please unzip it and run this function again.")
   else
-    ckptfolder(path, saveto)
-  end
-end
-
-#should be changed to use c api once the patch is included
-function readckpt(path)
-  weights = Dict{String, Array}()
-  TensorFlow.init()
-  ckpt = TensorFlow.pywrap_tensorflow.x.NewCheckpointReader(path)
-  shapes = ckpt.get_variable_to_shape_map()
-  #dtype = ckpt.get_variable_to_dtype_map()
-
-  for (name, shape) ∈ shapes
-    weight = ckpt.get_tensor(name)
-    if length(shape) == 2 && name != "cls/seq_relationship/output_weights"
-      weight = collect(weight')
+    config, weights, vocab = readckptfolder(path;confname=confname, ckptname=ckptname, vocabname=vocabname)
+    if raw
+      #saveto tfbson (raw julia data)
+      bsonname = normpath(joinpath(saveto, config["filename"] * ".tfbson"))
+      BSON.@save bsonname config weights vocab
+    else
+      #turn raw julia data to transformer model type
+      bert_model = load_bert_from_tfbson(config, weights)
+      bsonname = normpath(joinpath(saveto, config["filename"] * ".bson"))
+      BSON.@save bsonname bert_model vocab
     end
-    weights[name] = weight
-  end
 
-  weights
+    bsonname
+  end
 end
 
-function ckptfolder(dir, saveto; confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
+"loading tensorflow checkpoint file into julia Dict"
+readckpt(path) = error("readckpt require TensorFlow.jl installed. run `Pkg.add(\"TensorFlow\")` to install")
+
+@init @require TensorFlow="1d978283-2c37-5f34-9a8e-e9c0ece82495" begin
+  import .TensorFlow
+  #should be changed to use c api once the patch is included
+  function readckpt(path)
+    weights = Dict{String, Array}()
+    TensorFlow.init()
+    ckpt = TensorFlow.pywrap_tensorflow.x.NewCheckpointReader(path)
+    shapes = ckpt.get_variable_to_shape_map()
+
+    for (name, shape) ∈ shapes
+      weight = ckpt.get_tensor(name)
+      if length(shape) == 2 && name != "cls/seq_relationship/output_weights"
+        weight = collect(weight')
+      end
+      weights[name] = weight
+    end
+
+    weights
+  end
+end
+
+function readckptfolder(dir; confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
   files = readdir(dir)
 
   confname ∉ files && error("config file $confname not found")
   ckptname*".meta" ∉ files && error("ckpt file $ckptname not found")
   vocabname ∉ files && error("vocab file $vocabname not found")
-
   filename = basename(isdirpath(dir) ? dir[1:end-1] : dir)
-  bsonname = normpath(joinpath(saveto, filename * ".bson"))
 
   config = JSON.parsefile(joinpath(dir, confname))
   config["filename"] = filename
   weights = readckpt(joinpath(dir, ckptname))
   vocab = readlines(open(joinpath(dir, vocabname)))
-  BSON.@save bsonname config weights vocab
-  bsonname
+  config, weights, vocab
 end
-
-
-bson2bert(path::AbstractString) = bson2bert(BSON.load(path))
-function bson2bert(bson::Dict{Symbol, Any})
-    vocab = load_vocab(bson)
-    bert = load_model(bson)
-    bert, vocab
-end
-
-function load_vocab(bson) end
 
 function get_activation(act_string)
     if act_string == "gelu"
@@ -81,12 +83,11 @@ function get_activation(act_string)
     end
 end
 
+_create_classifer(;args...) = args.data
 
-create_classifer(;args...) = args.data
-
-function load_bert_from_tfbson(bson)
-    config = bson[:config]
-
+load_bert_from_tfbson(path::AbstractString) = (@assert istfbson(path); load_bert_from_tfbson(BSON.load(path)))
+load_bert_from_tfbson(bson) = load_bert_from_tfbson(bson[:config], bson[:weights])
+function load_bert_from_tfbson(config, weights)
     #init bert model possible component
     bert = Bert(
         config["hidden_size"],
@@ -128,6 +129,8 @@ function load_bert_from_tfbson(bson)
         tanh
     )
 
+    #owing to not able pass transposed embedding to Dense with Tracker and params
+    #might be fix with Zygote
     masklm = (
         transform = Positionwise(
             Dense(
@@ -147,12 +150,12 @@ function load_bert_from_tfbson(bson)
 
     nextsentence = Dense(
         config["hidden_size"],
-        2
+        2,
+        logsoftmax
     )
 
     #tf namespace handling
-    vnames = keys(bson[:weights])
-    weights = bson[:weights]
+    vnames = keys(weights)
     bert_weights = filter(name->occursin("layer", name), vnames)
     embeddings_weights = filter(name->occursin("embeddings", name), vnames)
     pooler_weights = filter(name->occursin("pooler", name), vnames)
@@ -160,7 +163,7 @@ function load_bert_from_tfbson(bson)
     nextsent_weights = filter(name->occursin("cls/seq_relationship", name), vnames)
 
     for i = 1:config["num_hidden_layers"]
-        li_weights = filter(name->occursin("layer_$(i-1)", name), bert_weights)
+        li_weights = filter(name->occursin("layer_$(i-1)/", name), bert_weights)
         for k ∈ li_weights
             if occursin("layer_$(i-1)/attention", k)
                 if occursin("self/key/kernel", k)
@@ -176,7 +179,7 @@ function load_bert_from_tfbson(bson)
                 elseif occursin("self/value/bias", k)
                     loadparams!(bert[i].mh.ivproj.b, [weights[k]])
                 elseif occursin("output/LayerNorm/gamma", k)
-                    loadparams!(bert[i].mhn.diag.α., [weights[k]])
+                    loadparams!(bert[i].mhn.diag.α, [weights[k]])
                 elseif occursin("output/LayerNorm/beta", k)
                     loadparams!(bert[i].mhn.diag.β, [weights[k]])
                 elseif occursin("output/dense/kernel", k)
@@ -194,9 +197,9 @@ function load_bert_from_tfbson(bson)
                 else
                     @warn "unknown variable: $k"
                 end
-            elseif occursin("layer_$(i-1)/output")
+            elseif occursin("layer_$(i-1)/output", k)
                 if occursin("output/LayerNorm/gamma", k)
-                    loadparams!(bert[i].pwn.diag.α., [weights[k]])
+                    loadparams!(bert[i].pwn.diag.α, [weights[k]])
                 elseif occursin("output/LayerNorm/beta", k)
                     loadparams!(bert[i].pwn.diag.β, [weights[k]])
                 elseif occursin("output/dense/kernel", k)
@@ -214,18 +217,18 @@ function load_bert_from_tfbson(bson)
 
     for k ∈ embeddings_weights
         if occursin("LayerNorm/gamma", k)
-            loadparams!(emb_post[1].diag.α., [weights[k]])
+            loadparams!(emb_post[1].diag.α, [weights[k]])
             embedding[:postprocessor] = emb_post
         elseif occursin("LayerNorm/beta", k)
             loadparams!(emb_post[1].diag.β, [weights[k]])
         elseif occursin("word_embeddings", k)
-            loadparams!(tok_emb.embeddings, [weights[k]])
+            loadparams!(tok_emb.embedding, [weights[k]])
             embedding[:tok] = tok_emb
         elseif occursin("position_embeddings", k)
-            loadparams!(posi_emb.embeddings, [weights[k]])
+            loadparams!(posi_emb.embedding, [weights[k]])
             embedding[:pe] = posi_emb
         elseif occursin("token_type_embeddings", k)
-            loadparams!(seg_emb.embeddings, [weights[k]])
+            loadparams!(seg_emb.embedding, [weights[k]])
             embedding[:seqment] = seg_emb
         else
             @warn "unknown variable: $k"
@@ -255,9 +258,9 @@ function load_bert_from_tfbson(bson)
         elseif occursin("predictions/transform/dense/bias", k)
             loadparams!(masklm.transform[1].b, [weights[k]])
         elseif occursin("predictions/transform/LayerNorm/gamma", k)
-            loadparams!(masklm.transform[2].α, [weights[k]])
+            loadparams!(masklm.transform[2].diag.α, [weights[k]])
         elseif occursin("predictions/transform/LayerNorm/beta", k)
-            loadparams!(masklm.transform[2].β, [weights[k]])
+            loadparams!(masklm.transform[2].diag.β, [weights[k]])
         else
             @warn "unknown variable: $k"
         end
@@ -268,24 +271,26 @@ function load_bert_from_tfbson(bson)
     end
 
     for k ∈ nextsent_weights
-      if occursin("seq_relationship/output_weights", k)
-        loadparams!(nextsentence.W, [weights[k]])
-      elseif occursin("seq_relationship/output_bias", k)
-        loadparams!(nextsentence.b, [weights[k]])
-      else
-        @warn "unknown variable: $k"
-      end
+        if occursin("seq_relationship/output_weights", k)
+            loadparams!(nextsentence.W, [weights[k]])
+        elseif occursin("seq_relationship/output_bias", k)
+            loadparams!(nextsentence.b, [weights[k]])
+        else
+            @warn "unknown variable: $k"
+        end
     end
 
     if !isempty(nextsent_weights)
         classifer[:nextsentence] = nextsentence
     end
 
+    if Set(vnames) != union(bert_weights, embeddings_weights, pooler_weights, masklm_weights, nextsent_weights)
+        @warn "some unkown variable not load"
+    end
+
     embed = CompositeEmbedding(;embedding...)
-    cls = create_classifer(; classifer...)
+    cls = _create_classifer(; classifer...)
 
     TransformerModel(embed, bert, cls)
 end
-
-
 
