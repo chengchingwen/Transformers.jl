@@ -1,5 +1,5 @@
-using Flux
 using Flux: @treelike
+using MacroTools: @forward
 
 using ..Basic
 using ..Basic: AbstractTransformer
@@ -12,6 +12,16 @@ end
 
 @treelike Bert
 
+@forward Bert.ts Base.getindex, Base.length
+
+"""
+    Bert(size::Int, head::Int, ps::Int, layer::Int;
+        act = gelu, pdrop = 0.1, att_pdrop = 0.1)
+    Bert(size::Int, head::Int, hs::Int, ps::Int, layer::Int;
+        act = gelu, pdrop = 0.1, ayy_pdrop = 0.1)
+
+the Bidirectional Encoder Representations from Transformer(BERT) model.
+"""
 function Bert(size::Int, head::Int, ps::Int, layer::Int;
               act = gelu, pdrop = 0.1, att_pdrop = 0.1)
   rem(size,  head) != 0 && error("size not divisible by head")
