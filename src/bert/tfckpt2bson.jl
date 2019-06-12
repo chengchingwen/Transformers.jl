@@ -30,7 +30,7 @@ function readckpt(path)
 
   for (name, shape) ∈ shapes
     weight = ckpt.get_tensor(name)
-    if length(shape) == 2
+    if length(shape) == 2 && name != "cls/seq_relationship/output_weights"
       weight = collect(weight')
     end
     weights[name] = weight
@@ -81,9 +81,13 @@ function get_activation(act_string)
     end
 end
 
-function load_model(bson)
+
+create_classifer(;args...) = args.data
+
+function load_bert_from_tfbson(bson)
     config = bson[:config]
 
+    #init bert model possible component
     bert = Bert(
         config["hidden_size"],
         config["num_attention_heads"],
@@ -93,6 +97,8 @@ function load_model(bson)
         pdrop = config["hidden_dropout_prob"],
         att_pdrop = config["attention_probs_dropout_prob"]
     )
+
+    embedding = Dict{Symbol, Any}()
 
     tok_emb = Embed(
         config["hidden_size"],
@@ -114,13 +120,172 @@ function load_model(bson)
         config["hidden_size"]
     ))
 
-    embed = CompositeEmbedding(
-        tok=tok_emb,
-        pe=posi_emb,
-        segment=seg_emb,
-        postprocessor=emb_post
+    classifer = Dict{Symbol, Any}()
+
+    pooler = Dense(
+        config["hidden_size"],
+        config["hidden_size"],
+        tanh
     )
 
+    masklm = (
+        transform = Positionwise(
+            Dense(
+                config["hidden_size"],
+                config["hidden_size"],
+                get_activation(config["hidden_act"])
+            ),
+            LayerNorm(
+                config["hidden_size"]
+            )
+        ),
+        out_bias = param(randn(
+            Float32,
+            config["vocab_size"]
+        ))
+    )
+
+    nextsentence = Dense(
+        config["hidden_size"],
+        2
+    )
+
+    #tf namespace handling
+    vnames = keys(bson[:weights])
+    weights = bson[:weights]
+    bert_weights = filter(name->occursin("layer", name), vnames)
+    embeddings_weights = filter(name->occursin("embeddings", name), vnames)
+    pooler_weights = filter(name->occursin("pooler", name), vnames)
+    masklm_weights = filter(name->occursin("cls/predictions", name), vnames)
+    nextsent_weights = filter(name->occursin("cls/seq_relationship", name), vnames)
+
+    for i = 1:config["num_hidden_layers"]
+        li_weights = filter(name->occursin("layer_$(i-1)", name), bert_weights)
+        for k ∈ li_weights
+            if occursin("layer_$(i-1)/attention", k)
+                if occursin("self/key/kernel", k)
+                    loadparams!(bert[i].mh.ikproj.W, [weights[k]])
+                elseif occursin("self/key/bias", k)
+                    loadparams!(bert[i].mh.ikproj.b, [weights[k]])
+                elseif occursin("self/query/kernel", k)
+                    loadparams!(bert[i].mh.iqproj.W, [weights[k]])
+                elseif occursin("self/query/bias", k)
+                    loadparams!(bert[i].mh.iqproj.b, [weights[k]])
+                elseif occursin("self/value/kernel", k)
+                    loadparams!(bert[i].mh.ivproj.W, [weights[k]])
+                elseif occursin("self/value/bias", k)
+                    loadparams!(bert[i].mh.ivproj.b, [weights[k]])
+                elseif occursin("output/LayerNorm/gamma", k)
+                    loadparams!(bert[i].mhn.diag.α., [weights[k]])
+                elseif occursin("output/LayerNorm/beta", k)
+                    loadparams!(bert[i].mhn.diag.β, [weights[k]])
+                elseif occursin("output/dense/kernel", k)
+                    loadparams!(bert[i].mh.oproj.W, [weights[k]])
+                elseif occursin("output/dense/bias", k)
+                    loadparams!(bert[i].mh.oproj.b, [weights[k]])
+                else
+                    @warn "unknown variable: $k"
+                end
+            elseif occursin("layer_$(i-1)/intermediate", k)
+                if occursin("kernel", k)
+                    loadparams!(bert[i].pw.din.W, [weights[k]])
+                elseif occursin("bias", k)
+                    loadparams!(bert[i].pw.din.b, [weights[k]])
+                else
+                    @warn "unknown variable: $k"
+                end
+            elseif occursin("layer_$(i-1)/output")
+                if occursin("output/LayerNorm/gamma", k)
+                    loadparams!(bert[i].pwn.diag.α., [weights[k]])
+                elseif occursin("output/LayerNorm/beta", k)
+                    loadparams!(bert[i].pwn.diag.β, [weights[k]])
+                elseif occursin("output/dense/kernel", k)
+                    loadparams!(bert[i].pw.dout.W, [weights[k]])
+                elseif occursin("output/dense/bias", k)
+                    loadparams!(bert[i].pw.dout.b, [weights[k]])
+                else
+                    @warn "unknown variable: $k"
+                end
+            else
+                @warn "unknown variable: $k"
+            end
+        end
+    end
+
+    for k ∈ embeddings_weights
+        if occursin("LayerNorm/gamma", k)
+            loadparams!(emb_post[1].diag.α., [weights[k]])
+            embedding[:postprocessor] = emb_post
+        elseif occursin("LayerNorm/beta", k)
+            loadparams!(emb_post[1].diag.β, [weights[k]])
+        elseif occursin("word_embeddings", k)
+            loadparams!(tok_emb.embeddings, [weights[k]])
+            embedding[:tok] = tok_emb
+        elseif occursin("position_embeddings", k)
+            loadparams!(posi_emb.embeddings, [weights[k]])
+            embedding[:pe] = posi_emb
+        elseif occursin("token_type_embeddings", k)
+            loadparams!(seg_emb.embeddings, [weights[k]])
+            embedding[:seqment] = seg_emb
+        else
+            @warn "unknown variable: $k"
+        end
+    end
+
+    for k ∈ pooler_weights
+        if occursin("dense/kernel", k)
+            loadparams!(pooler.W, [weights[k]])
+        elseif occursin("dense/bias", k)
+            loadparams!(pooler.b, [weights[k]])
+        else
+            @warn "unknown variable: $k"
+        end
+    end
+
+    if !isempty(pooler_weights)
+        classifer[:pooler] = pooler
+    end
 
 
+    for k ∈ masklm_weights
+        if occursin("predictions/output_bias", k)
+            loadparams!(masklm.out_bias, [weights[k]])
+        elseif occursin("predictions/transform/dense/kernel", k)
+            loadparams!(masklm.transform[1].W, [weights[k]])
+        elseif occursin("predictions/transform/dense/bias", k)
+            loadparams!(masklm.transform[1].b, [weights[k]])
+        elseif occursin("predictions/transform/LayerNorm/gamma", k)
+            loadparams!(masklm.transform[2].α, [weights[k]])
+        elseif occursin("predictions/transform/LayerNorm/beta", k)
+            loadparams!(masklm.transform[2].β, [weights[k]])
+        else
+            @warn "unknown variable: $k"
+        end
+    end
+
+    if !isempty(masklm_weights)
+        classifer[:masklm] = masklm
+    end
+
+    for k ∈ nextsent_weights
+      if occursin("seq_relationship/output_weights", k)
+        loadparams!(nextsentence.W, [weights[k]])
+      elseif occursin("seq_relationship/output_bias", k)
+        loadparams!(nextsentence.b, [weights[k]])
+      else
+        @warn "unknown variable: $k"
+      end
+    end
+
+    if !isempty(nextsent_weights)
+        classifer[:nextsentence] = nextsentence
+    end
+
+    embed = CompositeEmbedding(;embedding...)
+    cls = create_classifer(; classifer...)
+
+    TransformerModel(embed, bert, cls)
 end
+
+
+
