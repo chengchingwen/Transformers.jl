@@ -1,5 +1,6 @@
 using Base: tail
 
+using MacroTools: @forward
 using Flux: applychain
 
 """
@@ -38,6 +39,9 @@ struct Positionwise{T<:Tuple}
     models::T
     Positionwise(xs...) = new{typeof(xs)}(xs)
 end
+
+@forward Positionwise.models Base.getindex, Base.length, Base.first, Base.last,
+  Base.iterate, Base.lastindex
 
 Flux.children(pw::Positionwise) = pw.models
 Flux.mapchildren(f, pw::Positionwise) = Positionwise(f.(pw.models)...)
