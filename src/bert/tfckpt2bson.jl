@@ -31,7 +31,7 @@ function tfckpt2bson(path; raw=false, saveto="./", confname = "bert_config.json"
 end
 
 "loading tensorflow checkpoint file into julia Dict"
-readckpt(path) = error("readckpt require TensorFlow.jl installed. run `Pkg.add(\"TensorFlow\")` to install")
+readckpt(path) = error("readckpt require TensorFlow.jl installed. run `Pkg.add(\"TensorFlow\"); using TensorFlow`")
 
 @init @require TensorFlow="1d978283-2c37-5f34-9a8e-e9c0ece82495" begin
   import .TensorFlow
