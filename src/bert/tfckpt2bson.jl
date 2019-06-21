@@ -3,10 +3,7 @@
 using JSON
 # using ZipFile
 
-using Flux
 using Flux: loadparams!
-
-using ..Basic
 
 iszip(s) = endswith(s, ".zip")
 
@@ -96,7 +93,7 @@ function load_bert_from_tfbson(config, weights)
         config["num_hidden_layers"];
         act = get_activation(config["hidden_act"]),
         pdrop = config["hidden_dropout_prob"],
-        att_pdrop = config["attention_probs_dropout_prob"]
+        attn_pdrop = config["attention_probs_dropout_prob"]
     )
 
     embedding = Dict{Symbol, Any}()
@@ -117,9 +114,14 @@ function load_bert_from_tfbson(config, weights)
         trainable = true
     )
 
-    emb_post = Positionwise(LayerNorm(
-        config["hidden_size"]
-    ))
+    emb_post = Positionwise(
+        LayerNorm(
+             config["hidden_size"]
+        ),
+        Dropout(
+            config["hidden_dropout_prob"]
+        )
+    )
 
     classifer = Dict{Symbol, Any}()
 

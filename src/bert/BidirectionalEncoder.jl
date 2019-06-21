@@ -5,6 +5,8 @@ using Requires
 using Requires: @init
 using BSON
 
+using ..Basic
+
 export Bert
 
 include("./bert.jl")
