@@ -80,7 +80,7 @@ function get_activation(act_string)
     end
 end
 
-_create_classifer(;args...) = args.data
+_create_classifier(;args...) = args.data
 
 load_bert_from_tfbson(path::AbstractString) = (@assert istfbson(path); load_bert_from_tfbson(BSON.load(path)))
 load_bert_from_tfbson(bson) = load_bert_from_tfbson(bson[:config], bson[:weights])
@@ -123,7 +123,7 @@ function load_bert_from_tfbson(config, weights)
         )
     )
 
-    classifer = Dict{Symbol, Any}()
+    classifier = Dict{Symbol, Any}()
 
     pooler = Dense(
         config["hidden_size"],
@@ -248,7 +248,7 @@ function load_bert_from_tfbson(config, weights)
     end
 
     if !isempty(pooler_weights)
-        classifer[:pooler] = pooler
+        classifier[:pooler] = pooler
     end
 
 
@@ -269,7 +269,7 @@ function load_bert_from_tfbson(config, weights)
     end
 
     if !isempty(masklm_weights)
-        classifer[:masklm] = masklm
+        classifier[:masklm] = masklm
     end
 
     for k ∈ nextsent_weights
@@ -283,7 +283,7 @@ function load_bert_from_tfbson(config, weights)
     end
 
     if !isempty(nextsent_weights)
-        classifer[:nextsentence] = nextsentence
+        classifier[:nextsentence] = nextsentence
     end
 
     if Set(vnames) != union(bert_weights, embeddings_weights, pooler_weights, masklm_weights, nextsent_weights)
@@ -291,7 +291,7 @@ function load_bert_from_tfbson(config, weights)
     end
 
     embed = CompositeEmbedding(;embedding...)
-    cls = _create_classifer(; classifer...)
+    cls = _create_classifier(; classifier...)
 
     TransformerModel(embed, bert, cls)
 end
