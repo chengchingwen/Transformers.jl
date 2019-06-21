@@ -236,12 +236,6 @@ git-tree-sha1 = "0c667371391fc6bb31f7f12f96a56a17098b3de8"
 uuid = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 version = "0.6.0"
 
-[[NPZ]]
-deps = ["Compat", "ZipFile"]
-git-tree-sha1 = "a9837d6dc62c8a159f8e788d51c81ccee248db0e"
-uuid = "15e1cf62-19b3-5cfa-8e77-841668bca605"
-version = "0.4.0"
-
 [[NaNMath]]
 deps = ["Compat"]
 git-tree-sha1 = "ce3b85e484a5d4c71dd5316215069311135fa9f2"

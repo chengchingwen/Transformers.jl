@@ -19,25 +19,25 @@ end
 
 """
     Gpt(size::Int, head::Int, ps::Int, layer::Int;
-        act = gelu, pdrop = 0.1)
+        act = gelu, pdrop = 0.1, attn_pdrop = 0.1)
     Gpt(size::Int, head::Int, hs::Int, ps::Int, layer::Int;
-        act = gelu, pdrop = 0.1)
+        act = gelu, pdrop = 0.1, attn_pdrop = 0.1)
 
 the Generative Pretrained Transformer(GPT) model.
 """
 function Gpt(size::Int, head::Int, ps::Int, layer::Int;
-             act = gelu, pdrop = 0.1, att_pdrop = 0.1)
+             act = gelu, pdrop = 0.1, attn_pdrop = 0.1)
     rem(size, head) != 0 && error("size not divisible by head")
-    Gpt(size, head, div(size, head), ps, layer; act=act, pdrop=pdrop, att_pdrop=att_pdrop)
+    Gpt(size, head, div(size, head), ps, layer; act=act, pdrop=pdrop, attn_pdrop=attn_pdrop)
 end
 
 function Gpt(size::Int, head::Int, hs::Int, ps::Int, layer::Int;
-             act = gelu, pdrop = 0.1, att_pdrop = 0.1)
+             act = gelu, pdrop = 0.1, attn_pdrop = 0.1)
     Gpt(
         Stack(
             @nntopo_str("x':x => $layer"),
             [
-                Transformer(size, head, hs, ps; future=false, act=act, pdrop=att_pdrop)
+                Transformer(size, head, hs, ps; future=false, act=act, pdrop=attn_pdrop)
                 for i = 1:layer
             ]...
         ),
