@@ -1,7 +1,7 @@
 # turn a tf bert format to bson
 
 using JSON
-# using ZipFile
+using ZipFile
 
 using Flux: loadparams!
 
@@ -9,22 +9,27 @@ iszip(s) = endswith(s, ".zip")
 
 function tfckpt2bson(path; raw=false, saveto="./", confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
   if iszip(path)
-    error("not implement yet. please unzip it and run this function again.")
+    data = ZipFile.Reader(path)
   else
-    config, weights, vocab = readckptfolder(path;confname=confname, ckptname=ckptname, vocabname=vocabname)
-    if raw
-      #saveto tfbson (raw julia data)
-      bsonname = normpath(joinpath(saveto, config["filename"] * ".tfbson"))
-      BSON.@save bsonname config weights vocab
-    else
-      #turn raw julia data to transformer model type
-      bert_model = load_bert_from_tfbson(config, weights)
-      bsonname = normpath(joinpath(saveto, config["filename"] * ".bson"))
-      BSON.@save bsonname bert_model vocab
-    end
-
-    bsonname
+    data = path
   end
+
+  config, weights, vocab = readckptfolder(data; confname=confname, ckptname=ckptname, vocabname=vocabname)
+
+  iszip(path) && close(data)
+
+  if raw
+    #saveto tfbson (raw julia data)
+    bsonname = normpath(joinpath(saveto, config["filename"] * ".tfbson"))
+    BSON.@save bsonname config weights vocab
+  else
+    #turn raw julia data to transformer model type
+    bert_model = load_bert_from_tfbson(config, weights)
+    bsonname = normpath(joinpath(saveto, config["filename"] * ".bson"))
+    BSON.@save bsonname bert_model vocab
+  end
+
+  bsonname
 end
 
 "loading tensorflow checkpoint file into julia Dict"
@@ -51,6 +56,41 @@ readckpt(path) = error("readckpt require TensorFlow.jl installed. run `Pkg.add(\
   end
 end
 
+zipname(z::ZipFile.Reader) = z.files[1].name
+zipfile(z::ZipFile.Reader, name) = (idx = findfirst(zf->isequal(name)(zf.name), z.files)) !== nothing ? z.files[idx] : nothing
+findfile(z::ZipFile.Reader, name) = zipfile(z, joinpath(zipname(z), name))
+
+function readckptfolder(z::ZipFile.Reader; confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
+  (confile = findfile(z, confname)) === nothing && error("config file $confname not found")
+  findfile(z, ckptname*".meta") === nothing && error("ckpt file $ckptname not found")
+  (vocabfile = findfile(z, vocabname)) === nothing && error("vocab file $vocabname not found")
+
+  dir = zipname(z)
+  filename = basename(isdirpath(dir) ? dir[1:end-1] : dir)
+
+  config = JSON.parse(confile)
+  config["filename"] = filename
+  vocab = readlines(vocabfile)
+
+  weights = mktempdir(
+    dir -> begin
+      #dump ckpt to tmp
+      for fidx ∈ findall(zf->startswith(zf.name, joinpath(zipname(z), ckptname)), z.files)
+        zf = z.files[fidx]
+        zfn = basename(zf.name)
+        f = open(joinpath(dir, zfn), "w+")
+        buffer = Vector{UInt8}(undef, zf.uncompressedsize)
+        write(f, read!(zf, buffer))
+        close(f)
+      end
+
+      readckpt(joinpath(dir, ckptname))
+    end
+  )
+
+  config, weights, vocab
+end
+
 function readckptfolder(dir; confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
   files = readdir(dir)
 
@@ -61,8 +101,8 @@ function readckptfolder(dir; confname = "bert_config.json", ckptname = "bert_mod
 
   config = JSON.parsefile(joinpath(dir, confname))
   config["filename"] = filename
-  weights = readckpt(joinpath(dir, ckptname))
   vocab = readlines(open(joinpath(dir, vocabname)))
+  weights = readckpt(joinpath(dir, ckptname))
   config, weights, vocab
 end
 

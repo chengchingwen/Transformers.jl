@@ -28,6 +28,8 @@ function openAInpy2bson(path;
   tokenizer = x -> nltk_word_tokenize(text_standardize(x))
   weights, bpe, raw_vocab = readnpzfolder(data)
 
+  iszip(path) && close(data)
+
   if raw
     bsonname = normpath(joinpath(saveto, filename * ".npbson"))
     BSON.@save bsonname weights bpe raw_vocab tokenizer
@@ -87,7 +89,9 @@ function readnpzfolder(z::ZipFile.Reader)
   vocab = map(first, sort!(collect(emp), by=(x)->x.second))
   bpe = mktemp(
     (fn, f)-> begin
-      write(f, read(zipfile(z, joinpath(zipname(z), "vocab_40000.bpe"))))
+      zf = zipfile(z, joinpath(zipname(z), "vocab_40000.bpe"))
+      buffer = Vector{UInt8}(undef, zf.uncompressedsize)
+      write(f, read!(zf, buffer))
       close(f)
       Bpe(fn)
     end
