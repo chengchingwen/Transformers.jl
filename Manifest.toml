@@ -46,10 +46,10 @@ uuid = "a4280ba5-8788-555a-8ca8-4a8c3d966a71"
 version = "0.1.1"
 
 [[CSTParser]]
-deps = ["LibGit2", "Test", "Tokenize"]
-git-tree-sha1 = "437c93bc191cd55957b3f8dee7794b6131997c56"
+deps = ["Tokenize"]
+git-tree-sha1 = "376a39f1862000442011390f1edf5e7f4dcc7142"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "0.5.2"
+version = "0.6.0"
 
 [[CodecZlib]]
 deps = ["BinaryProvider", "Libdl", "Test", "TranscodingStreams"]
@@ -139,6 +139,12 @@ deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "InteractiveUtils", 
 git-tree-sha1 = "4c4d727f1b7e0092134fabfab6396b8945c1ea5b"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
 version = "0.10.3"
+
+[[HTML_Entities]]
+deps = ["StrTables"]
+git-tree-sha1 = "aa19515d6ebe7f91a39cfc1dc6341f38fcac1282"
+uuid = "7693890a-d069-55fe-a829-b4a6d304f0ee"
+version = "1.0.0"
 
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "MbedTLS", "Sockets"]
@@ -325,6 +331,12 @@ git-tree-sha1 = "8a0f4b09c7426478ab677245ab2b0b68552143c7"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.30.0"
 
+[[StrTables]]
+deps = ["Dates"]
+git-tree-sha1 = "5998faae8c6308acc25c25896562a1e66a3bb038"
+uuid = "9700d1a9-a7c8-5760-9816-a99fda30bb8f"
+version = "1.0.1"
+
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
@@ -342,10 +354,9 @@ uuid = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 version = "0.5.0"
 
 [[Tokenize]]
-deps = ["Printf", "Test"]
-git-tree-sha1 = "3e83f60b74911d3042d3550884ca2776386a02b8"
+git-tree-sha1 = "0de343efc07da00cd449d5b04e959ebaeeb3305d"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.3"
+version = "0.5.4"
 
 [[Tracker]]
 deps = ["Adapt", "DiffRules", "ForwardDiff", "LinearAlgebra", "MacroTools", "NNlib", "NaNMath", "Printf", "Random", "Requires", "SpecialFunctions", "Statistics", "Test"]
@@ -373,10 +384,10 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [[WordTokenizers]]
-deps = ["Test"]
-git-tree-sha1 = "38d923138dad462f068560af6a12c209912bf7b4"
+deps = ["HTML_Entities", "StrTables", "Unicode"]
+git-tree-sha1 = "b4d92ea3c1093d96b2463f5572ef7f32026cf7ed"
 uuid = "796a5d58-b03d-544a-977e-18100b691f6e"
-version = "0.4.0"
+version = "0.5.1"
 
 [[ZipFile]]
 deps = ["BinaryProvider", "Libdl", "Printf"]
