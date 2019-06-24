@@ -7,6 +7,14 @@ using Flux: loadparams!
 
 iszip(s) = endswith(s, ".zip")
 
+function named2tokenizer(name)
+  if startswith(name, "cased") || startswith(name, "multi_cased")
+    return bert_cased_tokenizer
+  else
+    return bert_uncased_tokenizer
+  end
+end
+
 function tfckpt2bson(path; raw=false, saveto="./", confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
   if iszip(path)
     data = ZipFile.Reader(path)
@@ -25,8 +33,10 @@ function tfckpt2bson(path; raw=false, saveto="./", confname = "bert_config.json"
   else
     #turn raw julia data to transformer model type
     bert_model = load_bert_from_tfbson(config, weights)
+    wp = WordPiece(vocab)
+    tokenizer = named2tokenizer(config["filename"])
     bsonname = normpath(joinpath(saveto, config["filename"] * ".bson"))
-    BSON.@save bsonname bert_model vocab
+    BSON.@save bsonname bert_model wp tokenizer
   end
 
   bsonname
