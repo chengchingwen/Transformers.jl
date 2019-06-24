@@ -5,7 +5,7 @@ struct WordPiece
   WordPiece(vocab::Vector{String}, unk_idx::Int , max_char::Int) = new(vocab, unk_idx, max_char)
 end
 
-WordPiece(vocab::Vector{String}, unk::String = "[UNK]", max_char::Int=200) = WordPiece(vocab, findfirst(isequal(unk), vocab), max_char)
+WordPiece(vocab::Vector{String}, unk::String = "[UNK]"; max_char::Int=200) = WordPiece(vocab, findfirst(isequal(unk), vocab), max_char)
 
 struct _wp_equal{first} <: Function
   ss::String
@@ -55,38 +55,35 @@ end
 
 function (wp::WordPiece)(tks::Vector{T}, token) where T
   s = 1
+  tok_len = length(token)
   subtok = Vector{Int}()
 
-  failed = false
-  while s <= length(token)
-    e = length(token)
+  if tok_len <= wp.max_char
+    failed = false
+    while s <= tok_len
+      e = tok_len
+      failed = true
+      while s < e
+        if s != 1
+          ss = findfirst(_wp_equal{false}(token, s, e), wp.vocab)
+        else
+          ss = findfirst(_wp_equal{true}(token, s, e), wp.vocab)
+        end
+
+        if ss === nothing
+          e -= 1
+        else
+          push!(subtok, ss)
+          failed = false
+          s = e + 1
+          break
+        end
+      end
+
+      failed && break
+    end
+  else
     failed = true
-    while s < e
-      if s != 1
-        ss = findfirst(_wp_equal{false}(token, s, e), wp.vocab)
-      else
-        ss = findfirst(_wp_equal{true}(token, s, e), wp.vocab)
-      end
-
-      if ss === nothing
-        e -= 1
-      else
-        push!(subtok, ss)
-        failed = false
-        s = e + 1
-        break
-      end
-    end
-
-    if failed
-      if T === Int
-        push!(tks, wp.unk_idx)
-      else
-        @inbounds push!(tks, wp.vocab[wp.unk_idx])
-      end
-
-      break
-    end
   end
 
   if !failed
@@ -98,6 +95,12 @@ function (wp::WordPiece)(tks::Vector{T}, token) where T
       else
         @inbounds tks[len + i] = wp.vocab[tokid]
       end
+    end
+  else
+    if T === Int
+      push!(tks, wp.unk_idx)
+    else
+      @inbounds push!(tks, wp.vocab[wp.unk_idx])
     end
   end
 
