@@ -7,7 +7,7 @@ using BSON
 
 using ..Basic
 
-export Bert
+export Bert, load_bert_pretrain
 
 include("./bert.jl")
 include("./tfckpt2bson.jl")
