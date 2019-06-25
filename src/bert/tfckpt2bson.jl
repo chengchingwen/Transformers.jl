@@ -33,10 +33,10 @@ function tfckpt2bson(path; raw=false, saveto="./", confname = "bert_config.json"
   else
     #turn raw julia data to transformer model type
     bert_model = load_bert_from_tfbson(config, weights)
-    wp = WordPiece(vocab)
+    wordpiece = WordPiece(vocab)
     tokenizer = named2tokenizer(config["filename"])
     bsonname = normpath(joinpath(saveto, config["filename"] * ".bson"))
-    BSON.@save bsonname bert_model wp tokenizer
+    BSON.@save bsonname bert_model wordpiece tokenizer
   end
 
   bsonname
