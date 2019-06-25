@@ -9,7 +9,7 @@ function load_bert_pretrain(path::AbstractString)
   elseif isbson(path)
     @info "loading bert model"
     bson = BSON.load(path)
-    bson[:bert_model], bson[:vocab]
+    bson[:bert_model], bson[:wordpiece], bson[:tokenizer]
   else
     error("""
           Unknown data type: Is it a bert model?
