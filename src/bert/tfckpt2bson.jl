@@ -281,7 +281,7 @@ function load_bert_from_tfbson(config, weights)
             embedding[:pe] = posi_emb
         elseif occursin("token_type_embeddings", k)
             loadparams!(seg_emb.embedding, [weights[k]])
-            embedding[:seqment] = seg_emb
+            embedding[:segment] = seg_emb
         else
             @warn "unknown variable: $k"
         end
