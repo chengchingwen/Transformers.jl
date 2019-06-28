@@ -14,7 +14,7 @@ function gather(w::AbstractMatrix{T}, xs::AbstractArray{Int}) where T
     ys = similar(w, size(w, 1), size(xs)...)
 
     Threads.@threads for i = 1:length(xs)
-        ind = Tuple(CartesianIndices(xs)[i])
+        @inbounds ind = Tuple(CartesianIndices(xs)[i])
         @inbounds ys[:, ind...] .= w[:, xs[i]]
     end
     return ys
@@ -29,7 +29,7 @@ function gather(w::AbstractArray{T}, xs::AbstractArray{<:Tuple}) where T
     ys = similar(w, size(w, 1), size(xs)...)
 
     Threads.@threads for i = 1:length(xs)
-        ind = Tuple(CartesianIndices(xs)[i])
+        @inbounds ind = Tuple(CartesianIndices(xs)[i])
         @inbounds ys[:, ind...] .= w[:, xs[i]...]
     end
     return ys
@@ -38,30 +38,15 @@ end
 # cpu gather back
 function ∇gather(Δ::AbstractArray{T}, w::AbstractMatrix{T}, xs::AbstractArray{Int}) where T
     ys = fill!(similar(w), zero(T))
-
-    Threads.@threads for xi = 1:size(ys, 1)
-        for i = 1:length(xs)
-            ind = Tuple(CartesianIndices(xs)[i])
-            ys[xi, xs[i]] += Δ[xi, ind...]
-        end
-    end
+    scatter_add!(ys, Δ, xs)
     return ys
 end
 
 function ∇gather(Δ::AbstractArray{T}, w::AbstractArray{T}, xs::AbstractArray{<:Tuple}) where T
     ys = fill!(similar(w), zero(T))
-
-    Threads.@threads for xi = 1:size(ys, 1)
-        for i = 1:length(xs)
-            ind = Tuple(CartesianIndices(xs)[i])
-            ys[xi, xs[i]...] += Δ[xi, ind...]
-        end
-    end
-
+    scatter_add!(ys, Δ, xs)
     return ys
 end
-
-
 
 @init @require CuArrays="3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin
     using .CuArrays
@@ -76,7 +61,7 @@ end
             li = threadIdx().y + (blockIdx().y - 1) * blockDim().y
             i = threadIdx().x + (blockIdx().x - 1) * blockDim().x
 
-            if li <= length(xs)
+            @inbounds if li <= length(xs)
                 ind = Tuple(CartesianIndices(xs)[li])
                 ys[i, ind...] = w[i, xs[li]]
             end
@@ -94,49 +79,6 @@ end
         return ys
     end
 
-    #gpu gather back
-    function ∇gather(Δ::CuArray{T}, w::CuMatrix{T}, xs::CuArray{Int}) where T
-        ys = fill!(similar(w), zero(T))
-
-        function kernel!(ys::CuDeviceArray{T}, Δ::CuDeviceArray{T}, xs)
-            xi = threadIdx().x + (blockIdx().x - 1) * blockDim().x
-
-            if xi <= size(ys, 1)
-                for i = 1:length(xs)
-                    ind = Tuple(CartesianIndices(xs)[i])
-                    ys[xi, xs[i]] += Δ[xi, ind...]
-                end
-            end
-
-            return
-        end
-
-        max_threads = 256
-        threads = max_threads
-        blocks = ceil(Int, size(ys, 1) / threads)
-
-        CuArrays.@cuda blocks=blocks threads=threads kernel!(ys, Δ, xs)
-        return ys
-    end
-
-    # Not atomic to do this
-    # function kernel!(ys::CuDeviceArray{T}, Δ::CuDeviceArray{T}, xs)
-    #     li = threadIdx().y + (blockIdx().y - 1) * blockDim().y
-    #     i = threadIdx().x + (blockIdx().x - 1) * blockDim().x
-    #     if li <= length(xs)
-    #         ind = Tuple(CartesianIndices(xs)[li])
-    #         ys[i, xs[li]] += Δ[i, ind...]
-    #     end
-
-    #     return
-    # end
-    # max_threads = 256
-    # threads_x = min(max_threads, size(ys,1))
-    # threads_y = min(max_threads ÷ threads_x, length(xs))
-    # threads = (threads_x, threads_y)
-    # blocks = ceil.(Int, (size(ys,1), length(xs)) ./ threads)
-    # @cuda blocks=blocks threads=threads kernel!(ys, Δ, xs)
-
     function gather(W::CuArray{T}, xs::CuArray{<:Tuple}) where T
         ys = CuArray{T}(undef, size(W, 1), size(xs)...)
 
@@ -144,7 +86,7 @@ end
             li = threadIdx().y + (blockIdx().y - 1) * blockDim().y
             i = threadIdx().x + (blockIdx().x - 1) * blockDim().x
 
-            if li <= length(xs)
+            @inbounds if li <= length(xs)
                 ind = Tuple(CartesianIndices(xs)[li])
                 ys[i, ind...] = w[i, xs[li]...]
             end
@@ -159,30 +101,6 @@ end
         blocks = ceil.(Int, (size(ys,1), length(xs)) ./ threads)
 
         CuArrays.@cuda blocks=blocks threads=threads kernel!(ys, W, xs)
-        return ys
-    end
-
-    function ∇gather(Δ::CuArray{T}, W::CuArray{T}, xs::CuArray{<:Tuple}) where T
-        ys = fill!(similar(W), zero(T))
-
-        function kernel!(ys::CuDeviceArray{T}, Δ::CuDeviceArray{T}, xs)
-            xi = threadIdx().x + (blockIdx().x - 1) * blockDim().x
-
-            if xi <= size(ys, 1)
-                for i = 1:length(xs)
-                    ind = Tuple(CartesianIndices(xs)[i])
-                    ys[xi, xs[i]...] += Δ[xi, ind...]
-                end
-            end
-
-            return
-        end
-
-        max_threads = 256
-        threads = max_threads
-        blocks = ceil(Int, size(ys, 1) / threads)
-
-        CuArrays.@cuda blocks=blocks threads=threads kernel!(ys, Δ, xs)
         return ys
     end
 end
