@@ -34,6 +34,10 @@ include("./fix/batchedmul.jl")
 #dropout noise shape impl
 include("./fix/dropout.jl")
 
+#scatter/gather with atomic ops
+include("./fix/atomic.jl")
+include("./fix/scatter.jl")
+
 include("./basic/Basic.jl")
 include("./stacks/Stacks.jl")
 include("./datasets/Datasets.jl")

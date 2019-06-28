@@ -18,6 +18,7 @@ LightXML = "9c8b4983-aa76-5018-a973-4c85ecc9e179"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 NPZ = "15e1cf62-19b3-5cfa-8e77-841668bca605"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
 
