@@ -63,7 +63,7 @@ function (wp::WordPiece)(tks::Vector{T}, token) where T
     while s <= tok_len
       e = tok_len
       failed = true
-      while s < e
+      while s <= e
         if s != 1
           ss = findfirst(_wp_equal{false}(token, s, e), wp.vocab)
         else
