@@ -23,10 +23,10 @@ todevice(x, xs...) = (x, xs...)
 @init @require CuArrays="3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin
     import .CuArrays
 
-    "move data to device, basically = `CuArrays.cu` except `AbstractArray{Int}` become `CuArray{Int}`"
-    todevice(x, xs...) = (todevice(x), todevice.(xs)...)
-    todevice(x::AbstractArray{Int}) = CuArrays.CuArray(x)
     todevice(x) = CuArrays.cu(x)
+    todevice(x, xs...) = (todevice(x), todevice.(xs)...)
+    todevice(x::Union{Tuple, NamedTuple}) = map(todevice, x)
+    todevice(x::AbstractArray{Int}) = CuArrays.CuArray(x)
 end
 
 #implement batchmul for flux
