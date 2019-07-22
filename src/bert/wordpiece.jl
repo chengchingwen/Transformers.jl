@@ -7,56 +7,62 @@ end
 
 WordPiece(vocab::Vector{String}, unk::String = "[UNK]"; max_char::Int=200) = WordPiece(vocab, findfirst(isequal(unk), vocab), max_char)
 
+Basic.Vocabulary(wp::WordPiece) = Vocabulary(wp.vocab, wp.vocab[wp.unk_idx])
+
 struct _wp_equal{first} <: Function
   ss::String
   base::Int
   bound::Int
-  _wp_equal{T}(ss, base, bound) where T = new{T}(ss, base - 1, bound)
+  ncode::Int
+  _wp_equal{T}(ss, base, bound) where T = new{T}(ss, base, bound, getstrind(ss, bound+1)-getstrind(ss, base))
 end
+
+function getstrind(s, n)
+  i = 1
+  @inbounds while n > 1
+    i = nextind(s, i)
+    n-=1
+  end
+  i
+end
+
+_cmp(x, y, xbase, ybase, len) = ccall(:memcmp, Int32, (Ptr{UInt8}, Ptr{UInt8}, UInt),
+                                      pointer(x, xbase),
+                                      pointer(y, ybase),
+                                      len)
 
 function (wq::_wp_equal{first})(s) where first
   if first
     start = 1
   else
     start = 3
+    iszero(_cmp(s, "##", 1, 1, 2)) || return false
   end
 
-  fin = wq.bound - wq.base #length(wq.ss)
-  len = length(s)
-
-  if first
-    fin != len && return false
-  else
-    @inbounds if !(s[1] == '#' == s[2])
-      return false
-    end
-    fin != len - 2 && return false
-  end
-
-  @inbounds for i = start:len
-    if first
-      wq.ss[wq.base + i] != s[i] && return false
-    else
-      wq.ss[wq.base + i - 2] != s[i] && return false
-    end
-  end
-  return true
+  return iszero(_cmp(wq.ss, s,
+                   getstrind(wq.ss, wq.base),
+                   start,
+                   wq.ncode
+                   ))
 end
 
 (wp::WordPiece)(token) = wp(Vector{String}(), token)
-
-function (wp::WordPiece)(tokens::Vector{T}) where T
+(wp::WordPiece)(tokens::Vector{String}) = wp(String, tokens)
+function (wp::WordPiece)(type::Type{T}, tokens::Vector{String}) where T
   tks = Vector{T}()
+  sizehint!(tks, length(tokens))
   for tk ∈ tokens
     wp(tks, tk)
   end
   tks
 end
 
-function (wp::WordPiece)(tks::Vector{T}, token) where T
+function (wp::WordPiece)(tks::Vector{T}, token::String) where T
   s = 1
   tok_len = length(token)
   subtok = Vector{Int}()
+
+  sizehint!(subtok, 1)
 
   if tok_len <= wp.max_char
     failed = false
