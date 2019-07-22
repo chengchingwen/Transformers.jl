@@ -181,10 +181,8 @@ function load_bert_from_tfbson(config, weights)
         tanh
     )
 
-    #owing to not able pass transposed embedding to Dense with Tracker and params
-    #might be fix with Zygote
     masklm = (
-        transform = Positionwise(
+        transform = Chain(
             Dense(
                 config["hidden_size"],
                 config["hidden_size"],
@@ -194,15 +192,17 @@ function load_bert_from_tfbson(config, weights)
                 config["hidden_size"]
             )
         ),
-        out_bias = param(randn(
+        output_bias = param(randn(
             Float32,
             config["vocab_size"]
         ))
     )
 
-    nextsentence = Dense(
-        config["hidden_size"],
-        2,
+    nextsentence = Chain(
+        Dense(
+            config["hidden_size"],
+            2
+        ),
         logsoftmax
     )
 
@@ -304,7 +304,7 @@ function load_bert_from_tfbson(config, weights)
 
     for k ∈ masklm_weights
         if occursin("predictions/output_bias", k)
-            loadparams!(masklm.out_bias, [weights[k]])
+            loadparams!(masklm.output_bias, [weights[k]])
         elseif occursin("predictions/transform/dense/kernel", k)
             loadparams!(masklm.transform[1].W, [weights[k]])
         elseif occursin("predictions/transform/dense/bias", k)
@@ -324,9 +324,9 @@ function load_bert_from_tfbson(config, weights)
 
     for k ∈ nextsent_weights
         if occursin("seq_relationship/output_weights", k)
-            loadparams!(nextsentence.W, [weights[k]])
+            loadparams!(nextsentence[1].W, [weights[k]])
         elseif occursin("seq_relationship/output_bias", k)
-            loadparams!(nextsentence.b, [weights[k]])
+            loadparams!(nextsentence[1].b, [weights[k]])
         else
             @warn "unknown variable: $k"
         end
