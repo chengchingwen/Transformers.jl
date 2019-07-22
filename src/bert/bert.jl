@@ -51,15 +51,17 @@ function (bert::Bert)(x::T, mask=nothing; all::Bool=false) where T
   end
 end
 
-# function masklmloss(embed::Embed{T}, transform, output_bias, et, t::AbstractArray{T, N}, posis::AbstractArray{Int, 2}, mask) where {T,N}
-#   masktok = gather(t, posis)
-#   s = size(masktok)
-#   sim = logsoftmax(transpose(embed.embedding) * reshape(transform(masktok), s[1], :) .+ output_bias)
+function masklmloss(embed::Embed{T}, transform, t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}
+  masktok = gather(t, posis)
+  sim = logsoftmax(transpose(embed.embedding) * transform(masktok))
+  return logcrossentropy(labels, sim)
+end
 
-
-
-
-# end
+function masklmloss(embed::Embed{T}, transform, output_bias, t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}
+  masktok = gather(t, posis)
+  sim = logsoftmax(transpose(embed.embedding) * transform(masktok) .+ output_bias)
+  return logcrossentropy(labels, sim)
+end
 
 
 function Base.show(io::IO, bert::Bert)
