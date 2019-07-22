@@ -21,7 +21,11 @@ testfile(d, args...; kwargs...) = (println("Testset not found"); nothing)
 
 function reader(file::AbstractString)
     ch = Channel{String}(0)
-    task = @async foreach(x->put!(ch, x), eachline(open(file)))
+    task = @async begin
+      open(file) do f
+        foreach(x->put!(ch, x), eachline(f))
+      end
+    end
     bind(ch, task)
     ch
 end
