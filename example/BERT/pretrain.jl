@@ -87,7 +87,7 @@ function train!()
     pretrain_data = prepare_data()
 
     #pretrain_task function help you to create mask lm and next sentence prediction data
-    datas = pretrain_task(pretrain_data, wordpiece; tokenizer = tokenizer) #or set_tokenizer(tokenizer)
+    datas = bert_pretrain_task(pretrain_data, wordpiece; tokenizer = tokenizer) #or set_tokenizer(tokenizer)
 
     i = 1
     while(batch = get_batch(datas, Batch)) !== nothing
