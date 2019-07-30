@@ -8,7 +8,7 @@ using WordTokenizers
 using ..Transformers: Container
 
 export Dataset, Train, Dev, Test
-export dataset, datafile, get_batch, get_vocab, batched
+export dataset, datafile, get_batch, get_vocab, get_labels, batched
 
 
 include("download_utils.jl")
@@ -23,5 +23,7 @@ using .IWSLT
 include("qa/clozetest.jl")
 using .ClozeTest
 
+include("glue/glue.jl")
+using .GLUE
 
 end

@@ -19,6 +19,10 @@ trainfile(d, args...; kwargs...) = (println("Trainset not found"); nothing)
 devfile(d, args...; kwargs...) = (println("Devset not found"); nothing)
 testfile(d, args...; kwargs...) = (println("Testset not found"); nothing)
 
+function get_channels(::Type{T}, n; buffer_size=0) where T
+    Tuple([Channel{T}(buffer_size) for i = 1:n])
+end
+
 function reader(file::AbstractString)
     ch = Channel{String}(0)
     task = @async begin
@@ -68,6 +72,8 @@ function get_batch(cs::Container{C}, n=1) where C <: Channel
 end
 
 get_vocab(::D, args...; kwargs...) where D <: Dataset = (println("No prebuild vocab"); nothing)
+
+get_labels(::D, args...; kwargs...) where D <: Dataset = (println("Labels unknown"); nothing)
 
 
 function token_freq(files...; vocab::Dict{String, Int} = Dict{String,Int}(), min_freq::Int = 3)
