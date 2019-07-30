@@ -27,10 +27,10 @@ function storycloze_init()
             valset_url = readline()
             print("* test set: ")
             testset_url = readline()
-            mybegoogle_download(rocw_url, localdir)
-            mybegoogle_download(rocs_url, localdir)
-            mybegoogle_download(valset_url, localdir)
-            mybegoogle_download(testset_url, localdir)
+            maybegoogle_download(rocw_url, localdir)
+            maybegoogle_download(rocs_url, localdir)
+            maybegoogle_download(valset_url, localdir)
+            maybegoogle_download(testset_url, localdir)
         end
     ))
 end
@@ -48,3 +48,5 @@ function trainfile(::StoryCloze)
 
     [selectdim(sets, 2, i) for i = 2:8]
 end
+
+get_labels(::StoryCloze) = ("1", "2")

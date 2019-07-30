@@ -1,7 +1,7 @@
 module ClozeTest
 using DataDeps
 
-using ..Datasets: Dataset, mybegoogle_download
+using ..Datasets: Dataset, maybegoogle_download, get_labels
 import ..Datasets: testfile, trainfile
 
 export StoryCloze
