@@ -10,18 +10,18 @@ function recursive_readdir(path::AbstractString="./")
   ret
 end
 
-function pretrain_task(datachn::Channel,
+function bert_pretrain_task(datachn::Channel,
                        wordpiece::WordPiece;
                        buffer_size = 100,
                        channel_size = 100,
                        kwargs...
                        )
   outchn = Channel(channel_size)
-  pretrain_task(outchn, datachn, wordpiece; buffer_size = buffer_size, kwargs...)
+  bert_pretrain_task(outchn, datachn, wordpiece; buffer_size = buffer_size, kwargs...)
   outchn
 end
 
-function pretrain_task(outchn::Channel,
+function bert_pretrain_task(outchn::Channel,
                        datachn::Channel,
                        wordpiece::WordPiece;
                        buffer_size = 100,
@@ -54,7 +54,7 @@ function pretrain_task(outchn::Channel,
       i -= 1
 
       if eod || i == buffer_size
-        pretrain_task(outchn, @view(buffer[1:(eod ? i - 1 : i)]), wordpiece; kwargs...)
+        bert_pretrain_task(outchn, @view(buffer[1:(eod ? i - 1 : i)]), wordpiece; kwargs...)
       end
     end
   end
@@ -62,19 +62,19 @@ function pretrain_task(outchn::Channel,
 end
 
 
-function pretrain_task(sentences,
+function bert_pretrain_task(sentences,
                        wordpiece::WordPiece,
                        sentences_pool = sentences;
                        channel_size = 100,
                        kwargs...
                        )
   chn = Channel(channel_size)
-  task = @async pretrain_task(chn, sentences, wordpiece, sentences_pool; kwargs...)
+  task = @async bert_pretrain_task(chn, sentences, wordpiece, sentences_pool; kwargs...)
   bind(chn, task)
   chn
 end
 
-function pretrain_task(chn::Channel,
+function bert_pretrain_task(chn::Channel,
                        sentences,
                        wordpiece::WordPiece,
                        sentences_pool = sentences;

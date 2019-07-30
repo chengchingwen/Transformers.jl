@@ -7,7 +7,7 @@ using BSON
 
 using ..Basic
 
-export Bert, load_bert_pretrain, pretrain_task, masklmloss
+export Bert, load_bert_pretrain, bert_pretrain_task, masklmloss
 
 include("./bert.jl")
 include("./tfckpt2bson.jl")
