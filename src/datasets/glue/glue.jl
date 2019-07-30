@@ -1,8 +1,8 @@
 module GLUE
 using DataDeps
 
-using ..Datasets: Dataset, get_channels, get_labels
-import ..Datasets: testfile, devfile, trainfile
+using ..Datasets: Dataset, get_channels
+import ..Datasets: testfile, devfile, trainfile, get_labels
 
 export CoLA, SST, MRPC, QQP, STS, MNLI, SNLI, QNLI, RTE, WNLI, Diagnostic
 
