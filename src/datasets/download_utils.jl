@@ -1,15 +1,18 @@
+using Dates
+using Random: randstring
+
 """
     unshortlink(url)
 
-unshorten a short url with the service of http://checkshorturl.com,
- and return the url if it is not a short link
+return unshorten url or the url if it is not a short link
 """
-function unshortlink(url)
-    cmd = `curl "http://checkshorturl.com/expand.php?u=$url"`
-    @show cmd
-    html = read(cmd, String)
-    m = match(r".*<td .*Long URL<\/td>\s*<td .*><a href=\"([^ ]*)\"", html)
-    m === nothing ? url : m.captures[1]
+function unshortlink(url; kw...)
+    rq = HTTP.request("HEAD", url; redirect=false, status_exception=false, kw...)
+    while rq.status ÷ 100 == 3
+        url = HTTP.header(rq, "Location")
+        rq = HTTP.request("HEAD", url; redirect=false, status_exception=false, kw...)
+    end
+    url
 end
 
 isgooglesheet(url) = occursin("docs.google.com/spreadsheets", url)
@@ -25,13 +28,13 @@ function googlesheet_handler(url; format=:csv)
     url
 end
 
-function mybegoogle_download(url, localdir)
+function maybegoogle_download(url, localdir)
     long_url = unshortlink(url)
     if isgooglesheet(long_url)
         long_url = googlesheet_handler(long_url)
     end
 
-    if isgoogledrive(url)
+    if isgoogledrive(long_url)
         download_gdrive(long_url, localdir)
     else
         DataDeps.fetch_http(long_url, localdir)
@@ -48,27 +51,71 @@ function find_gcode(ckj)
     nothing
 end
 
-
 function download_gdrive(url, localdir)
-    rq = HTTP.request("GET", url; cookies=true)
+    rq = HTTP.request("HEAD", url; cookies=true)
     ckj = HTTP.CookieRequest.default_cookiejar["drive.google.com"]
     gcode = find_gcode(ckj)
     @assert gcode !== nothing
 
-    rq = HTTP.request("GET", "$url&confirm=$gcode"; cookies=true)
-    hcd = HTTP.header(rq, "Content-Disposition")
-    m = match(r"filename=\\\"(.*)\\\"", hcd)
-    if m === nothing
-        filename = "gdrive_downloaded"
-    else
-        filename = m.captures[]
+    format_progress(x) = round(x, digits=4)
+    format_bytes(x) = !isfinite(x) ? "∞ B" : Base.format_bytes(x)
+    format_seconds(x) = "$(round(x; digits=2)) s"
+    format_bytes_per_second(x) = format_bytes(x) * "/s"
+
+    local filepath
+
+    newurl = unshortlink("$url&confirm=$gcode"; cookies=true)
+
+
+    #part of codes are from https://github.com/JuliaWeb/HTTP.jl/blob/master/src/download.jl
+    HTTP.open("GET", newurl, ["Range"=>"bytes=0-"]; cookies=true) do stream
+        resp = HTTP.startread(stream)
+        hcd = HTTP.header(resp, "Content-Disposition")
+        m = match(r"filename=\\\"(.*)\\\"", hcd)
+        if m === nothing
+            filename = "gdrive_downloaded-$(randstring())"
+        else
+            filename = m.captures[]
+        end
+
+        filepath = joinpath(localdir, filename)
+
+        total_bytes = parse(Float64, split(HTTP.header(resp, "Content-Range"), '/')[end])
+        downloaded_bytes = 0
+        start_time = now()
+        prev_time = now()
+
+        function report_callback()
+            prev_time = now()
+            taken_time = (prev_time - start_time).value / 1000 # in seconds
+            average_speed = downloaded_bytes / taken_time
+            remaining_bytes = total_bytes - downloaded_bytes
+            remaining_time = remaining_bytes / average_speed
+            completion_progress = downloaded_bytes / total_bytes
+
+            @info("Downloading",
+                  source=url,
+                  dest = filepath,
+                  progress = completion_progress |> format_progress,
+                  time_taken = taken_time |> format_seconds,
+                  time_remaining = remaining_time |> format_seconds,
+                  average_speed = average_speed |> format_bytes_per_second,
+                  downloaded = downloaded_bytes |> format_bytes,
+                  remaining = remaining_bytes |> format_bytes,
+                  total = total_bytes |> format_bytes,
+                  )
+        end
+
+
+        Base.open(filepath, "w") do fh
+            while(!eof(stream))
+                downloaded_bytes += write(fh, readavailable(stream))
+                if now() - prev_time > Millisecond(1000*2)
+                    report_callback()
+                end
+            end
+        end
+        report_callback()
     end
-
-    filepath = joinpath(localdir, filename)
-
-    open(filepath, "w+") do f
-        write(f, rq.body)
-    end
-
     filepath
 end
