@@ -10,7 +10,7 @@ possible value: `:all`(default), `bert_model`, `wordpiece`, `tokenizer`.
 """
 function load_bert_pretrain(path::AbstractString, sym = :all)
   @info "loading pretrain bert model: $(basename(path)) $(sym == :all ? "" : sym)"
-  @assert sym ∈ (:all, :bert_model, :wordpiece, :tokenizer)
+  @assert sym ∈ (:all, :bert_model, :wordpiece, :tokenizer) "sym only support :all, :bert_model, :wordpiece, :tokenizer"
   if istfbson(path)
 
     bson = BSON.parse(path)
@@ -42,7 +42,7 @@ function load_bert_pretrain(path::AbstractString, sym = :all)
   else
     error("""
           Unknown data type: Is it a bert model?
-          If it is the weight file get from google-bert, then run tfckpt2bson on that file beforehand.
+          If it is the weight file get from google-bert, then run `tfckpt2bson` on that file beforehand.
     """)
   end
 end

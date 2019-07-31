@@ -8,10 +8,10 @@ using Flux: loadparams!
 iszip(s) = endswith(s, ".zip")
 
 function named2tokenizer(name)
-  if startswith(name, "cased") || startswith(name, "multi_cased")
-    return bert_cased_tokenizer
-  else
+  if occursin("uncased", name)
     return bert_uncased_tokenizer
+  else
+    return bert_cased_tokenizer
   end
 end
 
