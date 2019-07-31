@@ -46,10 +46,13 @@ include("./datasets/Datasets.jl")
 include("./gpt/GenerativePreTrain.jl")
 include("./bert/BidirectionalEncoder.jl")
 
+include("./pretrain/Pretrain.jl")
+
 using .Basic
 using .Stacks
 using .Datasets
 using .GenerativePreTrain
 using .BidirectionalEncoder
+using .Pretrain
 
 end # module

@@ -25,7 +25,7 @@ function openAInpy2bson(path;
     data = path
   end
 
-  tokenizer = x -> nltk_word_tokenize(text_standardize(x))
+  tokenizer = gpt_tokenizer
   weights, bpe, raw_vocab = readnpzfolder(data)
 
   iszip(path) && close(data)
@@ -35,13 +35,13 @@ function openAInpy2bson(path;
     BSON.@save bsonname weights bpe raw_vocab tokenizer
   else
     bsonname = normpath(joinpath(saveto, filename * ".bson"))
-    gpt_model, vocab = load_gpt_from_npbson(weights, raw_vocab;
-                                            startsym=startsym,
-                                            delisym=delisym,
-                                            clfsym=clfsym,
-                                            unksym=unksym,
-                                            )
-
+    vocab = build_vocab(raw_vocab;
+                        startsym=startsym,
+                        delisym=delisym,
+                        clfsym=clfsym,
+                        unksym=unksym,
+                        )
+    gpt_model = load_gpt_from_npbson(weights, length(vocab))
     BSON.@save bsonname gpt_model bpe vocab tokenizer
   end
 end
@@ -100,22 +100,23 @@ function readnpzfolder(z::ZipFile.Reader)
   weights, bpe, vocab
 end
 
-
-load_gpt_from_npbson(path::AbstractString) = (@assert isnpbson(path); load_gpt_from_npbson(BSON.load(path)))
-load_gpt_from_npbson(bson) = load_gpt_from_npbson(bson[:weights], bson[:raw_vocab])
-function load_gpt_from_npbson(weights, raw_vocab;
-                              startsym="_start_",
-                              delisym="_delimiter_",
-                              clfsym="_classify_",
-                              unksym="<unk>")
+function build_vocab(raw_vocab;
+                     startsym="_start_",
+                     delisym="_delimiter_",
+                     clfsym="_classify_",
+                     unksym="<unk>")
     vocab = copy(raw_vocab)
-
     push!(vocab, startsym)
     push!(vocab, delisym)
     push!(vocab, clfsym)
 
     vocab = Vocabulary(vocab, unksym)
-    embed = Embed(768, length(vocab))
+end
+
+load_gpt_from_npbson(path::AbstractString) = (@assert isnpbson(path); load_gpt_from_npbson(BSON.load(path)))
+load_gpt_from_npbson(bson) = load_gpt_from_npbson(bson[:weights], length(bson[:raw_vocab])+3)
+function load_gpt_from_npbson(weights, vocab_size; n_special = 3)
+    embed = Embed(768, vocab_size)
     pe = PositionEmbedding(768, 512; trainable=true)
 
     gpt = Gpt(768, 12, 768*4, 12; act=gelu, pdrop=0.1, attn_pdrop=0.1)
@@ -133,7 +134,7 @@ function load_gpt_from_npbson(weights, raw_vocab;
     #            )
 
     loadparams!(embed, [hcat(weights[2],
-                             randn(768, 3) .* 0.02)])
+                             randn(768, n_special) .* 0.02)])
     loadparams!(pe, [weights[1]])
     for i = 1:12
         mhW = weights[12(i-1) + 3]
@@ -157,7 +158,7 @@ function load_gpt_from_npbson(weights, raw_vocab;
     end
 
     ce = CompositeEmbedding(tok=embed, pe=pe)
-    TransformerModel(ce, gpt), vocab
+    TransformerModel(ce, gpt)
 end
 
 
