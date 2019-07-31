@@ -8,9 +8,10 @@ using BSON
 using ..Transformers: Abstract3DTensor
 using ..Basic
 
-export Gpt
+export Gpt, load_gpt_pretrain, lmloss
 
 include("./gpt.jl")
+include("./tokenizer.jl")
 include("./npy2bson.jl")
 include("./load_pretrain.jl")
 
