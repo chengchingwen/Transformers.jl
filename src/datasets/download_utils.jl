@@ -80,7 +80,8 @@ function download_gdrive(url, localdir)
 
         filepath = joinpath(localdir, filename)
 
-        total_bytes = parse(Float64, split(HTTP.header(resp, "Content-Range"), '/')[end])
+        total_bytes = tryparse(Float64, split(HTTP.header(resp, "Content-Range"), '/')[end])
+        total_bytes === nothing && (total_bytes = NaN)
         downloaded_bytes = 0
         start_time = now()
         prev_time = now()
