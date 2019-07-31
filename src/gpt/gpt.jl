@@ -5,9 +5,6 @@ using ..Basic
 using ..Basic: onehot, AbstractTransformer
 using ..Stacks
 
-export Gpt, lmloss
-export load_gpt_pretrain
-
 struct Gpt <: AbstractTransformer
     ts::Stack
     drop::Dropout
