@@ -5,6 +5,8 @@ struct WordPiece
   WordPiece(vocab::Vector{String}, unk_idx::Int , max_char::Int) = new(vocab, unk_idx, max_char)
 end
 
+Base.show(io::IO, wp::WordPiece) = print(io, "WordPiece(vocab_size=$(length(wp.vocab)), unk=$(wp.vocab[wp.unk_idx]), max_char=$(wp.max_char))")
+
 WordPiece(vocab::Vector{String}, unk::String = "[UNK]"; max_char::Int=200) = WordPiece(vocab, findfirst(isequal(unk), vocab), max_char)
 
 Basic.Vocabulary(wp::WordPiece) = Vocabulary(wp.vocab, wp.vocab[wp.unk_idx])
