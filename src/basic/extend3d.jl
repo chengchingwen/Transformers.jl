@@ -52,3 +52,9 @@ function (pw::Positionwise)(x)
     y = applychain(pw.models, reshape(x, insize[1], :))
     reshape(y, :, Base.tail(insize)...)
 end
+
+function Base.show(io::IO, p::Positionwise)
+  print(io, "Positionwise(")
+  join(io, p.models, ", ")
+  print(io, ")")
+end
