@@ -1,6 +1,15 @@
 import Pkg
-function pkg_version(_module::Module)
-    Pkg.Types.read_package(joinpath(dirname(dirname(pathof(_module))), "Project.toml")).version
+if VERSION >= v"1.1.0"
+    function pkg_version(_module::Module)
+        Pkg.Types.read_package(joinpath(dirname(dirname(pathof(_module))), "Project.toml")).version
+    end
+else
+    function pkg_version(_module::Module)
+        pkg_id = Base.PkgId(_module)
+        env = Pkg.Types.Context().env
+        pkg_info = Pkg.Types.manifest_info(env, pkg_id.uuid)
+        return VersionNumber(pkg_info["version"])
+    end
 end
 
 if pkg_version(CUDAnative) >= v"2.1.0"
