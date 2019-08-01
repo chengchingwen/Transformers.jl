@@ -1,5 +1,6 @@
 using Transformers
 using Transformers.Basic
+using Transformers.Pretrain
 using Transformers.Datasets
 using Transformers.Datasets: GLUE
 using Transformers.BidirectionalEncoder
@@ -10,6 +11,8 @@ import Flux.Optimise: update!
 using WordTokenizers
 
 include("./args.jl")
+
+ENV["DATADEPS_ALWAYS_ACCEPT"] = true
 
 const Epoch = 20
 const Batch = 4
@@ -56,7 +59,7 @@ end
 
 const labels = get_labels(task)
 
-const _bert_model, wordpiece, tokenizer = load_bert_pretrain("../../src/bert/uncased_L-12_H-768_A-12.tfbson", :all)
+const _bert_model, wordpiece, tokenizer = pretrain"Bert-uncased_L-12_H-768_A-12"
 const bert_model = gpu(_bert_model)
 const vocab = Vocabulary(wordpiece)
 
@@ -96,12 +99,13 @@ function train!()
         i = 1
         while (batch = get_batch(datas, Batch)) !== nothing
             data, label, mask = todevice(preprocess(batch))
-            @time l = loss(data, label, mask)
+            l = loss(data, label, mask)
             @show l
             grad = gradient(()->l, ps)
-            @time update!(opt, ps, grad)
+            update!(opt, ps, grad)
         end
     end
 end
 
 
+train!()

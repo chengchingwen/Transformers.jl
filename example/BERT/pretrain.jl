@@ -1,5 +1,6 @@
 using Transformers
 using Transformers.Basic
+using Transformers.Pretrain
 using Transformers.Datasets
 using Transformers.BidirectionalEncoder
 
@@ -16,13 +17,13 @@ const Batch = 4
 const FromScratch = false
 
 #use wordpiece and tokenizer from pretrain
-const wordpiece = load_bert_pretrain("../../src/bert/uncased_L-12_H-768_A-12.tfbson", :wordpiece)
-const tokenizer = load_bert_pretrain("../../src/bert/uncased_L-12_H-768_A-12.tfbson", :tokenizer)
+const wordpiece = pretrain"bert-uncased_L-12_H-768_A-12:wordpiece"
+const tokenizer = pretrain"bert-uncased_L-12_H-768_A-12:tokenizer"
 const vocab = Vocabulary(wordpiece)
 
 #see model.jl
 const bert_model = gpu(
-  FromScratch ? create_bert() : load_bert_pretrain("../../src/bert/uncased_L-12_H-768_A-12.tfbson", :bert_model)
+  FromScratch ? create_bert() : pretrain"bert-uncased_L-12_H-768_A-12:bert_model"
 )
 const ps = params(bert_model)
 const opt = ADAM(1e-4)
@@ -92,10 +93,12 @@ function train!()
     i = 1
     while(batch = get_batch(datas, Batch)) !== nothing
       data, masklabel, nextlabel, mask = todevice(preprocess(batch))
-      @time l = loss(data, masklabel, nextlabel, mask)
+      l = loss(data, masklabel, nextlabel, mask)
       @show l
       grad = gradient(()->l, ps)
-      @time update!(opt, ps, grad)
+      update!(opt, ps, grad)
     end
   end
 end
+
+train!()
