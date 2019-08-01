@@ -44,23 +44,27 @@ function transform(s1, s2, s3, s4, c1, c2, y)
     x1, x2, y
 end
 
+function preprocess(batch)
+    tdb = transform.(batch...)
+    b1, b2, y = batched(tdb)
+    b1_mask = getmask(b1)
+    b2_mask = getmask(b2)
+    c1i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b1)]
+    c2i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b2)]
+    b1, b2 = vocab(b1,b2)
+    y = onehotbatch(y, labels)
+
+    return b1, b2, c1i, c2i, y, b1_mask, b2_mask
+end
+
 function test()
     Flux.testmode!(gpt)
-    Flux.testmode!(ansdrop)
     println("eval:")
     i::Int = 0
     al::Float64 = 0.
     devl = dataset(Test, rocs)
     while (batch = get_batch(devl, Batch)) !== nothing
-        tdb = transform.(batch...)
-        b1, b2, y = batched(tdb)
-        b1_mask = getmask(b1)
-        b2_mask = getmask(b2)
-        c1i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b1)]
-        c2i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b2)]
-        b1, b2 = vocab(b1,b2)
-        y = anv(y)
-        b1,b2,y,b1_mask,b2_mask,c1i,c2i = todevice(b1,b2,y,b1_mask,b2_mask,c1i,c2i)
+        b1, b2, c1i, c2i, y, b1_mask, b2_mask, = todevice(preprocess(batch))
 
         _, p = loss(b1, b2, y, b1_mask, b2_mask, c1i, c2i)
         a = acc(p, y)
@@ -69,7 +73,6 @@ function test()
     end
     al /= i
     Flux.testmode!(gpt, false)
-    Flux.testmode!(ansdrop, false)
     @show al
 end
 
@@ -81,18 +84,9 @@ function train!(epoch)
         i::Int = 0
         al::Float64 = 0.
         while (batch = get_batch(datas, Batch)) !== nothing
-            tdb = transform.(batch...)
-            b1, b2, y = batched(tdb)
-            b1_mask = getmask(b1)
-            b2_mask = getmask(b2)
-            c1i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b1)]
-            c2i = [(findfirst(isequal(clfsym), x), i) for (i, x) in enumerate(b2)]
-            b1, b2 = vocab(b1,b2)
-            y = anv(y)
-            b1,b2,y,b1_mask,b2_mask,c1i,c2i = todevice(b1,b2,y,b1_mask,b2_mask,c1i,c2i)
+            b1, b2, c1i, c2i, y, b1_mask, b2_mask, = todevice(preprocess(batch))
 
             l, p = loss(b1, b2, y, b1_mask, b2_mask, c1i, c2i)
-            #@show l
             a = acc(p, y)
             al += a
             grad = gradient(()->l, ps)

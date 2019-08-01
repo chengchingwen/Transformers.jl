@@ -9,7 +9,7 @@ using ..Transformers: BidirectionalEncoder, GenerativePreTrain
 using ..Basic
 using ..Datasets: download_gdrive
 
-export @pretrain_str
+export @pretrain_str, load_pretrain
 
 
 isbon(s) = endswith(s, ".bson")
@@ -30,10 +30,10 @@ function __init__()
 end
 
 macro pretrain_str(name)
-    :(load_pretrain_file($(esc(name))))
+    :(load_pretrain($(esc(name))))
 end
 
-function load_pretrain_file(name)
+function load_pretrain(name; kw...)
     lowered = lowercase(name)
     if startswith(lowered, "bert")
         col = findlast(isequal(':'), name)
@@ -58,7 +58,7 @@ function load_pretrain_file(name)
         end
         !haskey(_get_gpt_config, model_name) && error("unknown gpt pretrain name")
         model_path = @datadep_str("GPT-$model_name/$model_name.npbson")
-        GenerativePreTrain.load_gpt_pretrain(model_path, item)
+        GenerativePreTrain.load_gpt_pretrain(model_path, item; kw...)
     else
         error("unknown pretrain")
     end
