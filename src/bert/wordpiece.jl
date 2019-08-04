@@ -41,6 +41,7 @@ function (wq::_wp_equal{first})(s) where first
     iszero(_cmp(s, "##", 1, 1, 2)) || return false
   end
 
+  wq.bound - wq.base == length(s) - start || return false
   return iszero(_cmp(wq.ss, s,
                    getstrind(wq.ss, wq.base),
                    start,
