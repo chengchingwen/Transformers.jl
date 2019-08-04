@@ -59,6 +59,8 @@ function Base.show(io::IO, model::TransformerModel)
         print(io, ",\n$(tabchar)")
         print(io, "classifier = \n$(tabchar^2)")
         recursive_print(io, model.classifier, 2; tabchar = tabchar)
+    else
+        print(io, '\n')
     end
     print(io, ")")
 end
