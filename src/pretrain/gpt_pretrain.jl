@@ -6,7 +6,8 @@ const _get_gpt_config = Dict(
         :hidden => 768,
         :head => 12,
         :bpe => :bpe,
-        :name => "OpenAIftlm"
+        :name => "OpenAIftlm",
+        :items => (:gpt_model, :bpe, :vocab, :tokenizer)
     )
 )
 
