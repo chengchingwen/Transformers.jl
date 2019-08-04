@@ -66,13 +66,26 @@ function load_pretrain(name; kw...)
     end
 end
 
-function pretrains()
+function pretrains(model::String = "")
     rows = [Any["model", "model name", "support items"]]
-    for (model, configs) ∈ zip(("GPT", "Bert"), (_get_gpt_config, _get_bert_config))
-        for config ∈ values(configs)
-            name = config[:name]
-            items = join(config[:items], ", ")
-            push!(rows, Any[model, name, items])
+    if isempty(model)
+        for (model, configs) ∈ zip(("GPT", "Bert"), (_get_gpt_config, _get_bert_config))
+            for config ∈ values(configs)
+                name = config[:name]
+                items = join(config[:items], ", ")
+                push!(rows, Any[model, name, items])
+            end
+        end
+    else
+        lowered_model = lowercase(model)
+        for (model, configs) ∈ zip(("GPT", "Bert"), (_get_gpt_config, _get_bert_config))
+            if lowered_model == lowercase(model)
+                for config ∈ values(configs)
+                    name = config[:name]
+                    items = join(config[:items], ", ")
+                    push!(rows, Any[model, name, items])
+                end
+            end
         end
     end
     Markdown.MD(Any[Markdown.Table(rows, [:l, :l, :l])])
