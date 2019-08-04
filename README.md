@@ -14,9 +14,6 @@ In the Julia REPL:
 
     ]add Transformers
     
-    #Currently the Dataset need the HTTP#master to download WMT
-    ]add HTTP#master
-
 For using GPU, install & build:
 
     ]add CuArrays
@@ -38,7 +35,7 @@ You can find the code in `example` folder.
 
 -   [Attention is all you need](https://arxiv.org/abs/1706.03762)
 -   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
-
+-   [BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding](https://arxiv.org/abs/1810.04805)
 
 # Example
 Take a simple encoder-decoder model construction of machine translation task. With `Transformers.jl` we can easily define/stack the models. 
@@ -83,6 +80,49 @@ See `example` folder for the complete example.
 
 
 # Usage
+
+## Pretrain
+
+For GPT and BERT, we provide a simple api to get the released pretrain weight and load them into our Julia version Transformer implementation. 
+
+```julia
+using Transformers
+using Transformers.Pretrain
+using Transformers.GenerativePreTrain
+using Transformers.BidirectionalEncoder
+
+#load everything in the pretrain model
+bert_model, wordpiece, tokenizer = pretrain"Bert-uncased_L-12_H-768_A-12" 
+
+#load model weight only
+gpt_model = pretrain"gpt-OpenAIftlm:gpt_model"
+
+#show the loaded model
+show(bert_model)
+show(gpt_model)
+```
+
+The `pretrain"<model>-<model-name>:<item>"` string with `pretrain` prefix will load the specific item from a known pretrain file (see the list below). 
+The `<model>` is matched case insensitively, so not matter `bert`, `Bert`, `BERT`, or even `bErT` will find the BERT pretrain model. On the other hand, 
+the `<model-name>`, and `<item>` should be exactly the one on the list. See `example`.
+
+Currently support pretrain:
+
+model   | model name                        | support items                       
+-------:|:----------------------------------|:------------------------------------
+GPT     | OpenAIftlm                        | gpt_model, bpe, vocab, tokenizer
+Bert    | uncased_L-24_H-1024_A-16          | bert_model, wordpiece, tokenizer
+Bert    | wwm_cased_L-24_H-1024_A-16        | bert_model, wordpiece, tokenizer
+Bert    | wwm_uncased_L-24_H-1024_A-16      | bert_model, wordpiece, tokenizer
+Bert    | multilingual_L-12_H-768_A-12      | bert_model, wordpiece, tokenizer
+Bert    | multi_cased_L-12_H-768_A-12       | bert_model, wordpiece, tokenizer
+Bert    | chinese_L-12_H-768_A-12           | bert_model, wordpiece, tokenizer
+Bert    | cased_L-24_H-1024_A-16            | bert_model, wordpiece, tokenizer
+Bert    | cased_L-12_H-768_A-12             | bert_model, wordpiece, tokenizer
+Bert    | uncased_L-12_H-768_A-12           | bert_model, wordpiece, tokenizer
+
+
+If you don't find a public pretrain you want on the list, please fire an issue.
 
 ## Transformer
 

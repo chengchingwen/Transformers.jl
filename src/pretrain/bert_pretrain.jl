@@ -6,7 +6,8 @@ const _get_bert_config = Dict(
         :hidden => 768,
         :head => 12,
         :wwm => false,
-        :name => "uncased_L-12_H-768_A-12"
+        :name => "uncased_L-12_H-768_A-12",
+        :items => (:bert_model, :wordpiece, :tokenizer)
     ),
     "uncased_L-24_H-1024_A-16" => Dict(
         :host => :google,
@@ -15,7 +16,8 @@ const _get_bert_config = Dict(
         :hidden => 1024,
         :head => 16,
         :wwm => false,
-        :name => "uncased_L-24_H-1024_A-16"
+        :name => "uncased_L-24_H-1024_A-16",
+        :items => (:bert_model, :wordpiece, :tokenizer)
     ),
     "wwm_cased_L-24_H-1024_A-16" => Dict(
         :host => :google,
@@ -24,7 +26,8 @@ const _get_bert_config = Dict(
         :hidden => 1024,
         :head => 16,
         :wwm => true,
-        :name => "wwm_cased_L-24_H-1024_A-16"
+        :name => "wwm_cased_L-24_H-1024_A-16",
+        :items => (:bert_model, :wordpiece, :tokenizer)
     ),
     "wwm_uncased_L-24_H-1024_A-16" => Dict(
         :host => :google,
@@ -33,7 +36,8 @@ const _get_bert_config = Dict(
         :hidden => 1024,
         :head => 16,
         :wwm => true,
-        :name => "wwm_uncased_L-24_H-1024_A-16"
+        :name => "wwm_uncased_L-24_H-1024_A-16",
+        :items => (:bert_model, :wordpiece, :tokenizer)
     ),
     "multilingual_L-12_H-768_A-12" => Dict(
         :host => :google,
@@ -42,7 +46,8 @@ const _get_bert_config = Dict(
         :hidden => 768,
         :head => 12,
         :wwm => false,
-        :name => "multilingual_L-12_H-768_A-12"
+        :name => "multilingual_L-12_H-768_A-12",
+        :items => (:bert_model, :wordpiece, :tokenizer)
     ),
     "multi_cased_L-12_H-768_A-12" => Dict(
         :host => :google,
@@ -51,7 +56,8 @@ const _get_bert_config = Dict(
         :hidden => 768,
         :head => 12,
         :wwm => false,
-        :name => "multi_cased_L-12_H-768_A-12"
+        :name => "multi_cased_L-12_H-768_A-12",
+        :items => (:bert_model, :wordpiece, :tokenizer)
     ),
     "chinese_L-12_H-768_A-12" => Dict(
         :host => :google,
@@ -60,7 +66,8 @@ const _get_bert_config = Dict(
         :hidden => 768,
         :head => 12,
         :wwm => false,
-        :name => "chinese_L-12_H-768_A-12"
+        :name => "chinese_L-12_H-768_A-12",
+        :items => (:bert_model, :wordpiece, :tokenizer)
     ),
     "cased_L-24_H-1024_A-16" => Dict(
         :host => :google,
@@ -69,7 +76,8 @@ const _get_bert_config = Dict(
         :hidden => 1024,
         :head => 16,
         :wwm => false,
-        :name => "cased_L-24_H-1024_A-16"
+        :name => "cased_L-24_H-1024_A-16",
+        :items => (:bert_model, :wordpiece, :tokenizer)
     ),
     "cased_L-12_H-768_A-12" => Dict(
         :host => :google,
@@ -78,7 +86,8 @@ const _get_bert_config = Dict(
         :hidden => 768,
         :head => 12,
         :wwm => false,
-        :name => "cased_L-12_H-768_A-12"
+        :name => "cased_L-12_H-768_A-12",
+        :items => (:bert_model, :wordpiece, :tokenizer)
     ),
 )
 

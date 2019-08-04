@@ -1,5 +1,7 @@
 module Pretrain
 
+using Markdown
+
 using Flux
 using BSON
 using DataDeps
@@ -9,7 +11,7 @@ using ..Transformers: BidirectionalEncoder, GenerativePreTrain
 using ..Basic
 using ..Datasets: download_gdrive
 
-export @pretrain_str, load_pretrain
+export @pretrain_str, load_pretrain, pretrains
 
 
 isbon(s) = endswith(s, ".bson")
@@ -62,6 +64,18 @@ function load_pretrain(name; kw...)
     else
         error("unknown pretrain")
     end
+end
+
+function pretrains()
+    rows = [Any["model", "model name", "support items"]]
+    for (model, configs) ∈ zip(("GPT", "Bert"), (_get_gpt_config, _get_bert_config))
+        for config ∈ values(configs)
+            name = config[:name]
+            items = join(config[:items], ", ")
+            push!(rows, Any[model, name, items])
+        end
+    end
+    Markdown.MD(Any[Markdown.Table(rows, [:l, :l, :l])])
 end
 
 end
