@@ -25,9 +25,9 @@ logkldivergence(q::Abstract3DTensor{T},
                 logp::Abstract3DTensor{T}) where T =
                     sum(reshape(sum(sum(q .* (log.(q .+ eps(q[1])) .- logp); dims=1); dims=2), :) ./ size(q, 2))
 
-function logkldivergence(q, logp)
+function logkldivergence(q, logp::AbstractArray{T}) where T
     kld = (q .* (log.(q .+ eps(q[1])) .- logp)) #handle gpu broadcast error
-    sum(kld) / size(kld, 2)
+    sum(kld) / convert(T, size(kld, 2))
 end
 
 "compute the cross entropy where p is already the log(p)"
@@ -35,7 +35,7 @@ logcrossentropy(q::Abstract3DTensor{T},
                 logp::Abstract3DTensor{T}) where T =
                     -sum(reshape(sum(sum(q .* logp; dims=1); dims=2), :) ./ size(q, 2))
 
-function logcrossentropy(q, logp)
+function logcrossentropy(q, logp::AbstractArray{T}) where T
     ce = q .* logp
-    -sum(ce) / size(ce, 2)
+    -sum(ce) / convert(T, size(ce, 2))
 end
