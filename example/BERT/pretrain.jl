@@ -92,8 +92,8 @@ function train!()
 
     i = 1
     while(batch = get_batch(datas, Batch)) !== nothing
-      data, masklabel, nextlabel, mask = todevice(preprocess(batch))
-      l = loss(data, masklabel, nextlabel, mask)
+      data, ind, masklabel, nextlabel, mask = todevice(preprocess(batch))
+      l = loss(data, ind, masklabel, nextlabel, mask)
       @show l
       grad = gradient(()->l, ps)
       update!(opt, ps, grad)

@@ -60,32 +60,46 @@ end
 const labels = get_labels(task)
 
 const _bert_model, wordpiece, tokenizer = pretrain"Bert-uncased_L-12_H-768_A-12"
-const bert_model = gpu(_bert_model)
 const vocab = Vocabulary(wordpiece)
 
-
-const hidden_size = size(bert_model.classifier.pooler.W ,1)
+const hidden_size = size(_bert_model.classifier.pooler.W ,1)
 const clf = gpu(Chain(
+    Dropout(0.1),
     Dense(hidden_size, length(labels)),
     logsoftmax
 ))
 
+const bert_model = gpu(
+    set_classifier(_bert_model,
+                   (
+                       pooler = _bert_model.classifier.pooler,
+                       clf = clf
+                   )
+                  )
+)
+
 const ps = params(bert_model)
 const opt = ADAM(1e-4)
+
+function acc(p, label)
+    pred = Flux.onecold(collect(p))
+    label = Flux.onecold(collect(label))
+    sum(pred .== label) / length(label)
+end
 
 
 function loss(data, label, mask=nothing)
     e = bert_model.embed(data)
     t = bert_model.transformers(e, mask)
-    l = Basic.logcrossentropy(
-        clf(
-            bert_model.classifier.pooler(
-                t[:,1,:]
-            )
-        ),
-        label
+
+    p = bert_model.classifier.clf(
+        bert_model.classifier.pooler(
+            t[:,1,:]
+        )
     )
-    return l
+
+    l = Basic.logcrossentropy(label, p)
+    return l, p
 end
 
 function train!()
@@ -97,15 +111,41 @@ function train!()
         datas = dataset(Train, task)
 
         i = 1
+        al::Float64 = 0.
         while (batch = get_batch(datas, Batch)) !== nothing
             data, label, mask = todevice(preprocess(batch))
-            l = loss(data, label, mask)
-            @show l
+            l, p = loss(data, label, mask)
+            # @show l
+            a = acc(p, label)
+            al += a
             grad = gradient(()->l, ps)
+            i+=1
             update!(opt, ps, grad)
+            i%16==0 && @show al/i
         end
+
+        test()
     end
 end
+
+function test()
+    Flux.testmode!(bert_model)
+    i = 1
+    al::Float64 = 0.
+    datas = dataset(Dev, task)
+    while (batch = get_batch(datas, Batch)) !== nothing
+      data, label, mask = todevice(preprocess(batch))
+      _, p = loss(data, label, mask)
+      # @show l
+      a = acc(p, label)
+      al += a
+      i+=1
+    end
+    al /= i
+    Flux.testmode!(bert_model, false)
+    @show al
+end
+
 
 
 train!()
