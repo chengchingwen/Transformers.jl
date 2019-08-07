@@ -10,7 +10,7 @@ export Stack, @nntopo_str, @nntopo
 export dataset, datafile, get_batch, get_vocab
 
 export todevice
-export Gpt, load_gpt_pretrain, lmloss
+export Gpt
 export Bert
 
 const Abstract3DTensor{T} = AbstractArray{T, 3}

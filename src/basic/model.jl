@@ -4,7 +4,7 @@ using Flux: @treelike
     TransformerModel(embed::AbstractEmbed, transformers::AbstractTransformer, classifier)
     TransformerModel(embed::AbstractEmbed, transformers::AbstractTransformer)
 
-a structure for put everything together
+a structure for putting everything together
 """
 struct TransformerModel{E <: AbstractEmbed, T <: AbstractTransformer, C}
     embed::E
@@ -16,8 +16,19 @@ TransformerModel(embed, transformers) = TransformerModel(embed, transformers, id
 
 @treelike TransformerModel
 
+"""
+    set_classifier(model::TransformerModel, classifier)
+
+return a new TransformerModel whose classifier is set to `classifier`.
+"""
 set_classifier(model::TransformerModel, classifier) = TransformerModel(model.embed, model.transformers, classifier)
 
+"""
+    clear_classifier(model::TransformerModel)
+
+return a new TransformerModel without classifier.
+"""
+clear_classifier(model::TransformerModel) = TransformerModel(model.embed, model.transformers, identity)
 
 Base.print(io::IO, model::TransformerModel) = Base.summary(io, model)
 
@@ -33,6 +44,7 @@ function recursive_print(io::IO, x::AbstractArray{T}, i=1; tabchar = '\t') where
         recursive_print(io, Tuple(x), i; tabchar = tabchar)
     end
 end
+
 function recursive_print(io::IO, x::Union{Tuple, NamedTuple}, i=1; tabchar = '\t')
     print(io, "(\n$(tabchar)")
     for k ∈ keys(x)
@@ -40,7 +52,7 @@ function recursive_print(io::IO, x::Union{Tuple, NamedTuple}, i=1; tabchar = '\t
         print(io, "$k => ")
         recursive_print(io, x[k], i+1; tabchar = tabchar)
         print(io, "$(tabchar)")
-0    end
+    end
     print(io, tabchar^(i-1))
     print(io, ")\n")
 end
