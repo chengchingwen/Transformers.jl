@@ -6,7 +6,7 @@ using Requires: @init
 
 using ..Transformers: Abstract3DTensor, Container, batchedmul, scatter_add!
 
-export CompositeEmbedding, TransformerModel
+export CompositeEmbedding, TransformerModel, set_classifier, clear_classifier
 export PositionEmbedding, Embed, getmask,
     Vocabulary, gather, encode, decode
 export OneHotArray, indices2onehot, onehot2indices,
