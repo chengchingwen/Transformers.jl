@@ -85,5 +85,17 @@ function tokenise(input, ::Val{lower}) where lower
   return ts.tokens
 end
 
+
+"""
+  bert_uncased_tokenizer(input)
+
+google bert tokenizer which do lower case on input before tokenization.
+"""
 bert_uncased_tokenizer(input) = tokenise(input, Val(true))
+
+"""
+  bert_cased_tokenizer(input)
+
+google bert tokenizer which remain the case during tokenization. Recommended for multi-lingual data.
+"""
 bert_cased_tokenizer(input) = tokenise(input, Val(false))

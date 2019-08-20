@@ -13,6 +13,11 @@ function named2tokenizer(name)
   end
 end
 
+"""
+  tfckpt2bson(path; raw=false, saveto="./", confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
+
+turn google released bert format into BSON file. Set `raw` to `true` to remain the origin data format in bson.
+"""
 function tfckpt2bson(path; raw=false, saveto="./", confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
   if iszip(path)
     data = ZipFile.Reader(path)
