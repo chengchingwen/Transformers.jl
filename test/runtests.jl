@@ -10,6 +10,7 @@ const tests = [
     "embed",
     "basic",
     "bert",
+    "pretrain",
 ]
 
 if v"1.0.0" <= VERSION  <= v"1.1.0"
