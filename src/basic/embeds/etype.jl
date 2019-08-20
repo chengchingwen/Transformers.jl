@@ -11,10 +11,22 @@ struct CompositeEmbedding{F, T <: NamedTuple, T2 <: NamedTuple, P} <: AbstractEm
     CompositeEmbedding(es::NamedTuple, as::NamedTuple, post) = new{_getF(eltype(es)), typeof(es), typeof(as), typeof(post)}(es, as, post)
 end
 
+function remove_key(a::NamedTuple, key_name::Symbol)
+  _f(;kw...) = kw.data
+  d = Dict{Symbol, Any}()
+  sizehint!(d, length(a)-1)
+  for k ∈ keys(a)
+    k == key_name && continue
+    d[k] = a[k]
+  end
+  _f(;d...)
+end
+
 function CompositeEmbedding(;es...)
     if haskey(es.data, :postprocessor)
         post = es.data[:postprocessor]
-        eas = Base.tail(merge((postprocessor = identity,), es.data))
+        # bypass no Base.tail(::NamedTuple) on CI error
+        eas = remove_key(es.data, :postprocessor) #Base.tail(merge((postprocessor = identity,), es.data))
     else
         post = identity
         eas = es.data
