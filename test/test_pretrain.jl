@@ -35,6 +35,7 @@ end
 
 @testset "Pretrain" begin
   using Transformers.Pretrain
+  using DataDeps
   using BytePairEncoding
   ENV["DATADEPS_ALWAYS_ACCEPT"] = true
   ENV["DATADEPS_NO_STANDARD_LOAD_PATH"] = true
@@ -47,7 +48,12 @@ end
   for model ∈ model_list
     @testset_nokeep_data "$model" begin
       GC.gc()
-      @test_nowarn x = Transformers.Pretrain.@pretrain_str model
+      if startswith(lowercase(model), "bert") && model[6:end] != "uncased_L-12_H-768_A-12"
+        model_name = model[6:end]
+        @test_nowarn Transformers.Pretrain.@datadep_str "BERT-$model_name/$model_name.tfbson"
+      else
+        @test_nowarn x = Transformers.Pretrain.@pretrain_str model
+      end
     end
   end
 
