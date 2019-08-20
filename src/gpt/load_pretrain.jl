@@ -1,6 +1,3 @@
-isbson(s) = endswith(s, ".bson")
-
-
 function load_gpt_pretrain(path::AbstractString, sym = :all; kw...)
   @info "loading pretrain gpt model: $(basename(path)) $(sym == :all ? "" : sym)"
   @assert sym ∈ (:all, :gpt_model, :bpe, :vocab, :tokenizer) "sym only support :all, :gpt_model, :bpe, :vocab, :tokenizer"

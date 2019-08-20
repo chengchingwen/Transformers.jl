@@ -5,8 +5,6 @@ using ZipFile
 
 using Flux: loadparams!
 
-iszip(s) = endswith(s, ".zip")
-
 function named2tokenizer(name)
   if occursin("uncased", name)
     return bert_uncased_tokenizer
@@ -65,10 +63,6 @@ readckpt(path) = error("readckpt require TensorFlow.jl installed. run `Pkg.add(\
     weights
   end
 end
-
-zipname(z::ZipFile.Reader) = z.files[1].name
-zipfile(z::ZipFile.Reader, name) = (idx = findfirst(zf->isequal(name)(zf.name), z.files)) !== nothing ? z.files[idx] : nothing
-findfile(z::ZipFile.Reader, name) = zipfile(z, joinpath(zipname(z), name))
 
 function readckptfolder(z::ZipFile.Reader; confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
   (confile = findfile(z, confname)) === nothing && error("config file $confname not found")
