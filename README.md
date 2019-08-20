@@ -81,26 +81,26 @@ See `example** folder for the complete example.
 
 # Module Hierarchy
 
-## [Transformers.Basic]("./src/basic/README.md")
+## [Transformers.Basic](src/basic/README.md)
 Basic functionality of Transformers.jl, provide the Transformer encoder/decoder implementation and other convenient function.
 
 
-## [Transformers.Pretrain]("./src/pretrain/README.md")
+## [Transformers.Pretrain](src/pretrain/README.md)
 Functions for download and loading pretrain models.
 
 
-## [Transformers.Stacks]("./src/stacks/README.md")
+## [Transformers.Stacks](src/stacks/README.md)
 Helper struct and DSL for stacking functions/layers.
 
 
-## [Transformers.Datasets]("./src/datasets/README.md")
+## [Transformers.Datasets](src/datasets/README.md)
 Functions for loading some common Datasets
 
 
-## [Transformers.GenerativePreTrain]("./src/gpt/README.md")
+## [Transformers.GenerativePreTrain](src/gpt/README.md)
 Implementation of gpt-1 model
 
-## [Transformers.BidirectionalEncoder]("./src/bert/README.md")
+## [Transformers.BidirectionalEncoder](src/bert/README.md)
 Implementation of BERT model
 
 # Roadmap
