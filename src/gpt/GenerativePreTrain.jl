@@ -7,7 +7,7 @@ using BSON
 
 using ..Transformers: Abstract3DTensor
 using ..Basic
-
+using ..Pretrain: isbson, iszip, isnpbson, zipname, zipfile, findfile
 export Gpt, load_gpt_pretrain, lmloss
 
 include("./gpt.jl")

@@ -1,7 +1,3 @@
-isbson(s) = endswith(s, ".bson")
-istfbson(s) = endswith(s, ".tfbson")
-
-
 """
   load_bert_pretrain(path, sym = :all)
 

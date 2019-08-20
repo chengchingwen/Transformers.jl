@@ -7,9 +7,6 @@ using Flux: loadparams!
 
 using BytePairEncoding
 
-iszip(s) = endswith(s, ".zip")
-isnpbson(s) = endswith(s, ".npbson")
-
 function openAInpy2bson(path;
                         raw=false,
                         saveto="./",
@@ -46,11 +43,6 @@ function openAInpy2bson(path;
   end
 end
 
-zipname(z::ZipFile.Reader) = z.files[1].name
-zipfile(z::ZipFile.Reader, name) = (idx = findfirst(zf->isequal(name)(zf.name), z.files)) !== nothing ? z.files[idx] : nothing
-
-
-
 readnpz(path) = error("readnpz require NPZ.jl installed. run `Pkg.add(\"NPZ\"); using NPZ`")
 
 @init @require NPZ="15e1cf62-19b3-5cfa-8e77-841668bca605" begin
@@ -66,10 +58,10 @@ readnpz(path) = error("readnpz require NPZ.jl installed. run `Pkg.add(\"NPZ\"); 
   end
 
   function readnpz(z::ZipFile.Reader)
-    shapes = JSON.parse(zipfile(z, joinpath(zipname(z), "params_shapes.json")))
+    shapes = JSON.parse(findfile(z, "params_shapes.json"))
     offsets = accumulate(+, prod.(shapes))
     shapes = map(s -> length(s) > 1 ? (s[end], s[end-1]) : s, shapes)
-    params = cat([NPZ.npzreadarray(zipfile(z, joinpath(zipname(z), "params_$(i).npy"))) for i = 0:9]..., dims=1)
+    params = cat([NPZ.npzreadarray(findfile(z, "params_$(i).npy")) for i = 0:9]..., dims=1)
     params = [collect(reshape(selectdim(params, 1, a+1:b), s...)) for (a, b, s) in zip([0;offsets[1:end-1]], offsets, shapes)]
     params
   end
@@ -85,11 +77,11 @@ function readnpzfolder(dir)
 end
 
 function readnpzfolder(z::ZipFile.Reader)
-  emp = JSON.parse(zipfile(z, joinpath(zipname(z), "encoder_bpe_40000.json")))
+  emp = JSON.parse(findfile(z, "encoder_bpe_40000.json"))
   vocab = map(first, sort!(collect(emp), by=(x)->x.second))
   bpe = mktemp(
     (fn, f)-> begin
-      zf = zipfile(z, joinpath(zipname(z), "vocab_40000.bpe"))
+      zf = findfile(z, "vocab_40000.bpe")
       buffer = Vector{UInt8}(undef, zf.uncompressedsize)
       write(f, read!(zf, buffer))
       close(f)

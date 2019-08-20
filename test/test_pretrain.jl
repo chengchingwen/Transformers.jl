@@ -38,13 +38,14 @@ end
   using BytePairEncoding
   ENV["DATADEPS_ALWAYS_ACCEPT"] = true
   ENV["DATADEPS_NO_STANDARD_LOAD_PATH"] = true
-
+  ENV["DATADEPS_PROGRESS_UPDATE_PERIOD"] = "Inf" #should be able remove one day
+  ENV["DATADEP_PROGRESS_UPDATE_PERIOD"] = "Inf"
+  
   @test_nowarn pretrains()
   model_list = map(l->join([l[1],l[2]], "-"), pretrains().content[1].rows[2:end])
 
   for model ∈ model_list
     @testset_nokeep_data "$model" begin
-      sleep(1)
       @test_nowarn x = Transformers.Pretrain.@pretrain_str model
     end
   end

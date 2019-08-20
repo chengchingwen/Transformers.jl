@@ -6,7 +6,7 @@ using Requires: @init
 using BSON
 
 using ..Basic
-
+using ..Pretrain: isbson, iszip, istfbson, zipname, zipfile, findfile
 export Bert, load_bert_pretrain, bert_pretrain_task, masklmloss
 
 include("./bert.jl")

@@ -7,14 +7,14 @@ using BSON
 using DataDeps
 using ZipFile
 
-using ..Transformers: BidirectionalEncoder, GenerativePreTrain
+import ..Transformers
 using ..Basic
 using ..Datasets: download_gdrive
 
 export @pretrain_str, load_pretrain, pretrains
 
 
-isbon(s) = endswith(s, ".bson")
+isbson(s) = endswith(s, ".bson")
 iszip(s) = endswith(s, ".zip")
 isnpbson(s) = endswith(s, ".npbson")
 istfbson(s) = endswith(s, ".tfbson")
@@ -48,7 +48,7 @@ function load_pretrain(name; kw...)
         end
         !haskey(_get_bert_config, model_name) && error("unknown bert pretrain name")
         model_path = @datadep_str("BERT-$model_name/$model_name.tfbson")
-        BidirectionalEncoder.load_bert_pretrain(model_path, item)
+        Transformers.load_bert_pretrain(model_path, item)
     elseif startswith(lowered, "gpt") && lowered[4] != '2'
         col = findlast(isequal(':'), name)
         if col === nothing
@@ -60,7 +60,7 @@ function load_pretrain(name; kw...)
         end
         !haskey(_get_gpt_config, model_name) && error("unknown gpt pretrain name")
         model_path = @datadep_str("GPT-$model_name/$model_name.npbson")
-        GenerativePreTrain.load_gpt_pretrain(model_path, item; kw...)
+        Transformers.load_gpt_pretrain(model_path, item; kw...)
     else
         error("unknown pretrain")
     end
