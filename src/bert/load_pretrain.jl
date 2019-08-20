@@ -1,7 +1,7 @@
 """
   load_bert_pretrain(path, sym = :all)
 
-Loading data/model from pretrain bson data. use `sym` to determine which data to load.
+Loading bert data/model from pretrain bson data. use `sym` to determine which data to load.
 possible value: `:all`(default), `bert_model`, `wordpiece`, `tokenizer`.
 """
 function load_bert_pretrain(path::AbstractString, sym = :all)

@@ -31,10 +31,24 @@ function __init__()
     bert_init()
 end
 
+
+"""
+  pretrain"model-description:item"
+
+convenient macro for loading data from pretrain. Use DataDeps to download automatically, if a model is not downlaod. the string should be in `pretrain"<model>-<model-name>:<item>"` format.
+
+see also `Pretrain.pretrains()`.
+"""
 macro pretrain_str(name)
     :(load_pretrain($(esc(name))))
 end
 
+
+"""
+  load_pretrain(name; kw...)
+
+same as `@pretrain_str`, but can pass keyword argument if needed.
+"""
 function load_pretrain(name; kw...)
     lowered = lowercase(name)
     if startswith(lowered, "bert")
@@ -66,6 +80,12 @@ function load_pretrain(name; kw...)
     end
 end
 
+
+"""
+  pretrains(model::String = "")
+
+Show all available model.
+"""
 function pretrains(model::String = "")
     rows = [Any["model", "model name", "support items"]]
     if isempty(model)
