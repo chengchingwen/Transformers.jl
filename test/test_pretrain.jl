@@ -46,6 +46,7 @@ end
 
   for model ∈ model_list
     @testset_nokeep_data "$model" begin
+      GC.gc()
       @test_nowarn x = Transformers.Pretrain.@pretrain_str model
     end
   end
