@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.com/chengchingwen/Transformers.jl.svg?branch=master)](https://travis-ci.com/chengchingwen/Transformers.jl)
 [![Build status](https://ci.appveyor.com/api/projects/status/ns0x37a7sykjuhw0?svg=true)](https://ci.appveyor.com/project/chengchingwen/transformers-jl)
 [![codecov](https://codecov.io/gh/chengchingwen/Transformers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/chengchingwen/Transformers.jl)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://chengchingwen.github.io/Transformers.jl/dev/)
 
 Julia implementation of NLP models, that based on google [transformer](https://arxiv.org/abs/1706.03762), with [Flux.jl](https://github.com/FluxML/Flux.jl).
 For using the model, see `example` folder.
