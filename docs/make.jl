@@ -20,3 +20,7 @@ makedocs(sitename="Transformers.jl",
            "Datasets" => "datasets.md"
          ],
          )
+
+deploydocs(
+    repo = "github.com/chengchingwen/Transformers.jl.git",
+)

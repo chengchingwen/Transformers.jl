@@ -1,3 +1,5 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
+
+[compat]
+Documenter = "~0.23"
