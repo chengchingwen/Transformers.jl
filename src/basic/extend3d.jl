@@ -1,6 +1,6 @@
 using Base: tail
 
-using MacroTools: @forward
+using MacroTools: @forward, @capture
 using Flux: applychain
 
 """
@@ -11,22 +11,16 @@ and reshape back with reshape(out, :, input[n][2:end]...) where n is the n-th in
 
 """
 macro toNd(ex, outref::Int=1)
-    fname = esc(ex.args[1])
-    fkw = ex.args[2] isa Expr && ex.args[2].head == :parameters ? ex.args[2] : nothing
-    _targs = Tuple(ex.args)
-    fargs = esc.(fkw === nothing ? tail(_targs) : tail(tail(_targs)))
-    fsize = map(x->Expr(:call, :size, x), fargs)
-    rfargs = map((x, s) -> Expr(:call, :reshape, x, Expr(:ref, s, 1), :(:)), fargs, fsize)
-    func = fkw === nothing ? Expr(:call, fname, rfargs...) : Expr(:call, fname, fkw, rfargs...)
-    rsize = Expr(:call, :tail, fsize[outref])
-    ret = Expr(:call, :reshape, func, :(:), Expr(:..., rsize))
-    sT = gensym(:T)
-    Expr(:(::), ret, Expr(:where,
-                          Expr(:curly, :AbstractArray,
-                               sT,
-                               Expr(:call, :ndims, fargs[outref])),
-                          sT)
-         )
+    if @capture ex f_(xs__; kw__)
+        kwe = Expr(:parameters, kw...)
+    else
+        @capture ex f_(xs__)
+    end
+    rxs = map(xs) do x
+        :(reshape($x, size($x, 1), :))
+    end
+    newcall = kw === nothing ? Expr(:call, f, rxs...) : Expr(:call, f, kwe, rxs...)
+    :(reshape($newcall, :, Base.tail(size($(xs[outref])))...)) |> esc
 end
 
 """
