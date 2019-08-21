@@ -1,5 +1,5 @@
 """
-  load_bert_pretrain(path, sym = :all)
+    load_bert_pretrain(path, sym = :all)
 
 Loading bert data/model from pretrain bson data. use `sym` to determine which data to load.
 possible value: `:all`(default), `bert_model`, `wordpiece`, `tokenizer`.
