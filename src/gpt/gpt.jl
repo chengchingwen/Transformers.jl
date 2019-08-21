@@ -21,6 +21,11 @@ end
         act = gelu, pdrop = 0.1, attn_pdrop = 0.1)
 
 the Generative Pretrained Transformer(GPT) model.
+
+    (gpt::Gpt)(x::T, mask=nothing; all::Bool=false)
+
+eval the gpt layer on input `x`. If `mask` is given, mask the attention with `mask`. Moreover, set `all` to `true` to get all 
+outputs of each transformer layer.
 """
 function Gpt(size::Int, head::Int, ps::Int, layer::Int;
              act = gelu, pdrop = 0.1, attn_pdrop = 0.1)

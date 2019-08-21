@@ -33,7 +33,7 @@ end
 
 
 """
-  pretrain"model-description:item"
+    pretrain"model-description:item"
 
 convenient macro for loading data from pretrain. Use DataDeps to download automatically, if a model is not downlaod. the string should be in `pretrain"<model>-<model-name>:<item>"` format.
 
@@ -45,7 +45,7 @@ end
 
 
 """
-  load_pretrain(name; kw...)
+    load_pretrain(name; kw...)
 
 same as `@pretrain_str`, but can pass keyword argument if needed.
 """
@@ -82,7 +82,7 @@ end
 
 
 """
-  pretrains(model::String = "")
+    pretrains(model::String = "")
 
 Show all available model.
 """

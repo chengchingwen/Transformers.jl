@@ -9,9 +9,25 @@ Base.show(io::IO, wp::WordPiece) = print(io, "WordPiece(vocab_size=$(length(wp.v
 
 
 """
-  WordPiece(vocab::Vector{String}, unk::String = "[UNK]"; max_char::Int=200)
+    WordPiece(vocab::Vector{String}, unk::String = "[UNK]"; max_char::Int=200)
 
 WordPiece implementation.
+
+    (wp::WordPiece)(token)
+
+split given token.
+
+    (wp::WordPiece)(tokens::Vector{String})
+
+split given tokens
+
+    (wp::WordPiece)(type, tokens::Vector{String})
+
+split given tokens, if `type` is `Int`, return pieces indices instead of strings pieces.
+
+    (wp::WordPiece)(tks::Vector{T}, token::String)
+
+split given token and add result to `tks`. if `T` is `Int`, add indices instead of strings pieces.
 """
 WordPiece(vocab::Vector{String}, unk::String = "[UNK]"; max_char::Int=200) = WordPiece(vocab, findfirst(isequal(unk), vocab), max_char)
 
@@ -56,25 +72,10 @@ function (wq::_wp_equal{first})(s) where first
 end
 
 
-"""
-  (wp::WordPiece)(token)
-
-split given token
-"""
 (wp::WordPiece)(token) = wp(Vector{String}(), token)
 
-"""
-  (wp::WordPiece)(tokens::Vector{String})
-
-split given tokens
-"""
 (wp::WordPiece)(tokens::Vector{String}) = wp(String, tokens)
 
-"""
-  (wp::WordPiece)(type, tokens::Vector{String})
-
-split given tokens, if `type` is `Int`, return pieces indices instead of strings pieces.
-"""
 function (wp::WordPiece)(type::Type{T}, tokens::Vector{String}) where T
   tks = Vector{T}()
   sizehint!(tks, length(tokens))
@@ -84,11 +85,6 @@ function (wp::WordPiece)(type::Type{T}, tokens::Vector{String}) where T
   tks
 end
 
-"""
-  (wp::WordPiece)(tks::Vector{T}, token::String)
-
-split given token and add result to `tks`. if `T` is `Int`, add indices instead of strings pieces.
-"""
 function (wp::WordPiece)(tks::Vector{T}, token::String) where T
   s = 1
   tok_len = length(token)

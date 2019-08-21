@@ -20,4 +20,9 @@ function text_standardize(text)
     strip(text)
 end
 
+"""
+    gpt_tokenizer(x)
+
+An alternative for origin tokenizer (spacy tokenizer) used in gpt model.
+"""
 gpt_tokenizer(x) = toktok_tokenize(text_standardize(x))

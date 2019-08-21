@@ -1,9 +1,7 @@
 # Transformers.Basic
 Basic functionality of Transformers.jl, provide the Transformer encoder/decoder implementation and other convenient function.
 
-## Usage
-
-### Transformer
+## Transformer
 
 The `Transformer` and `TransformerDecoder` is the encoder and decoder block of the origin paper, and they are all implement as the 
 regular Flux Layer, so you can treat them just as the `Dense` layer. See the docstring for the argument. However, for the sequence 
@@ -21,7 +19,7 @@ y = m(x)
 ```
 
 
-### Positionwise
+## Positionwise
 
 For the sequential task, we need to handle the 3 dimensional input. However, most of the layer in Flux only support input with shape 
 `(hidden size, batch size)`. In order to tackle this problem, we implement the `Positionwise` helper function that is almost the same 
@@ -46,7 +44,7 @@ y = m(x)
 # y = cat(m(x1), m(x2), m(x3); dims=3)
 ```
 
-### PositionEmbedding
+## PositionEmbedding
 
 We implement two kinds of position embedding, one is based on the sin/cos function (mentioned in the paper, 
 attention is all you need). Another one is just like regular word embedding but with the position index. The 
@@ -69,24 +67,7 @@ y = x .+ e # add the position embedding to each sample
 
 ## API Reference
 
-### Basic Layers
-
-```@docs
-Transformer
-TransformerDecoder
-MultiheadAttention
-Embed
-PositionEmbedding
-```
-
-### Helper struct/function
-
-```@docs
-TransformerModel
-set_classifier
-clear_classifier
-Positionwise
-@toNd
-CompositeEmbedding
-Vocabulary
+```@autodocs
+Modules=[Transformers.Basic]
+Order = [:type, :function, :macro]
 ```

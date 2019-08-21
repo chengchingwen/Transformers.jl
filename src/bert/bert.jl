@@ -21,6 +21,12 @@ end
         act = gelu, pdrop = 0.1, attn_pdrop = 0.1)
 
 the Bidirectional Encoder Representations from Transformer(BERT) model.
+
+
+    (bert::Bert)(x, mask=nothing; all::Bool=false)
+
+eval the bert layer on input `x`. If `mask` is given, mask the attention with `mask`. Moreover, set `all` to `true` to get all 
+outputs of each transformer layer.
 """
 function Bert(size::Int, head::Int, ps::Int, layer::Int;
               act = gelu, pdrop = 0.1, attn_pdrop = 0.1)
@@ -40,12 +46,6 @@ function Bert(size::Int, head::Int, hs::Int, ps::Int, layer::Int; act = gelu, pd
     Dropout(pdrop))
 end
 
-"""
-  (bert::Bert)(x, mask=nothing; all::Bool=false)
-
-eval the bert layer on input `x`. If `mask` is given, mask the attention with `mask`. Moreover, set `all` to `true` to get all 
-outputs of each transformer layer.
-"""
 function (bert::Bert)(x::T, mask=nothing; all::Bool=false) where T
   e = bert.drop(x)
   t, ts = bert.ts(e)
@@ -58,8 +58,8 @@ function (bert::Bert)(x::T, mask=nothing; all::Bool=false) where T
 end
 
 """
-  masklmloss(embed::Embed{T}, transform, t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}
-  masklmloss(embed::Embed{T}, transform, output_bias, t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}
+    masklmloss(embed::Embed{T}, transform, t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}
+    masklmloss(embed::Embed{T}, transform, output_bias, t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}
 
 helper function for computing the maks language modeling loss. Performance `transform(x) .+ output_bias` where `x` is specified by 
 `posis`, then compute the similarity with `embed.embedding` and crossentropy between true `labels`.

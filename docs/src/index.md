@@ -68,12 +68,31 @@ function loss(src, trg, src_mask, trg_mask)
 end
 ```
 
+# Module Hierarchy
+
+- [Transformers.Basic](./basic.md)
+Basic functionality of Transformers.jl, provide the Transformer encoder/decoder implementation and other convenient function.
+
+- [Transformers.Pretrain](./pretrain.md)
+Functions for download and loading pretrain models.
+
+- [Transformers.Stacks](./stacks.md)
+Helper struct and DSL for stacking functions/layers.
+
+- [Transformers.Datasets](./datasets.md)
+Functions for loading some common Datasets
+
+- [Transformers.GenerativePreTrain](./gpt.md)
+Implementation of gpt-1 model
+
+- [Transformers.BidirectionalEncoder](./bert.md)
+Implementation of BERT model
+
 
 ## Outline
 
 ```@contents
 Pages = [
-  "index.md",
   "basic.md",
   "stacks.md",
   "pretrain.md",
@@ -81,5 +100,5 @@ Pages = [
   "bert.md",
   "datasets.md",
 ]
-Depth = 2
+Depth = 3
 ```

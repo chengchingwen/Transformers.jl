@@ -1,9 +1,7 @@
 # Transformers.Pretrain
 Functions for download and loading pretrain models.
 
-# Usage
-
-## Pretrain
+## using Pretrains
 
 For GPT and BERT, we provide a simple api to get the released pretrain weight and load them into our Julia version Transformer implementation. 
 
@@ -30,20 +28,28 @@ the `<model-name>`, and `<item>` should be exactly the one on the list. See `exa
 
 Currently support pretrain:
 
-model   | model name                        | support items                       
--------:|:----------------------------------|:------------------------------------
-GPT     | OpenAIftlm                        | gpt_model, bpe, vocab, tokenizer
-Bert    | uncased_L-24_H-1024_A-16          | bert_model, wordpiece, tokenizer
-Bert    | wwm_cased_L-24_H-1024_A-16        | bert_model, wordpiece, tokenizer
-Bert    | wwm_uncased_L-24_H-1024_A-16      | bert_model, wordpiece, tokenizer
-Bert    | multilingual_L-12_H-768_A-12      | bert_model, wordpiece, tokenizer
-Bert    | multi_cased_L-12_H-768_A-12       | bert_model, wordpiece, tokenizer
-Bert    | chinese_L-12_H-768_A-12           | bert_model, wordpiece, tokenizer
-Bert    | cased_L-24_H-1024_A-16            | bert_model, wordpiece, tokenizer
-Bert    | cased_L-12_H-768_A-12             | bert_model, wordpiece, tokenizer
-Bert    | uncased_L-12_H-768_A-12           | bert_model, wordpiece, tokenizer
+model   | model name                          | support items                       
+-------:|:------------------------------------|:------------------------------------
+GPT     | `OpenAIftlm`                        | gpt_model, bpe, vocab, tokenizer
+Bert    | `uncased_L-24_H-1024_A-16`          | bert_model, wordpiece, tokenizer
+Bert    | `wwm_cased_L-24_H-1024_A-16`        | bert_model, wordpiece, tokenizer
+Bert    | `wwm_uncased_L-24_H-1024_A-16`      | bert_model, wordpiece, tokenizer
+Bert    | `multilingual_L-12_H-768_A-12`      | bert_model, wordpiece, tokenizer
+Bert    | `multi_cased_L-12_H-768_A-12`       | bert_model, wordpiece, tokenizer
+Bert    | `chinese_L-12_H-768_A-12`           | bert_model, wordpiece, tokenizer
+Bert    | `cased_L-24_H-1024_A-16`            | bert_model, wordpiece, tokenizer
+Bert    | `cased_L-12_H-768_A-12`             | bert_model, wordpiece, tokenizer
+Bert    | `uncased_L-12_H-768_A-12`           | bert_model, wordpiece, tokenizer
 
 
 If you don't find a public pretrain you want on the list, please fire an issue.
 
 See `example` folder for the complete example.
+
+
+## API reference
+
+```@autodocs
+Modules=[Transformers.Pretrain]
+Order = [:type, :function, :macro]
+```

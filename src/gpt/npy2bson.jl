@@ -8,7 +8,7 @@ using Flux: loadparams!
 using BytePairEncoding
 
 """
-  openAInpy2bson(path; raw=false, saveto="./", startsym="_start_", delisym="_delimiter_", clfsym="_classify_", unksym="<unk>")
+    openAInpy2bson(path; raw=false, saveto="./", startsym="_start_", delisym="_delimiter_", clfsym="_classify_", unksym="<unk>")
 
 turn openai released gpt format(npy) into BSON file. Set `raw` to `true` to remain the origin data format in bson.
 """

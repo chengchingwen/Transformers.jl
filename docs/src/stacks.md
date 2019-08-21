@@ -1,7 +1,6 @@
 # Transformers.Stacks
 Helper struct and DSL for stacking functions/layers.
 
-# Example
 Take a simple encoder-decoder model construction of machine translation task. With `Transformers.jl` we can easily define/stack the models. 
 
 ```julia
@@ -42,8 +41,6 @@ end
 
 See `example` folder for the complete example.
 
-
-# Usage
 
 ## The Stack NNTopo DSL
 
@@ -86,7 +83,7 @@ y = g(f(f(f(f(x)))))
 # or 
 tmp = x
 for i = 1:4
-tmp = f(tmp)
+  tmp = f(tmp)
 end
 y = g(tmp)
 

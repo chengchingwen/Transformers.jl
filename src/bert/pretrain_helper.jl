@@ -2,6 +2,12 @@ using Random
 
 using WordTokenizers
 
+
+"""
+    recursive_readdir(path::AbstractString="./")
+
+recursive read all file from a dir. return a list of filenames.
+"""
 function recursive_readdir(path::AbstractString="./")
   ret = String[]
   for (root, dirs, files) in walkdir(path)
@@ -10,6 +16,27 @@ function recursive_readdir(path::AbstractString="./")
   ret
 end
 
+"""
+    bert_pretrain_task(datachn::Channel, wordpiece::WordPiece;
+                       buffer_size = 100,
+                       channel_size = 100
+                       wordpiece::WordPiece,
+                       sentences_pool = sentences;
+                       start_token = "[CLS]",
+                       sep_token = "[SEP]",
+                       mask_token = "[MASK]",
+                       mask_ratio = 0.15,
+                       real_token_ratio = 0.1,
+                       random_token_ratio = 0.1,
+                       whole_word_mask = false,
+                       next_sentence_ratio = 0.5,
+                       next_sentence = true,
+                       tokenizer = tokenize,
+                       istokenized = false,
+                       return_real_sentence = false)
+
+helper function to generate bert mask language modeling and next sentence prediction data. `datachn` is a `Channel` with input documents line by line.
+"""
 function bert_pretrain_task(datachn::Channel,
                        wordpiece::WordPiece;
                        buffer_size = 100,
