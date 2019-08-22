@@ -24,7 +24,7 @@ the Generative Pretrained Transformer(GPT) model.
 
     (gpt::Gpt)(x::T, mask=nothing; all::Bool=false)
 
-eval the gpt layer on input `x`. If `mask` is given, mask the attention with `mask`. Moreover, set `all` to `true` to get all 
+eval the gpt layer on input `x`. If length `mask` is given (in shape (1, seq_len, batch_size)), mask the attention with `mask`. Moreover, set `all` to `true` to get all 
 outputs of each transformer layer.
 """
 function Gpt(size::Int, head::Int, ps::Int, layer::Int;
@@ -47,7 +47,7 @@ function Gpt(size::Int, head::Int, hs::Int, ps::Int, layer::Int;
     )
 end
 
-function (gpt::Gpt)(x::T, mask=nothing; all::Bool=false)::T where T
+function (gpt::Gpt)(x::T, mask=nothing; all::Bool=false) where T
     e = gpt.drop(x)
     t, ts = gpt.ts(e)
     t = mask === nothing ? t : t .* mask
