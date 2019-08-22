@@ -48,12 +48,12 @@ Since the `TransformerDecoder` require more than one input, it's not convenient 
 DSL(Domain Specific Language) to handle the function structure. You can use the `@nntopo` macro to define the structure then call the function 
 with the given model.
 
-### NNTopo Syntax
+## NNTopo Syntax
 
 we call the DSL NNTopo for "Neural Network Topology", but actually it is just used to define where the input & output should be in a sequence of 
 function, or the complex version of the `|>` function in Julia.
 
-1.  "Chain" the functions
+### "Chain" the functions
 
 For example:
 
@@ -73,7 +73,7 @@ y = topo((g, f, h), x) #then call on the given functions
 each `=>` is a function call, left hand side is the input argument and right hand side is the output name.
 
 
-2.  Loop unrolling
+### Loop unrolling
 
 you can also unroll a loop:
 
@@ -92,7 +92,7 @@ topo = @nntopo x => 4 => y
 y = topo((f,f,f,f, g), x) # f can also be different
 ```
 
-3.  Multiple argument & jump connection
+### Multiple argument & jump connection
 
 As we metioned above, the original intention was to handle the case that we have more than one input & output. So, we can do this with the following syntax: 
 
@@ -123,7 +123,7 @@ print_topo(topo; models=(f, g, h, k))
 # end
 ```
 
-4.  Specify the variables you want
+### Specify the variables you want
 
 Notice that we use a `:` to seperate the input/output variables name for each function call, if the `:` is not present, we will by default assume 
 the output variables are all the inputs of the next function call. i.e. `x => (t1, t2) => y` is equal to `x => (t1, t2):(t1, t2) => y`. 
@@ -132,7 +132,7 @@ We can also return multiple variables, so the complete syntax can be viewed as:
     
         (input arguments):(function1 inputs) => (function1 outputs):(function2 inputs):(function2 outputs) => .... => (function_n outputs):(return variables)
 
-5.  Interpolation
+### Interpolation
 
 we also support interpolation, so you can use a variable to hold a substructure or the unroll number. But **notice** that the 
 interpolation variable should always be at the top level of the module since we can only get that value with `eval`. To use 
@@ -160,7 +160,7 @@ print_topo(topo)
 # end
 ```
 
-6.  Nested Structure
+### Nested Structure
 
 you can also use the `()` to create a nested structure for the unroll.
 
@@ -189,7 +189,7 @@ print_topo(topo)
 # end
 ```
 
-7. Collect Variables
+### Collect Variables
 
 you can also collect some variables that you are interested in with `'` on that variable. For example:
 
@@ -223,7 +223,7 @@ topo_func(model, x, y)
 end
 ```
 
-### Stack
+## Stack
 
 With the NNTopo DSL, now we can simple use the NNTopo with our Stack type, which is also like the `Chain` but we also need to pass in the 
 `topo` for the architecture. You can check the actual function call with `show_stackfunc`.
