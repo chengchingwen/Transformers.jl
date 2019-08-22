@@ -54,10 +54,13 @@ function Base.show(io::IO, mh::MultiheadAttention)
     end
 end
 
-function (mh::MultiheadAttention)(query::Abstract3DTensor{T},
-                                  key::Abstract3DTensor{T},
-                                  value::Abstract3DTensor{T};
-                                  mask=nothing) where T
+function (mh::MultiheadAttention)(query::A1,
+                                  key::A2,
+                                  value::A3;
+                                  mask=nothing) where {T,
+                                                           A1 <: Abstract3DTensor{T},
+                                                           A2 <: Abstract3DTensor{T},
+                                                           A3 <: Abstract3DTensor{T}}
     qs = size(query)
     ks = size(key)
     vs = size(value)
@@ -92,10 +95,14 @@ function (mh::MultiheadAttention)(query::Abstract3DTensor{T},
     out #size(out) == (h, q_seq_len, batch)
 end
 
-function (mh::MultiheadAttention)(query::AbstractMatrix{T},
-                                  key::AbstractMatrix{T},
-                                  value::AbstractMatrix{T};
-                                  mask=nothing) where T
+function (mh::MultiheadAttention)(query::A1,
+                                  key::A2,
+                                  value::A3;
+                                  mask=nothing) where {T,
+                                                           A1 <: AbstractMatrix{T},
+                                                           A2 <: AbstractMatrix{T},
+                                                           A3 <: AbstractMatrix{T}}
+
     # size(query) == (dims, seq_len)
     ipq = mh.iqproj(query)
     ipk = mh.ikproj(key)
@@ -148,11 +155,14 @@ end
 #     value * score #size(return) == (dims, q_seq_len)
 # end
 
-function attention(query::Abstract3DTensor{T},
-                   key::Abstract3DTensor{T},
-                   value::Abstract3DTensor{T};
-                   mask=nothing, future::Bool = false,
-                   dropout=nothing) where T
+@inline function attention(query::A1,
+                           key::A2,
+                           value::A3;
+                           mask=nothing, future::Bool = false,
+                           dropout=nothing) where {T,
+                                                       A1 <: Abstract3DTensor{T},
+                                                       A2 <: Abstract3DTensor{T},
+                                                       A3 <: Abstract3DTensor{T}}
     #size(query) == (dims, {q,k}_seq_len, batch) == size(key) == size(value)
     #size(score) == (k_seq_len, q_seq_len, batch)
     dk = size(key, 1)
