@@ -9,6 +9,7 @@ const tests = [
     "nntopo",
     "embed",
     "basic",
+    "gpt",
     "bert",
     "pretrain",
 ]

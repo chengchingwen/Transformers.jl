@@ -25,7 +25,7 @@ the Bidirectional Encoder Representations from Transformer(BERT) model.
 
     (bert::Bert)(x, mask=nothing; all::Bool=false)
 
-eval the bert layer on input `x`. If `mask` is given, mask the attention with `mask`. Moreover, set `all` to `true` to get all 
+eval the bert layer on input `x`. If length `mask` is given (in shape (1, seq_len, batch_size)), mask the attention with `getmask(mask, mask)`. Moreover, set `all` to `true` to get all 
 outputs of each transformer layer.
 """
 function Bert(size::Int, head::Int, ps::Int, layer::Int;
@@ -37,7 +37,7 @@ end
 function Bert(size::Int, head::Int, hs::Int, ps::Int, layer::Int; act = gelu, pdrop = 0.1, attn_pdrop = 0.1)
   Bert(
     Stack(
-      @nntopo_str("x':x => $layer"),
+      @nntopo_str("((x, m) => x':(x, m)) => $layer"),
       [
         Transformer(size, head, hs, ps; future=true, act=act, pdrop=attn_pdrop)
         for i = 1:layer
@@ -48,11 +48,22 @@ end
 
 function (bert::Bert)(x::T, mask=nothing; all::Bool=false) where T
   e = bert.drop(x)
-  t, ts = bert.ts(e)
-  t = mask === nothing ? t : t .* mask
-  if all
-    t, ts
+
+  if mask === nothing
+    t, ts = bert.ts(e, nothing)
   else
+    t, ts = bert.ts(e, getmask(mask, mask))
+  end
+
+  if all
+    if mask !== nothing
+      ts = map(ts) do ti
+        ti .* mask
+      end
+    end
+    ts[end], ts
+  else
+    t = mask === nothing ? t : t .* mask
     t
   end
 end
