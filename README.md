@@ -1,7 +1,6 @@
 # Transformers.jl
 
 [![Build Status](https://travis-ci.com/chengchingwen/Transformers.jl.svg?branch=master)](https://travis-ci.com/chengchingwen/Transformers.jl)
-[![Build status](https://ci.appveyor.com/api/projects/status/ns0x37a7sykjuhw0?svg=true)](https://ci.appveyor.com/project/chengchingwen/transformers-jl)
 [![codecov](https://codecov.io/gh/chengchingwen/Transformers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/chengchingwen/Transformers.jl)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://chengchingwen.github.io/Transformers.jl/dev/)
 
