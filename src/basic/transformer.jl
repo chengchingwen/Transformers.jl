@@ -64,11 +64,11 @@ function (t::Transformer)(x::AbstractArray{T, N}, mask=nothing) where {T, N}
         insize = size(res_a)
         res_a = reshape(res_a, insize[1], :)
     end
-    res_a = t.mhn(res_a)
+    res_a = t.mhn(res_a)::typeof(res_a)
     pwffn = t.pw(res_a)
     pwffn = t.drop(pwffn)
     res_pwffn = res_a .+ pwffn
-    res_pwffn = t.pwn(res_pwffn)
+    res_pwffn = t.pwn(res_pwffn)::typeof(res_pwffn)
     if N == 3
         res_pwffn = reshape(res_pwffn, :, Base.tail(insize)...)
     end
@@ -132,7 +132,7 @@ function (td::TransformerDecoder)(x::AbstractArray{T,N}, m, mask=nothing) where 
     a = td.mh(x,x,x)
     a = td.drop(a)
     res_a = x .+ a
-    res_a = N == 3 ? @toNd(td.mhn(res_a)) : td.mhn(res_a)
+    res_a = N == 3 ? @toNd(td.mhn(res_a)) : td.mhn(res_a)::typeof(res_a)
 
     ia = td.imh(res_a, m, m, mask=mask)
     ia = td.drop(ia)
