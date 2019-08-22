@@ -10,6 +10,7 @@ using Transformers.BidirectionalEncoder
 makedocs(sitename="Transformers.jl",
          pages = Any[
            "Home" => "index.md",
+           "Tutorial" => "tutorial.md",
            "Basic" => "basic.md",
            "Stacks" => "stacks.md",
            "Pretrain" => "pretrain.md",

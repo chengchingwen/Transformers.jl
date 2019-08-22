@@ -93,6 +93,7 @@ Implementation of BERT model
 
 ```@contents
 Pages = [
+  "tutorial.md",
   "basic.md",
   "stacks.md",
   "pretrain.md",

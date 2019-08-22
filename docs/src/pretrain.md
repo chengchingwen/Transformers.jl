@@ -11,6 +11,9 @@ using Transformers.Pretrain
 using Transformers.GenerativePreTrain
 using Transformers.BidirectionalEncoder
 
+# disable cli download check
+ENV["DATADEPS_ALWAYS_ACCEPT"] = true
+
 #load everything in the pretrain model
 bert_model, wordpiece, tokenizer = pretrain"Bert-uncased_L-12_H-768_A-12" 
 
@@ -20,6 +23,26 @@ gpt_model = pretrain"gpt-OpenAIftlm:gpt_model"
 #show the loaded model
 show(bert_model)
 show(gpt_model)
+```
+
+```
+TransformerModel{Bert}(
+  embed = CompositeEmbedding(tok = Embed(768), segment = Embed(768), pe = PositionEmbedding(768, max_len=512), postprocessor = Positionwise(LayerNorm(768), Dropout{Float64}(0.1, true))),
+  transformers = Bert(layers=12, head=12, head_size=64, pwffn_size=3072, size=768),
+  classifier = 
+    (
+      pooler => Dense(768, 768, tanh)
+      masklm => (
+        transform => Chain(Dense(768, 768, gelu), LayerNorm(768))
+        output_bias => TrackedArray{…,Array{Float32,1}}
+      )
+      nextsentence => Chain(Dense(768, 2), logsoftmax)
+    )
+)
+TransformerModel{Gpt}(
+  embed = CompositeEmbedding(tok = Embed(768), pe = PositionEmbedding(768, max_len=512)),
+  transformers = Gpt(layers=12, head=12, head_size=64, pwffn_size=3072, size=768)
+)
 ```
 
 The `pretrain"<model>-<model-name>:<item>"` string with `pretrain` prefix will load the specific item from a known pretrain file (see the list below). 
