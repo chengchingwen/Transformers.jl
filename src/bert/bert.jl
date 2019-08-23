@@ -69,10 +69,13 @@ function (bert::Bert)(x::T, mask=nothing; all::Bool=false) where T
 end
 
 """
-    masklmloss(embed::Embed{T}, transform, t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}
-    masklmloss(embed::Embed{T}, transform, output_bias, t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}
+    masklmloss(embed::Embed{T}, transform,
+               t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}
+    masklmloss(embed::Embed{T}, transform, output_bias,
+               t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}
 
-helper function for computing the maks language modeling loss. Performance `transform(x) .+ output_bias` where `x` is specified by 
+helper function for computing the maks language modeling loss. 
+Performance `transform(x) .+ output_bias` where `x` is the mask specified by 
 `posis`, then compute the similarity with `embed.embedding` and crossentropy between true `labels`.
 """
 function masklmloss(embed::Embed{T}, transform, t::AbstractArray{T, N}, posis::AbstractArray{Tuple{Int,Int}}, labels) where {T,N}

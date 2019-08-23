@@ -1,7 +1,13 @@
 """
-    load_gpt_pretrain(path::AbstractString, sym = :all; startsym="_start_", delisym="_delimiter_", clfsym="_classify_", unksym="<unk>")
+    load_gpt_pretrain(path::AbstractString, sym = :all;
+                      startsym="_start_",
+                      delisym="_delimiter_",
+                      clfsym="_classify_",
+                      unksym="<unk>")
 
-load gpt data/model from pretrain bson data. use `sym` to determine which data to load. set `<xxx>sym`s for setting special symbols in vocabulary.
+load gpt data/model from pretrain bson data. use `sym` to determine which data to load. 
+set `<xxx>sym`s for setting special symbols in vocabulary.
+
 possible value: `:all`(default), `gpt_model`, `bpe`, `vocab`, `tokenizer`.
 """
 function load_gpt_pretrain(path::AbstractString, sym = :all; kw...)

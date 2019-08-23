@@ -14,7 +14,12 @@ function named2tokenizer(name)
 end
 
 """
-    tfckpt2bson(path; raw=false, saveto="./", confname = "bert_config.json", ckptname = "bert_model.ckpt", vocabname = "vocab.txt")
+    tfckpt2bson(path;
+                raw=false,
+                saveto="./",
+                confname = "bert_config.json",
+                ckptname = "bert_model.ckpt",
+                vocabname = "vocab.txt")
 
 turn google released bert format into BSON file. Set `raw` to `true` to remain the origin data format in bson.
 """
