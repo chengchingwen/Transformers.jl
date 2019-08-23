@@ -34,8 +34,10 @@ end
 
 
 """
-    Transformer(size::Int, head::Int, ps::Int; future::Bool = true, act = relu, pdrop = 0.1)
-    Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true, act = relu, pdrop = 0.1)
+    Transformer(size::Int, head::Int, ps::Int;
+                future::Bool = true, act = relu, pdrop = 0.1)
+    Transformer(size::Int, head::Int, hs::Int, ps::Int;
+                future::Bool = true, act = relu, pdrop = 0.1)
 
 Transformer layer.
 

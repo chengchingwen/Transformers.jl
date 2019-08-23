@@ -1,8 +1,12 @@
 using Flux: @treelike
 
 """
-    TransformerModel(embed::AbstractEmbed, transformers::AbstractTransformer, classifier)
     TransformerModel(embed::AbstractEmbed, transformers::AbstractTransformer)
+    TransformerModel(
+                      embed::AbstractEmbed,
+                      transformers::AbstractTransformer,
+                      classifier
+                     )
 
 a structure for putting everything together
 """
