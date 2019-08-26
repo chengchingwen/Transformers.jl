@@ -79,7 +79,7 @@ const bert_model = gpu(
 )
 
 const ps = params(bert_model)
-const opt = ADAM(1e-4)
+const opt = ADAM(1e-6)
 
 function acc(p, label)
     pred = Flux.onecold(collect(p))
