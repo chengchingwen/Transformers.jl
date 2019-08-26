@@ -4,9 +4,7 @@
 [![codecov](https://codecov.io/gh/chengchingwen/Transformers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/chengchingwen/Transformers.jl)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://chengchingwen.github.io/Transformers.jl/dev/)
 
-Julia implementation of NLP models, that based on google [transformer](https://arxiv.org/abs/1706.03762), with [Flux.jl](https://github.com/FluxML/Flux.jl).
-For using the model, see `example` folder.
-
+Julia implementation of [transformer](https://arxiv.org/abs/1706.03762)-based models, with [Flux.jl](https://github.com/FluxML/Flux.jl).
 
 # Installation
 
@@ -30,50 +28,35 @@ For using GPU, install & build:
     .
 
 
-# Implemented model
-You can find the code in `example` folder.
-
--   [Attention is all you need](https://arxiv.org/abs/1706.03762)
--   [Improving Language Understanding by Generative Pre-Training](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
--   [BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding](https://arxiv.org/abs/1810.04805)
-
 # Example
-Take a simple encoder-decoder model construction of machine translation task. With `Transformers.jl` we can easily define/stack the models. 
+Using pretrained Bert with `Transformers.jl`.
 
 ```julia
 using Transformers
 using Transformers.Basic
+using Transformers.Pretrain
 
-encoder = Stack(
-    @nntopo(e → pe:(e, pe) → x → x → $N),
-    PositionEmbedding(512),
-    (e, pe) -> e .+ pe,
-    Dropout(0.1),
-    [Transformer(512, 8, 64, 2048) for i = 1:N]...
-)
+ENV["DATADEPS_ALWAYS_ACCEPT"] = true
 
-decoder = Stack(
-    @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
-    PositionEmbedding(512),
-    (e, pe) -> e .+ pe,
-    Dropout(0.1),
-    [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
-    Positionwise(Dense(512, length(labels)), logsoftmax)
-)
+bert_model, wordpiece, tokenizer = pretrain"bert-uncased_L-12_H-768_A-12"
+vocab = Vocabulary(wordpiece)
 
-function loss(src, trg, src_mask, trg_mask)
-    label = onehot(vocab, trg)
+text1 = "Peter Piper picked a peck of pickled peppers" |> tokenizer |> wordpiece
+text2 = "Fuzzy Wuzzy was a bear" |> tokenizer |> wordpiece
 
-    src = embedding(src)
-    trg = embedding(trg)
+text = ["[CLS]"; text1; "[SEP]"; text2; "[SEP]"]
+@assert text == [
+    "[CLS]", "peter", "piper", "picked", "a", "peck", "of", "pick", "##led", "peppers", "[SEP]", 
+    "fuzzy", "wu", "##zzy",  "was", "a", "bear", "[SEP]"
+]
 
-    mask = getmask(src_mask, trg_mask)
+token_indices = vocab(text)
+segment_indices = [fill(1, length(text1)+2); fill(2, length(text2)+1)]
 
-    enc = encoder(src)
-    dec = decoder(trg, enc, mask)
+sample = (tok = token_indices, segment = segment_indices)
 
-    loss = logkldivergence(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
-end
+bert_embedding = sample |> bert_model.embed
+feature_tensors = bert_embedding |> bert_model.transformers
 ```
 
 See `example` folder for the complete example.
@@ -91,7 +74,7 @@ See `example` folder for the complete example.
 
 ## What we will have in v0.2.0
 
--   The BERT model (since it's part of the JSoC 2019)
+-   The BERT model ([JSoC 2019](https://nextjournal.com/chengchingwen))
 -   tutorials
 -   complete GPT APIs
 -   GPT-2 model
@@ -108,22 +91,13 @@ See `example` folder for the complete example.
 
 ## Messy checklist
 
--   <code>[33%]</code> write docs
-    -   [X] docstring
-    -   [ ] examples
-    -   [ ] make docs site
--   [X] write test
 -   [ ] refactor code
 -   [ ] optimize performance
 -   [ ] better dataset API
 -   [ ] more datasets
--   <code>[75%]</code> openai gpt model
-    -   [X] model implementation
-    -   [X] loading pretrain
-    -   [X] model example
-    -   [ ] more util functions
+-   [X] openai gpt model
+-   [X] google bert model
 -   [ ] openai gpt-2 model
--   [ ] google bert model
 -   [ ] TPU support
 -   [ ] openai sparse transformer
 -   [ ] benchmarks
