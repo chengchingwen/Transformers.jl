@@ -122,3 +122,9 @@ end 512 320 "logo.svg"
   scale(1.15)
   logo(h, r, JULIA_RED, JULIA_PURPLE, JULIA_GREEN, false)
 end 512 320 "logo.png"
+
+@png begin
+  scale(2.2)
+  logo(h, r, JULIA_RED, JULIA_PURPLE, JULIA_GREEN, false)
+end 1024 640 "logolarge.png"
+
