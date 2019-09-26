@@ -41,7 +41,7 @@ for (gemm, elty) in
                                B::AbstractArray{$elty, 3},
                                beta::($elty),
                                C::AbstractArray{$elty, 3})
-            @assert !LinearAlgebra.BLAS.has_offset_axes(A, B, C)
+            @assert !Base.has_offset_axes(A, B, C)
             @assert size(A, 3) == size(B, 3) == size(C, 3) "batch size mismatch"
             m = size(A, transA == 'N' ? 1 : 2)
             ka = size(A, transA == 'N' ? 2 : 1)
