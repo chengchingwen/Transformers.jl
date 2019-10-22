@@ -14,7 +14,7 @@ const tests = [
     "pretrain",
 ]
 
-if v"1.0.0" <= VERSION  <= v"1.1.0"
+if v"1.0.0" <= VERSION  <= v"1.2.0"
     @test isempty(detect_ambiguities(Transformers, Transformers.GenerativePreTrain, Transformers.Basic, Transformers.Datasets))
 end
 
