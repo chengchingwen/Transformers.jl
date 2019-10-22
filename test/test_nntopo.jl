@@ -150,7 +150,8 @@ end
         close(outRead)
 
         redirect_stdout(STDOUT)
-        @test topo_string == """topo_func(model, x)
+        if v"1.0.0" <= VERSION  <= v"1.2.0"
+            @test topo_string == """topo_func(model, x)
 	y = model[1](x)
 	%1 = y
 	y = model[2](y)
@@ -163,6 +164,21 @@ end
 	(z, (%1, %2, %3, %4))
 end
 """
+        else
+            @test topo_string == """topo_func(model, x)
+	y = model[1](x)
+	%1 = y
+	y = model[2](y)
+	%2 = y
+	y = model[3](y)
+	%3 = y
+	y = model[4](y)
+	%4 = y
+	z = model[5](y)
+	(z, (var"%1", var"%2", var"%3", var"%4"))
+end
+"""
+        end
     end
 
 
@@ -177,7 +193,8 @@ end
         close(outRead)
 
         redirect_stdout(STDOUT)
-        @test topo_string == """topo_func(model, x, y)
+        if v"1.0.0" <= VERSION  <= v"1.2.0"
+            @test topo_string == """topo_func(model, x, y)
 	(a, b, c, d) = model[1](x, y)
 	%1 = d
 	(w, r, y) = model[2](a, b, c, d)
@@ -188,5 +205,18 @@ end
 	(z, (%1, %2, %3))
 end
 """
+        else
+            @test topo_string == """topo_func(model, x, y)
+	(a, b, c, d) = model[1](x, y)
+	%1 = d
+	(w, r, y) = model[2](a, b, c, d)
+	%2 = (w, r)
+	(m, n) = model[3](w, r, y)
+	%3 = (m, n)
+	z = model[4](m, n)
+	(z, (var"%1", var"%2", var"%3"))
+end
+"""
+        end
     end
 end
