@@ -26,6 +26,7 @@ end
     end
 
     if Base.find_package("CuArrays") != nothing
+        @info "Test CUDA"
         include("test_cuda.jl")
     end
 end
