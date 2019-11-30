@@ -8,11 +8,11 @@ struct Embed{F ,W <: AbstractArray{F}} <: AbstractEmbed{F}
     embedding::W
 end
 
-@treelike Embed
+Flux.functor(e::Embed) = e.embedding, m -> Embed(e.scale, m)
 
 Base.size(e::Embed, s...) = size(e.embedding, s...)
 
-Embed(size::Int, vocab_size::Int; scale = one(Float32)) = Embed(Float32(scale), param(randn(Float32, size, vocab_size)))
+Embed(size::Int, vocab_size::Int; scale = one(Float32)) = Embed(Float32(scale), randn(Float32, size, vocab_size))
 
 function (e::Embed)(x::AbstractArray{Int})
     if isone(e.scale)

@@ -1,5 +1,5 @@
 using Flux
-using Flux: @treelike
+using Flux: @functor
 
 abstract type AbstractTransformer end
 
@@ -8,7 +8,7 @@ struct PwFFN
     dout::Dense
 end
 
-@treelike PwFFN
+@functor PwFFN
 
 
 "just a wrapper for two dense layer."
@@ -30,7 +30,7 @@ struct Transformer <: AbstractTransformer
     drop::Dropout
 end
 
-@treelike Transformer
+@functor Transformer
 
 
 """
@@ -66,11 +66,11 @@ function (t::Transformer)(x::AbstractArray{T, N}, mask=nothing) where {T, N}
         insize = size(res_a)
         res_a = reshape(res_a, insize[1], :)
     end
-    res_a = t.mhn(res_a)::typeof(res_a)
+    res_a = t.mhn(res_a)
     pwffn = t.pw(res_a)
     pwffn = t.drop(pwffn)
     res_pwffn = res_a .+ pwffn
-    res_pwffn = t.pwn(res_pwffn)::typeof(res_pwffn)
+    res_pwffn = t.pwn(res_pwffn)
     if N == 3
         res_pwffn = reshape(res_pwffn, :, Base.tail(insize)...)
     end
@@ -86,7 +86,7 @@ function Base.show(io::IO, t::Transformer)
     print(io, "head_size=$(hs), ")
     print(io, "pwffn_size=$(ps), ")
     print(io, "size=$(h)")
-    if t.drop.active
+    if Flux.istraining()
         print(io, ", dropout=$(t.drop.p))")
     else
         print(io, ")")
@@ -103,7 +103,7 @@ struct TransformerDecoder <: AbstractTransformer
     drop::Dropout
 end
 
-@treelike TransformerDecoder
+@functor TransformerDecoder
 
 """
     TransformerDecoder(size::Int, head::Int, ps::Int; act = relu, pdrop = 0.1)
@@ -134,7 +134,7 @@ function (td::TransformerDecoder)(x::AbstractArray{T,N}, m, mask=nothing) where 
     a = td.mh(x,x,x)
     a = td.drop(a)
     res_a = x .+ a
-    res_a = N == 3 ? @toNd(td.mhn(res_a)) : td.mhn(res_a)::typeof(res_a)
+    res_a = N == 3 ? @toNd(td.mhn(res_a)) : td.mhn(res_a)
 
     ia = td.imh(res_a, m, m, mask=mask)
     ia = td.drop(ia)
@@ -164,7 +164,7 @@ function Base.show(io::IO, td::TransformerDecoder)
     print(io, "head_size=$(hs), ")
     print(io, "pwffn_size=$(ps), ")
     print(io, "size=$(h)")
-    if td.drop.active
+    if Flux.istraining()
         print(io, ", dropout=$(td.drop.p))")
     else
         print(io, ")")

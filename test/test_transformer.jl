@@ -16,6 +16,8 @@
 
     @test_nowarn td(y, x, m)
 
+
+    Flux.istraining() = true
     let STDOUT = stdout
         (outRead, outWrite) = redirect_stdout()
         print(outWrite, t)
@@ -55,9 +57,7 @@
         @test output_string == "TransformerDecoder(head=3, head_size=15, pwffn_size=20, size=10, dropout=0.1)"
     end
 
-    Flux.testmode!(t, true)
-    Flux.testmode!(td, true)
-
+    Flux.istraining() = false
     let STDOUT = stdout
         (outRead, outWrite) = redirect_stdout()
         print(outWrite, t)

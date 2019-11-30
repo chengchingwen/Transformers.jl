@@ -1,6 +1,5 @@
 using Flux
-using Flux: @treelike
-using Flux.Tracker: data
+using Flux: @functor
 using LinearAlgebra: tril!
 
 abstract type AbstractAttention end
@@ -15,7 +14,7 @@ struct MultiheadAttention <: AbstractAttention
     drop::Dropout
 end
 
-@treelike MultiheadAttention
+@functor MultiheadAttention
 
 """
     MultiheadAttention(head::Int, is::Int, hs::Int, os::Int;
@@ -50,7 +49,7 @@ function Base.show(io::IO, mh::MultiheadAttention)
     print(io, "head_size=$(hs), ")
     print(io, "$(is)=>$(os)")
 
-    if mh.drop.active
+    if Flux.istraining()
         print(io, ", dropout=$(mh.drop.p))")
     else
         print(io, ")")

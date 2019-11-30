@@ -43,9 +43,3 @@ for op = [:add, :sub, :max, :min]
         return ys
     end
 end
-
-@init @require CuArrays="3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin
-    using .CuArrays
-    using .CuArrays.CUDAnative
-    include("./scatter_gpu.jl")
-end

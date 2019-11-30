@@ -10,7 +10,7 @@ mutable struct PositionEmbedding{F, W <: AbstractArray{F}} <: AbstractBroadcastE
     embedding::W
 end
 
-@treelike PositionEmbedding
+@functor PositionEmbedding
 
 get_value(e::PositionEmbedding, name::Symbol, xs::NamedTuple) = e(first(xs))
 
@@ -24,7 +24,7 @@ end
 
 function PositionEmbedding(size::Int, max_len::Int = 1024; trainable::Bool = false)
     if trainable
-        embedding = param(randn(Float32, size, max_len))
+        embedding = randn(Float32, size, max_len)
     else
         embedding = Matrix{Float32}(undef, size, max_len)
         for l = 1:max_len

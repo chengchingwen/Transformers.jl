@@ -1,9 +1,7 @@
 include("./batched_gemm.jl")
 
-using Flux.Tracker
-using Flux.Tracker: TrackedArray, track, data, @grad
+using ZygoteRules: @adjoint
 
-const Tracked3D{T,A} = TrackedArray{T,3,A}
 
 function batchedmul(a::Abstract3DTensor{T}, b::Abstract3DTensor{T};
                     transA::Bool = false, transB::Bool = false) where {T}
@@ -21,23 +19,19 @@ function batched_mul!(C::Abstract3DTensor{T}, A::Abstract3DTensor{T}, B::Abstrac
     C
 end
 
-batchedmul(a::Tracked3D, b::Tracked3D; kw...) = track(batchedmul, a, b; kw...)
-batchedmul(a::Abstract3DTensor, b::Tracked3D; kw...) = track(batchedmul, a, b; kw...)
-batchedmul(a::Tracked3D, b::Abstract3DTensor; kw...) = track(batchedmul, a, b; kw...)
-
-@grad function batchedmul(a::Abstract3DTensor, b::Abstract3DTensor; transA::Bool = false, transB::Bool = false)
-    batchedmul(data(a), data(b); transA=transA, transB=transB),
+@adjoint function batchedmul(a::Abstract3DTensor, b::Abstract3DTensor; transA::Bool = false, transB::Bool = false)
+    batchedmul(a, b; transA=transA, transB=transB),
     if transA
         if transB
-            Δ -> (batchedmul(data(b), Δ; transA=true, transB=true), batchedmul(Δ, data(a); transA=true, transB=true))
+            Δ -> (batchedmul(b, Δ; transA=true, transB=true), batchedmul(Δ, a; transA=true, transB=true))
         else
-            Δ -> (batchedmul(data(b), Δ; transB=true), batchedmul(data(a), Δ))
+            Δ -> (batchedmul(b, Δ; transB=true), batchedmul(a, Δ))
         end
     else
         if transB
-            Δ -> (batchedmul(Δ, data(b)), batchedmul(Δ, data(a); transA=true))
+            Δ -> (batchedmul(Δ, b), batchedmul(Δ, a; transA=true))
         else
-            Δ -> (batchedmul(Δ, data(b); transB=true), batchedmul(data(a), Δ; transA=true))
+            Δ -> (batchedmul(Δ, b; transB=true), batchedmul(a, Δ; transA=true))
         end
     end
 end

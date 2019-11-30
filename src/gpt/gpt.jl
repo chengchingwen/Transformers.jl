@@ -1,4 +1,4 @@
-using Flux: @treelike
+using Flux: @functor
 using MacroTools: @forward
 
 using ..Basic
@@ -10,7 +10,7 @@ struct Gpt <: AbstractTransformer
     drop::Dropout
 end
 
-@treelike Gpt
+@functor Gpt
 
 @forward Gpt.ts Base.getindex, Base.length
 
