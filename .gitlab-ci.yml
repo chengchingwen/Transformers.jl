@@ -1,7 +1,8 @@
 include:
   - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v6.yml'
 
-image: juliagpu/cuda:10.1-cudnn7-cutensor1-devel-ubuntu18.04
+
+image: "juliagpu/julia:${CI_VERSION_TAG}-cuda"
 
 .gpu:
   extends: .test
@@ -21,6 +22,8 @@ julia:1.0:
     - .gpu
   tags:
     - nvidia
+  variables:
+    CI_VERSION_TAG: 'v1.0'
 
 julia:1.1:
   extends:
@@ -28,6 +31,8 @@ julia:1.1:
     - .gpu
   tags:
     - nvidia
+  variables:
+    CI_VERSION_TAG: 'v1.1'
 
 julia:1.2:
   extends:
@@ -35,6 +40,8 @@ julia:1.2:
     - .gpu
   tags:
     - nvidia
+  variables:
+    CI_VERSION_TAG: 'v1.2'
 
 julia:1.3:
   extends:
@@ -42,6 +49,8 @@ julia:1.3:
     - .gpu
   tags:
     - nvidia
+  variables:
+    CI_VERSION_TAG: 'v1.3'
   allow_failure: true
 
 julia:nightly:
@@ -50,6 +59,8 @@ julia:nightly:
     - .gpu
   tags:
     - nvidia
+  variables:
+    CI_VERSION_TAG: 'dev'
   allow_failure: true
 
 coverage:
