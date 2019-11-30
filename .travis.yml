@@ -21,10 +21,9 @@ branch:
   only:
     - master
 
-
 script: 
  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
- - julia --project -e 'using Pkg; Pkg.resolve(); Pkg.build(); Pkg.test(; coverage=true)';
+ - julia --project -e 'using Pkg; v"1.0" <= VERSION < v"1.2" && Pkg.add(PackageSpec(name="MbedTLS", version="0.6.8")) ; Pkg.build(); Pkg.test(; coverage=true)';
 
 after_success:
   - julia -e 'using Pkg; cd(Pkg.dir("Transformers")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
@@ -34,7 +33,6 @@ notifications:
 
 git:
   depth: 99999999
-
 
 jobs:
   include:
