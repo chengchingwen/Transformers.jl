@@ -20,13 +20,11 @@
     ca = randn(512,  40000)
     cb = OneHotArray(40000, ones(Int, 20))
 
-    using Flux: back!, param
-    pca = param(ca)
-
-    z = pca * cb
-    back!(sum(z))
     fa = zeros(Float32, size(ca))
     fa[:, 1] .= 20
-    @test pca.grad == fa
-
+    pca_grad = gradient(ca) do pca
+      z = pca * cb
+      sum(z)
+    end
+    @test pca_grad[1] == fa
 end

@@ -37,8 +37,7 @@ end
 @forward Positionwise.models Base.getindex, Base.length, Base.first, Base.last,
   Base.iterate, Base.lastindex
 
-Flux.children(pw::Positionwise) = pw.models
-Flux.mapchildren(f, pw::Positionwise) = Positionwise(f.(pw.models)...)
+Flux.functor(pw::Positionwise) = pw.models, m -> Positionwise(m...)
 
 (pw::Positionwise)(x::A) where A <: AbstractMatrix = applychain(pw.models, x)
 function (pw::Positionwise)(x)

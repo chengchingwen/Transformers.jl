@@ -1,12 +1,16 @@
 @testset "Gather" begin
-    w = cu(randn(10,10))
-    wh = cu(randn(10,5,4,3))
+    w = randn(Float32, 10,10)
+    wh = randn(Float32, 10,5,4,3)
+
+    cuw = cu(w)
+    cuwh = cu(wh)
 
     ind = rand(1:10, 3,5)
 
-    @test gather(w, todevice([3,5,7])) == hcat(map(i->w[:, i], [3,5,7])...)
-    @test gather(w, todevice(ind)) == cat(map(j-> hcat(map(i->w[:, i], ind[:,j])...), 1:5)...; dims=3)
-    @test gather(wh, todevice([(5,3,3) (2,1,2); (5,4,1) (4,2,1)])) == begin
+    @test (gather(cuw, todevice([3,5,7])) |> collect) == hcat(map(i->w[:, i], [3,5,7])...)
+    @test (gather(cuw, todevice(ind)) |> collect) ==
+        cat(map(j-> hcat(map(i->w[:, i], ind[:,j])...), 1:5)...; dims=3)
+    @test (gather(cuwh, todevice([(5,3,3) (2,1,2); (5,4,1) (4,2,1)])) |> collect) == begin
         a = wh[:, 5, 3, 3]
         b = wh[:, 2, 1, 2]
         c = wh[:, 5, 4, 1]
@@ -17,15 +21,14 @@
     end
 
 
-    ca = cu(randn(512,  40000))
-    cb = todevice(OneHotArray(40000, ones(Int, 20)))
+    ca = cu(randn(5,  30))
+    cb = todevice(OneHotArray(30, ones(Int, 20)))
 
-    using Flux: back!, param
-    pca = param(ca)
-
-    z = pca * cb
-    back!(sum(z))
     fa = zeros(Float32, size(ca))
     fa[:, 1] .= 20
-    @test collect(pca.grad) == fa
+    pca_grad = gradient(ca) do pca
+        z = pca * cb
+      sum(z)
+    end
+    @test collect(pca_grad[1]) == fa
 end

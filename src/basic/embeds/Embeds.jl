@@ -1,4 +1,4 @@
-using Flux: @treelike
+using Flux: @functor
 import Flux
 import Base
 

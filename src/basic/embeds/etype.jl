@@ -23,8 +23,8 @@ function CompositeEmbedding(;postprocessor=identity, es...)
   CompositeEmbedding(emb, agg, postprocessor)
 end
 
-Flux.children(ce::CompositeEmbedding) = tuple(values(ce.embeddings)..., ce.postprocessor)
-Flux.mapchildren(f, ce::CompositeEmbedding) = CompositeEmbedding(map(e->f(e), ce.embeddings), ce.aggregator, f(ce.postprocessor))
+Flux.functor(ce::CompositeEmbedding) = (postprocessor = ce.postprocessor, ce.embeddings...),
+m -> CompositeEmbedding(Base.tail(m), ce.aggregator, Base.first(m))
 
 function Base.show(io::IO, e::CompositeEmbedding)
     names = keys(e.embeddings)

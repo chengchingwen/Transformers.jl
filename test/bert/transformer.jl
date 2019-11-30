@@ -1,6 +1,5 @@
 @testset "Transformer" begin
   bert = Bert(300, 10, 500, 3)
-  Flux.testmode!(bert)
 
   x = randn(Float32, 300, 5, 2)
   x1 = x[:,:,1]

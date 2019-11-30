@@ -12,8 +12,7 @@ struct Stack{T<:Tuple, FS}
     Stack(topo::NNTopo{FS}, xs...) where FS = new{typeof(xs), FS}(xs, topo)
 end
 
-Flux.children(s::Stack) = s.models
-Flux.mapchildren(f, s::Stack) = Stack(s.topo, f.(s.models)...)
+Flux.functor(s::Stack) = s.models, m -> Stack(s.topo, m...)
 
 (s::Stack)(xs...) = s.topo(s.models, xs...)
 

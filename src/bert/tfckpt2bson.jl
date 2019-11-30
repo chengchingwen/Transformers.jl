@@ -196,10 +196,10 @@ function load_bert_from_tfbson(config, weights)
                 config["hidden_size"]
             )
         ),
-        output_bias = param(randn(
+        output_bias = randn(
             Float32,
             config["vocab_size"]
-        ))
+        )
     )
 
     nextsentence = Chain(

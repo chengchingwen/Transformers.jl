@@ -1,4 +1,4 @@
-using Flux: @treelike
+using Flux: @functor
 using MacroTools: @forward
 
 using ..Basic
@@ -10,7 +10,7 @@ struct Bert <: AbstractTransformer
   drop::Dropout
 end
 
-@treelike Bert
+@functor Bert
 
 @forward Bert.ts Base.getindex, Base.length
 

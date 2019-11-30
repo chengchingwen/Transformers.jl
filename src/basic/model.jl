@@ -1,4 +1,4 @@
-using Flux: @treelike
+using Flux: @functor
 
 """
     TransformerModel(embed::AbstractEmbed, transformers::AbstractTransformer)
@@ -18,7 +18,7 @@ end
 
 TransformerModel(embed, transformers) = TransformerModel(embed, transformers, identity)
 
-@treelike TransformerModel
+@functor TransformerModel
 
 """
     set_classifier(model::TransformerModel, classifier)

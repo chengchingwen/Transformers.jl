@@ -20,20 +20,12 @@ const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
 todevice(x) = x
 todevice(x, xs...) = (x, xs...)
 
-@init @require CuArrays="3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin
-    import .CuArrays
+using CuArrays
+const use_cuda = Ref(false)
 
-    todevice(x) = CuArrays.cu(x)
-    todevice(x, xs...) = (todevice(x), todevice.(xs)...)
-    todevice(x::Union{Tuple, NamedTuple}) = map(todevice, x)
-    todevice(x::AbstractArray{Int}) = CuArrays.CuArray(x)
-end
 
 #implement batchmul for flux
 include("./fix/batchedmul.jl")
-
-#dropout noise shape impl
-include("./fix/dropout.jl")
 
 #scatter/gather with atomic ops
 include("./fix/atomic.jl")
@@ -56,6 +48,22 @@ using .Datasets
 using .Pretrain
 using .GenerativePreTrain
 using .BidirectionalEncoder
+
+
+function __init__()
+  precompiling = ccall(:jl_generating_output, Cint, ()) != 0
+
+  # we don't want to include the CUDA module when precompiling,
+  # or we could end up replacing it at run time (triggering a warning)
+  precompiling && return
+
+  if !CuArrays.functional()
+    # nothing to do here, and either CuArrays or one of its dependencies will have warned
+  else
+    use_cuda[] = true
+    include(joinpath(@__DIR__, "cuda/cuda.jl"))
+  end
+end
 
 
 end # module
