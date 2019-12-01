@@ -8,7 +8,7 @@ struct Embed{F ,W <: AbstractArray{F}} <: AbstractEmbed{F}
     embedding::W
 end
 
-Flux.functor(e::Embed) = e.embedding, m -> Embed(e.scale, m)
+Flux.functor(e::Embed) = (e.embedding,), m -> Embed(e.scale, m...)
 
 Base.size(e::Embed, s...) = size(e.embedding, s...)
 
