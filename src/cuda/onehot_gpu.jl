@@ -2,7 +2,7 @@ import Flux: OneHotVector
 import CuArrays: cudaconvert
 import Base.Broadcast: BroadcastStyle, ArrayStyle
 
-import .Basic: indices2onehot, onehot2indices, tofloat
+import .Basic: indices2onehot, onehot2indices, tofloat, _labelindex
 
 Base.similar(o::OneHotArray{N, <:CuArray}) where N = similar(o, size(o))
 Base.similar(o::OneHotArray{N, <:CuArray}, dims::NTuple{N, Int}) where N = similar(o, Bool, dims)
