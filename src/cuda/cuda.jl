@@ -1,10 +1,10 @@
 using CuArrays
 using CUDAnative
 
-todevice(x) = CuArrays.cu(x)
-todevice(x, xs...) = (todevice(x), todevice.(xs)...)
-todevice(x::Union{Tuple, NamedTuple}) = map(todevice, x)
-todevice(x::AbstractArray{Int}) = CuArrays.CuArray(x)
+togpudevice(x) = gpu(x)
+togpudevice(x, xs...) = (todevice(x), map(todevice, xs)...)
+togpudevice(x::Union{Tuple, NamedTuple}) = map(todevice, x)
+togpudevice(x::AbstractArray{Int}) = CuArrays.CuArray(x)
 
 include("./scatter_gpu.jl")
 include("./statistic.jl")
