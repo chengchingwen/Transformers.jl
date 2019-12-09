@@ -9,20 +9,34 @@ export Stack, @nntopo_str, @nntopo
 
 export dataset, datafile, get_batch, get_vocab
 
-export todevice
+export todevice, enable_gpu
 export Gpt
 export Bert
 
 const Abstract3DTensor{T} = AbstractArray{T, 3}
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
 
-"move data to device, when CuArrays is loaded, basically = `CuArrays.cu` except `AbstractArray{Int}` become `CuArray{Int}`"
-todevice(x) = x
-todevice(x, xs...) = (x, xs...)
-
 using CuArrays
+const has_cuda = Ref(false)
 const use_cuda = Ref(false)
 
+"""
+  enable_gpu(t=true)
+
+enable gpu for todevice, disable with `enable_gpu(false)`.
+"""
+enable_gpu(t::Bool=true) = !has_cuda[] && t ? error("CuArrays not functional") : (use_cuda[] = t)
+
+"""
+  todevice(x)
+
+move data to device, only when gpu is enable with `enable_gpu`, basically equal `Flux.gpu` except `AbstractArray{Int}` become `CuArray{Int}`. Otherwise equal `Flux.cpu`
+"""
+todevice(args...) = use_cuda[] ? togpudevice(args...) : tocpudevice(args...)
+
+tocpudevice(x) = cpu(x)
+tocpudevice(x, xs...) = (x, map(cpu, xs)...)
+togpudevice(x...) = error("CuArrays not functional")
 
 #implement batchmul for flux
 include("./fix/batchedmul.jl")
@@ -60,7 +74,7 @@ function __init__()
   if !CuArrays.functional()
     # nothing to do here, and either CuArrays or one of its dependencies will have warned
   else
-    use_cuda[] = true
+    has_cuda[] = true
     include(joinpath(@__DIR__, "cuda/cuda.jl"))
   end
 end
