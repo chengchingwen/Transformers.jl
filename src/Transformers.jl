@@ -54,8 +54,9 @@ tocpudevice(x) = cpu(x)
 tocpudevice(x, xs...) = (x, map(cpu, xs)...)
 togpudevice(x...) = error("CuArrays not functional")
 
-#implement batchmul for flux
+#implement batchmul, batchtril for flux
 include("./fix/batchedmul.jl")
+include("./fix/batched_tril.jl")
 
 #scatter/gather with atomic ops
 include("./fix/atomic.jl")
