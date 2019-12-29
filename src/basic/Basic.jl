@@ -4,7 +4,7 @@ using Flux
 using Requires
 using Requires: @init
 
-using ..Transformers: Abstract3DTensor, Container, epsilon, batchedmul, scatter_add!
+using ..Transformers: Abstract3DTensor, Container, epsilon, batchedmul, scatter_add!, batched_tril!
 
 export CompositeEmbedding, TransformerModel, set_classifier, clear_classifier
 export PositionEmbedding, Embed, getmask,

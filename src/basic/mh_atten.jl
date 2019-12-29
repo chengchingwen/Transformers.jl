@@ -1,8 +1,26 @@
 using Flux
 using Flux: @functor
+
 using LinearAlgebra: tril!
 
 abstract type AbstractAttention end
+
+using ZygoteRules: AContext
+import ZygoteRules: _pullback
+
+function create_atten_mask(T::Type, mask::AbstractArray, future::Bool=false)
+  #size(mask) == (q, k, n, b)
+
+  ql, kl = size(mask)
+  mask = copy(mask)
+
+  maskval = convert(T, -1e9)
+  !future && batched_tril!(mask, -1)
+  mask .= (1 .- mask) .* maskval
+  return mask
+end
+
+Flux.@nograd create_atten_mask
 
 struct MultiheadAttention <: AbstractAttention
     head::Int
@@ -14,7 +32,7 @@ struct MultiheadAttention <: AbstractAttention
     drop::Dropout
 end
 
-@functor MultiheadAttention
+Flux.functor(mh::MultiheadAttention) = (mh.iqproj, mh.ikproj, mh.ivproj, mh.oproj), m -> MultiheadAttention(mh.head, mh.future, m..., mh.drop)
 
 """
     MultiheadAttention(head::Int, is::Int, hs::Int, os::Int;
@@ -60,9 +78,9 @@ function (mh::MultiheadAttention)(query::A1,
                                   key::A2,
                                   value::A3;
                                   mask=nothing) where {T,
-                                                           A1 <: Abstract3DTensor{T},
-                                                           A2 <: Abstract3DTensor{T},
-                                                           A3 <: Abstract3DTensor{T}}
+                                                       A1 <: Abstract3DTensor{T},
+                                                       A2 <: Abstract3DTensor{T},
+                                                       A3 <: Abstract3DTensor{T}}
     qs = size(query)
     ks = size(key)
     vs = size(value)
@@ -85,8 +103,8 @@ function (mh::MultiheadAttention)(query::A1,
     ipk = reshape(ipk, hs, ks[2], :)
     ipv = reshape(ipv, hs, vs[2], :)
 
-    atten = attention(ipq,ipk,ipv;
-                      mask=mask,
+    atten = attention!(ipq,ipk,ipv,
+                      mask;
                       future=mh.future,
                       dropout=mh.drop)
 
@@ -157,10 +175,10 @@ end
 #     value * score #size(return) == (dims, q_seq_len)
 # end
 
-@inline function attention(query::A1,
+@inline function attention!(query::A1,
                            key::A2,
-                           value::A3;
-                           mask=nothing, future::Bool = false,
+                           value::A3,
+                           mask; future::Bool = false,
                            dropout=nothing) where {T,
                                                        A1 <: Abstract3DTensor{T},
                                                        A2 <: Abstract3DTensor{T},
@@ -172,21 +190,18 @@ end
     score = score ./ convert(T, sqrt(dk))
 
     s = size(score)
-
     if mask !== nothing
-        #weird issue on @. mask = (1 - mask) * -1e9 which casue mask to be -Inf
-        mask = (1 .- mask) .* convert(T, -1e9)
         ms = size(mask)
-        #score = score .+ mask; use broadcast instead of repeat mask for head
-        score = reshape(reshape(score, s[1:end-1]..., :, ms[end]) .+ reshape(mask, ms[1:end-1]..., 1, ms[end]), s)
-    end
 
-    if !future
-        #without ... will cause data move back to cpu
-        fmask = tril!(fill!(similar(score, s[1:end-1]...), convert(T, -1e9)), -1)
-        score = score .+ fmask
+        if s[end] == ms[end]
+            score = score .+ create_atten_mask(T, mask, future)
+        else
+            bxn = s[end]
+            b = ms[end]
+            score = reshape(reshape(score, s[1:end-1]..., :, b) .+ reshape(create_atten_mask(T, mask, future), ms[1:end-1]..., 1, b), s)
+        end
     end
-
+    
     score = @toNd softmax(score) #reshape(softmax(reshape(score, s[1], :)) , s)
     dropout !== nothing && (score = dropout(score))
     batchedmul(value, score) #size(return) == (dims, q_seq_len, batch)
