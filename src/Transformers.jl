@@ -16,6 +16,22 @@ export Bert
 const Abstract3DTensor{T} = AbstractArray{T, 3}
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
 
+const ϵ = Ref(1e-8)
+
+"""
+    set_ϵ(x)
+
+set the ϵ value
+"""
+set_ϵ(x) = (ϵ[] = x; x)
+
+"""
+    epsilon(T)
+
+get the ϵ value in type T
+"""
+epsilon(::Type{T}) where T = convert(T, ϵ[])
+
 using CuArrays
 const has_cuda = Ref(false)
 const use_cuda = Ref(false)
