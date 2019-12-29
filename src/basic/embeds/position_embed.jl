@@ -10,7 +10,7 @@ mutable struct PositionEmbedding{F, W <: AbstractArray{F}} <: AbstractBroadcastE
     embedding::W
 end
 
-@functor PositionEmbedding
+Flux.functor(pe::PositionEmbedding) = (pe.embedding,), m -> PositionEmbedding(pe.trainable, m...)
 
 get_value(e::PositionEmbedding, name::Symbol, xs::NamedTuple) = e(first(xs))
 
@@ -34,9 +34,10 @@ function PositionEmbedding(size::Int, max_len::Int = 1024; trainable::Bool = fal
     PositionEmbedding(trainable, embedding)
 end
 
-(pe::PositionEmbedding)(x::AbstractArray{Int}) = pe(size(x, 1))
-(pe::PositionEmbedding{F})(x::AbstractArray{F}) where F = pe(size(x, 2))
-function (pe::PositionEmbedding)(len::Int)
+using ZygoteRules: @adjoint, AContext, pullback
+import ZygoteRules: _pullback
+
+function resize_pe!(pe::PositionEmbedding, len::Int)
     max_len = size(pe.embedding, 2)
 
     if len > max_len
@@ -53,9 +54,22 @@ function (pe::PositionEmbedding)(len::Int)
             pe.embedding = over
         end
     end
+    return nothing
+end
 
+(pe::PositionEmbedding)(x::AbstractArray{Int}) = pe(size(x, 1))
+(pe::PositionEmbedding{F})(x::AbstractArray{F}) where F = pe(size(x, 2))
+function (pe::PositionEmbedding)(len::Int)
+    resize_pe!(pe, len)
     idx = cumsum(fill!(similar(pe.embedding, Int, len), one(Int)))
     gather(pe.embedding, idx)
+end
+
+function _pullback(cx::AContext, pe::PositionEmbedding, len::Int)
+    resize_pe!(pe, len)
+    idx = cumsum(fill!(similar(pe.embedding, Int, len), one(Int)))
+    y, back = _pullback(cx, gather, pe.embedding, idx)
+    return y, Δ -> ((trainable=nothing, embedding=back(Δ)[2]), nothing)
 end
 
 function Base.show(io::IO, pe::PositionEmbedding)
