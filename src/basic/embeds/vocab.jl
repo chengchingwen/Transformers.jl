@@ -94,6 +94,8 @@ function _onecold(p)
     y
 end
 
+Flux.@nograd Flux.onehot
+
 """
     getmask(ls::Container{<:Container})
 
