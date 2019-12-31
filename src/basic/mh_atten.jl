@@ -103,7 +103,7 @@ function (mh::MultiheadAttention)(query::A1,
     ipk = reshape(ipk, hs, ks[2], :)
     ipv = reshape(ipv, hs, vs[2], :)
 
-    atten = attention!(ipq,ipk,ipv,
+    atten = attention(ipq,ipk,ipv,
                       mask;
                       future=mh.future,
                       dropout=mh.drop)
@@ -136,8 +136,8 @@ function (mh::MultiheadAttention)(query::A1,
     hk = permutedims(reshape(ipk, hs, mh.head, :), [1, 3, 2])
     hv = permutedims(reshape(ipv, hs, mh.head, :), [1, 3, 2])
 
-    atten = attention(hq, hk, hv;
-                      mask=mask,
+    atten = attention(hq, hk, hv,
+                      mask;
                       future=mh.future,
                       dropout=mh.drop)
 
@@ -175,7 +175,7 @@ end
 #     value * score #size(return) == (dims, q_seq_len)
 # end
 
-@inline function attention!(query::A1,
+function attention(query::A1,
                            key::A2,
                            value::A3,
                            mask; future::Bool = false,
@@ -201,7 +201,7 @@ end
             score = reshape(reshape(score, s[1:end-1]..., :, b) .+ reshape(create_atten_mask(T, mask, future), ms[1:end-1]..., 1, b), s)
         end
     end
-    
+
     score = @toNd softmax(score) #reshape(softmax(reshape(score, s[1], :)) , s)
     dropout !== nothing && (score = dropout(score))
     batchedmul(value, score) #size(return) == (dims, q_seq_len, batch)
