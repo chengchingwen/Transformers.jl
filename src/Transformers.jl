@@ -11,6 +11,7 @@ export dataset, datafile, get_batch, get_vocab
 
 export todevice, enable_gpu
 export Gpt
+export Gpt2
 export Bert
 
 const Abstract3DTensor{T} = AbstractArray{T, 3}
@@ -69,6 +70,7 @@ include("./datasets/Datasets.jl")
 include("./pretrain/Pretrain.jl")
 
 include("./gpt/GenerativePreTrain.jl")
+include("./gpt2/GenerativePreTrain2.jl")
 include("./bert/BidirectionalEncoder.jl")
 
 include("./huggingface/HuggingFace.jl")
@@ -78,6 +80,7 @@ using .Stacks
 using .Datasets
 using .Pretrain
 using .GenerativePreTrain
+using .GenerativePreTrain2
 using .BidirectionalEncoder
 
 using .HuggingFace

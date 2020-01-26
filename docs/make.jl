@@ -16,6 +16,7 @@ makedocs(sitename="Transformers.jl",
            "Pretrain" => "pretrain.md",
            "Models" => [
              "GPT" => "gpt.md",
+             "GPT-2" => "gpt2.md",
              "BERT" => "bert.md",
            ],
            "Datasets" => "datasets.md"
