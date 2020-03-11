@@ -15,7 +15,7 @@ function gpt_init()
     for (model, url, cksum) ∈ zip(
         ("OpenAIftlm",
          ),
-        ("https://drive.google.com/uc?export=download&id=1jZ4wSrR7rGXprKz1a3O8PpEQ2o-nnMEA",
+        ("https://docs.google.com/uc?export=download&id=1jZ4wSrR7rGXprKz1a3O8PpEQ2o-nnMEA",
          ),
         ("e372ab1f42fff84efc6e97d30d0aadd823706e9b6d4084a8c474ba68c494e22c",
          )

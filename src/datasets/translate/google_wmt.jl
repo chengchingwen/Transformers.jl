@@ -12,7 +12,7 @@ googlewmt_init() = register(DataDep(
     contain bpe training set and news testset from 2009~2016 (include origin text,
     tokenized, and bpe versions), and also a bpe.32000 and vocab.32000 (merged vocab)
     """,
-    "https://drive.google.com/uc?export=download&id=0B_bZck-ksdkpM25jRUN2X2UxMm8",
+    "https://docs.google.com/uc?export=download&id=0B_bZck-ksdkpM25jRUN2X2UxMm8",
     "86f7f6e0bab3259a34712b4c034dc933f406d6735ce03fd6de6b9ccb5191ce2e";
     fetch_method=download_gdrive,
     post_fetch_method=DataDeps.unpack,

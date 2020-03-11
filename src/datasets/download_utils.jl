@@ -16,7 +16,7 @@ function unshortlink(url; kw...)
 end
 
 isgooglesheet(url) = occursin("docs.google.com/spreadsheets", url)
-isgoogledrive(url) = occursin("drive.google.com", url)
+isgoogledrive(url) = occursin("docs.google.com", url)
 
 function googlesheet_handler(url; format=:csv)
     link, expo = splitdir(url)
@@ -52,9 +52,9 @@ function find_gcode(ckj)
 end
 
 function download_gdrive(url, localdir)
-    ckjar = copy(HTTP.CookieRequest.default_cookiejar)
+    ckjar = Dict{String, Set{HTTP.Cookies.Cookie}}()
     rq = HTTP.request("HEAD", url; cookies=true, cookiejar=ckjar)
-    ckj = ckjar["drive.google.com"]
+    ckj = ckjar["docs.google.com"]
     gcode = find_gcode(ckj)
     @assert gcode !== nothing
 
@@ -66,11 +66,12 @@ function download_gdrive(url, localdir)
     local filepath
     newurl = unshortlink("$url&confirm=$gcode"; cookies=true, cookiejar=ckjar)
 
-
     #part of codes are from https://github.com/JuliaWeb/HTTP.jl/blob/master/src/download.jl
     HTTP.open("GET", newurl, ["Range"=>"bytes=0-"]; cookies=true, cookiejar=ckjar) do stream
         resp = HTTP.startread(stream)
         hcd = HTTP.header(resp, "Content-Disposition")
+        isempty(hcd) && return 
+
         m = match(r"filename=\\\"(.*)\\\"", hcd)
         if m === nothing
             filename = "gdrive_downloaded-$(randstring())"
