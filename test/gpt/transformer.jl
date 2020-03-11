@@ -24,8 +24,9 @@
 
   mask = cat(reshape([1,1,1,1,1], 1, 5, 1),
              reshape([1,1,1,0,0], 1, 5, 1); dims=3)
+  amask = getmask(mask, mask)
 
   ym, ymall = gpt(x, mask; all=true)
   topo = @nntopo ((x, m) => x:(x, m)) => 3
-  @test topo(gpt.ts.models, x, mask) .* mask ≈ ym
+  @test topo(gpt.ts.models, x, amask) .* mask ≈ ym
 end

@@ -29,7 +29,4 @@
   ym, ymall = bert(x, mask; all=true)
   topo = @nntopo ((x, m) => x:(x, m)) => 3
   @test topo(bert.ts.models, x, amask) .* mask ≈ ym
-  @test sum(bert.ts.models[1](x, amask) .≈ ymall[1]) == 300 * 8
-  @test sum(bert.ts.models[2](ymall[1], amask) .≈ ymall[2]) == 300 * 8
-  @test sum(bert.ts.models[3](ymall[2], amask) .≈ ymall[3]) == 300 * 8
 end

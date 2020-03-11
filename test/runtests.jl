@@ -1,6 +1,7 @@
 using Transformers
 using Transformers.Basic
 using Test
+using Random
 
 import Flux
 using Flux: gradient
@@ -14,6 +15,8 @@ const tests = [
     "bert",
     "pretrain",
 ]
+
+Random.seed!(0)
 
 if v"1.0.0" <= VERSION  < v"1.4.0"
     @test isempty(detect_ambiguities(Transformers, Transformers.GenerativePreTrain, Transformers.Basic, Transformers.Datasets))
