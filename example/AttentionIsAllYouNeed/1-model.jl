@@ -11,15 +11,15 @@ using WordTokenizers
 using Transformers
 using Transformers.Basic
 
+using Random
+Random.seed!(0)
+
 include("./0-data.jl")
 
 const vocab = Vocabulary(labels, unksym)
-const embed = gpu(Embed(512, length(vocab)))
+const embed = todevice(Embed(512, length(vocab); scale=inv(sqrt(512))))
 
-embedding(x) = embed(x, inv(sqrt(512)))
-
-
-const encoder = gpu(Stack(
+const encoder = todevice(Stack(
     @nntopo(e → pe:(e, pe) → x → x → $N),
     PositionEmbedding(512),
     (e, pe) -> e .+ pe,
@@ -27,7 +27,7 @@ const encoder = gpu(Stack(
     [Transformer(512, 8, 64, 2048) for i = 1:N]...
 ))
 
-const decoder = gpu(Stack(
+const decoder = todevice(Stack(
     @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
     PositionEmbedding(512),
     (e, pe) -> e .+ pe,
@@ -46,12 +46,13 @@ function smooth(et)
     label = p .+ et .* (1 - convert(Float32, Smooth))
     label
 end
+Flux.@nograd smooth
 
-function loss(src, trg, src_mask, trg_mask)
+function loss(m, src, trg, src_mask, trg_mask)
     lab = onehot(vocab, trg)
 
-    src = embedding(src)
-    trg = embedding(trg)
+    src = m.embed(src)
+    trg = m.embed(trg)
 
     if src_mask === nothing || trg_mask === nothing
         mask = nothing
@@ -59,8 +60,8 @@ function loss(src, trg, src_mask, trg_mask)
         mask = getmask(src_mask, trg_mask)
     end
 
-    enc = encoder(src)
-    dec = decoder(trg, enc, mask)
+    enc = m.encoder(src)
+    dec = m.decoder(trg, enc, mask)
 
     #label smoothing
     label = smooth(lab)[:, 2:end, :]
@@ -76,12 +77,12 @@ function translate(x)
     ix = todevice(vocab(mkline(x)))
     seq = [startsym]
 
-    src = embedding(ix)
+    src = embed(ix)
     enc = encoder(src)
 
     len = length(ix)
     for i = 1:2len
-        trg = embedding(todevice(vocab(seq)))
+        trg = embed(todevice(vocab(seq)))
         dec = decoder(trg, enc, nothing)
         #move back to gpu due to argmax wrong result on CuArrays
         ntok = onecold(collect(dec), labels)
@@ -92,4 +93,4 @@ function translate(x)
 end
 
 
-train!()
+# train!()
