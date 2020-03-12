@@ -43,7 +43,7 @@ end
 
 function find_gcode(ckj)
     for cookie ∈ ckj
-        if match(r"_warning_", cookie.name) !== nothing
+        if match(r"download_warning_", cookie.name) !== nothing
             return cookie.value
         end
     end
@@ -51,12 +51,28 @@ function find_gcode(ckj)
     nothing
 end
 
-function download_gdrive(url, localdir)
+function download_gdrive(url, localdir; retry=true, retries=4)
+    gcode = nothing
+    try_time = 0
     ckjar = Dict{String, Set{HTTP.Cookies.Cookie}}()
-    rq = HTTP.request("HEAD", url; cookies=true, cookiejar=ckjar)
-    ckj = ckjar["docs.google.com"]
-    gcode = find_gcode(ckj)
-    @assert gcode !== nothing
+    while isnothing(gcode) && retry && try_time < retries
+        if try_time > 0
+            @info "retrying..."
+        end
+        try_time += 1
+        rq = HTTP.request("HEAD", url; cookies=true, cookiejar=ckjar)
+        ckj = ckjar["docs.google.com"]
+        gcode = find_gcode(ckj)
+        if isnothing(gcode)
+            @warn "gcode not found." rq
+            sleep(3)
+        end
+    end
+
+    if isnothing(gcode)
+        error("download failed")
+    end
+
 
     format_progress(x) = round(x, digits=4)
     format_bytes(x) = !isfinite(x) ? "∞ B" : Base.format_bytes(x)
@@ -64,10 +80,11 @@ function download_gdrive(url, localdir)
     format_bytes_per_second(x) = format_bytes(x) * "/s"
 
     local filepath
-    newurl = unshortlink("$url&confirm=$gcode"; cookies=true, cookiejar=ckjar)
+    # newurl = unshortlink("$url&confirm=$gcode"; cookies=true, cookiejar=ckjar)
+    newurl = "$url&confirm=$gcode"
 
     #part of codes are from https://github.com/JuliaWeb/HTTP.jl/blob/master/src/download.jl
-    HTTP.open("GET", newurl, ["Range"=>"bytes=0-"]; cookies=true, cookiejar=ckjar) do stream
+    HTTP.open("GET", newurl, ["Range"=>"bytes=0-"]; cookies=true, cookiejar=ckjar, redirect_limit=10) do stream
         resp = HTTP.startread(stream)
         hcd = HTTP.header(resp, "Content-Disposition")
         isempty(hcd) && return 

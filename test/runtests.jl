@@ -13,13 +13,16 @@ const tests = [
     "basic",
     "gpt",
     "bert",
-    "pretrain",
 ]
 
 Random.seed!(0)
 
 if v"1.0.0" <= VERSION  < v"1.4.0"
     @test isempty(detect_ambiguities(Transformers, Transformers.GenerativePreTrain, Transformers.Basic, Transformers.Datasets))
+end
+
+if haskey(ENV, "TEST_TRANSFORMERS_PRETRAIN")
+    push!(tests, "pretrain")
 end
 
 @testset "Transformers" begin
