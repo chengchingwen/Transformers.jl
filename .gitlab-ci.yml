@@ -9,13 +9,6 @@ image: juliagpu/cuda:10.1-cudnn7-cutensor1-devel-ubuntu18.04
   script:
     - julia --project -e 'using Pkg; v"1.0" <= VERSION < v"1.2" && Pkg.add(PackageSpec(name="MbedTLS", version="0.6.8")) ; Pkg.build(); Pkg.test(; coverage=true)';
 
-julia:1.0:
-  extends:
-    - .julia:1.0
-    - .ltstest
-  tags:
-    - nvidia
-
 julia:1.1:
   extends:
     - .julia:1.1

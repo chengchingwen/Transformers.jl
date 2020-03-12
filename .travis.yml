@@ -6,11 +6,14 @@ os:
   - windows
 
 julia:
-  - 1.0
   - 1.1
   - 1.2
   - 1.3
   - nightly
+
+env:
+  matrix:
+    - TEST_TRANSFORMERS_PRETRAIN=yes
 
 matrix:
   allow_failures:
