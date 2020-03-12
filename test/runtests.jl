@@ -21,7 +21,7 @@ if v"1.0.0" <= VERSION  < v"1.4.0"
     @test isempty(detect_ambiguities(Transformers, Transformers.GenerativePreTrain, Transformers.Basic, Transformers.Datasets))
 end
 
-if haskey(ENV, "TEST_TRANSFORMERS_PRETRAIN")
+if haskey(ENV, "TEST_TRANSFORMERS_PRETRAIN") && v"1.2" <= VERSION <= v"1.3"
     push!(tests, "pretrain")
 end
 
