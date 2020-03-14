@@ -4,7 +4,7 @@ using CUDAnative
 togpudevice(x) = gpu(x)
 togpudevice(x, xs...) = (todevice(x), map(todevice, xs)...)
 togpudevice(x::Union{Tuple, NamedTuple}) = map(todevice, x)
-togpudevice(x::AbstractArray{Int}) = CuArrays.CuArray(x)
+togpudevice(x::AbstractArray{<:Union{Int, <: NTuple{N, Int} where N}}) = CuArrays.CuArray(x)
 
 include("./scatter_gpu.jl")
 include("./statistic.jl")
