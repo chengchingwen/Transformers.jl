@@ -1,0 +1,16 @@
+#gdrive list --query " '1E3K0fiVeNOAgdTNQA11E45k41WGsM6MD' in parents"
+https://docs.google.com/uc?export=download&id=1IR7RWI2ZORzR7JmPSPrUtZk9jdcOm0Na   uncased_L-24_H-1024_A-16.tfbson
+https://docs.google.com/uc?export=download&id=1sqVrc_PdhYQzdt903yvx7OROtmpjRLUi   wwm_cased_L-24_H-1024_A-16.tfbson
+https://docs.google.com/uc?export=download&id=1FrpWNCIgVCNGTF-rlU8_3oj1Xp4S94e9   wwm_uncased_L-24_H-1024_A-16.tfbson
+https://docs.google.com/uc?export=download&id=1BJUHaVkpnDL71VlVJS2yRjNF72l1LmWD   multilingual_L-12_H-768_A-12.tfbson
+https://docs.google.com/uc?export=download&id=1teAmrvOqJfyEa2yYFyNLW7M8JOmg-4sn   multi_cased_L-12_H-768_A-12.tfbson
+https://docs.google.com/uc?export=download&id=14OaijyaNjpK69-Oh7NddIXFlLrgfkf35   chinese_L-12_H-768_A-12.tfbson
+https://docs.google.com/uc?export=download&id=1TsaVQHlhOVG905elbHXeXK2qzp-vFe68   cased_L-24_H-1024_A-16.tfbson
+https://docs.google.com/uc?export=download&id=1p4mej6xhfpqzLfRuMNkKHJb9ScjXU193   cased_L-12_H-768_A-12.tfbson
+https://docs.google.com/uc?export=download&id=1X-p84u7LDEJlhAnDXnyrXbbFo9Y0UBzu   uncased_L-12_H-768_A-12.tfbson
+https://docs.google.com/uc?export=download&id=12K-_-EKrY0Q2qeGfLWTB75Po4HKrop4K   OpenAIftlm.zip
+https://docs.google.com/uc?export=download&id=1jZ4wSrR7rGXprKz1a3O8PpEQ2o-nnMEA   OpenAIftlm.npbson
+https://docs.google.com/uc?export=download&id=1L0woI2DeNES5OCzgLNBOCRrj5ikOzN7c   scibert_scivocab_uncased.tfbson
+https://docs.google.com/uc?export=download&id=1YYy6cH_gQf9rXmnPW9861N0Chlf_ZmTF   scibert_scivocab_cased.tfbson
+https://docs.google.com/uc?export=download&id=16EgAh0uo7pB7aQKCMeI5dfMkCJ1y-RvB   scibert_basevocab_uncased.tfbson
+https://docs.google.com/uc?export=download&id=1Htg-qTj03YRQqBgbHxz8KOULBYQGQieP   scibert_basevocab_cased.tfbson
