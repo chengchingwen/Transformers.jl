@@ -39,22 +39,20 @@ end
   using BytePairEncoding
   ENV["DATADEPS_ALWAYS_ACCEPT"] = true
   ENV["DATADEPS_NO_STANDARD_LOAD_PATH"] = true
-  ENV["DATADEPS_PROGRESS_UPDATE_PERIOD"] = "Inf" #should be able remove one day
-  ENV["DATADEP_PROGRESS_UPDATE_PERIOD"] = "Inf"
-  
-  @test_nowarn pretrains()
-  model_list = map(l->join([l[1],l[2]], "-"), pretrains().content[1].rows[2:end])
+  ENV["DATADEPS_PROGRESS_UPDATE_PERIOD"] = "Inf"
 
-  for model ∈ model_list
+  @test_nowarn pretrains()
+  model_list = map(l->(join([l[1],l[3]], "-"), l[1], l[3]),
+                   pretrains().content[1].rows[2:end])
+
+  for (model_str, type, name) ∈ model_list
     @testset_nokeep_data "$model" begin
       GC.gc()
-      if startswith(lowercase(model), "bert") && model[6:end] != "uncased_L-12_H-768_A-12"
-        model_name = model[6:end]
-        @test_nowarn Transformers.Pretrain.@datadep_str "BERT-$model_name/$model_name.tfbson"
-      else
-        @test_nowarn x = Transformers.Pretrain.@pretrain_str model
-      end
+      @test Pretrain.parse_model(model_str)[1] == type
+      @test Pretrain.parse_model(model_str)[2] == name
+
+      @test_nowarn Pretrain.@datadep_str "$(uppercase(type))-$name/$(name).tfbson"
+      @test_nowarn x = Pretrain.@pretrain_str model
     end
   end
-
 end
