@@ -11,17 +11,6 @@ julia:
   - 1.3
   - nightly
 
-env:
-  matrix:
-    - TEST_TRANSFORMERS_PRETRAIN=yes
-
-matrix:
-  allow_failures:
-    - julia: nightly
-    - julia: 1.3
-    - os: windows
-    - os: osx
-
 branch:
   only:
     - master
@@ -41,11 +30,23 @@ git:
 
 jobs:
   include:
+    - stage: "Pretrain"
+      julia: 1.3
+      os: linux
+      script:
+        - TEST_TRANSFORMERS_PRETRAIN=yes julia --project -e 'using Pkg; v"1.0" <= VERSION < v"1.2" && Pkg.add(PackageSpec(name="MbedTLS", version="0.6.8")) ; Pkg.build(); Pkg.test(; coverage=true)';
+
     - stage: "Documentation"
-      julia: 1.2
+      julia: 1.3
       os: linux
       script:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
                                                Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
       after_success: skip
+
+  allow_failures:
+    - julia: nightly
+    - julia: 1.3
+    - os: windows
+    - os: osx
