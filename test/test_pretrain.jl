@@ -51,7 +51,7 @@ end
       @test Transformers.Pretrain.parse_model(model_str)[1] == type
       @test Transformers.Pretrain.parse_model(model_str)[2] == name
 
-      if type == "gpt"
+      if lowercase(type) == "gpt"
         @test_nowarn Transformers.Pretrain.@datadep_str "$(uppercase(type))-$name/$(name).npbson"
       else
         @test_nowarn Transformers.Pretrain.@datadep_str "$(uppercase(type))-$name/$(name).tfbson"

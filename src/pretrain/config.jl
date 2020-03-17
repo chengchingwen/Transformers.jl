@@ -93,7 +93,7 @@ function pretrains(query::String = ""; detailed::Bool = false)
         name = model_detail["name"]
         items = join(model_detail["items"], ", ")
         if isempty(query) || match(model, name, query)
-          row = Any[model_type, model, name, items]
+          row = Any[uppercasefirst(model_type), model, name, items]
         else
           continue
         end
@@ -111,5 +111,5 @@ function parse_model(str)
   m = Base.match(r"([a-zA-Z]+)[-:]([a-zA-Z\d\-_]+):?(\S*)", str)
   type, name, item = m.captures
   item = isempty(item) ? :all : Symbol(item)
-  return type, name, item
+  return lowercase(type), name, item
 end
