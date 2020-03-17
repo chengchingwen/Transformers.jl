@@ -52,7 +52,11 @@ same as `@pretrain_str`, but can pass keyword argument if needed.
 function load_pretrain(str; kw...)
   type, name, item = parse_model(str)
   loader = loading_method(Val(Symbol(lowercase(type))))
-  model_path = @datadep_str("$(uppercase(type))-$name/$(name).tfbson")
+  if type == "gpt"
+    model_path = @datadep_str("$(uppercase(type))-$name/$(name).npbson")
+  else
+    model_path = @datadep_str("$(uppercase(type))-$name/$(name).tfbson")
+  end
   loader(model_path, item; kw...)
 end
 

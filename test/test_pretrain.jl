@@ -46,13 +46,17 @@ end
                    pretrains().content[1].rows[2:end])
 
   for (model_str, type, name) ∈ model_list
-    @testset_nokeep_data "$model" begin
+    @testset_nokeep_data "$model_str" begin
       GC.gc()
-      @test Pretrain.parse_model(model_str)[1] == type
-      @test Pretrain.parse_model(model_str)[2] == name
+      @test Transformers.Pretrain.parse_model(model_str)[1] == type
+      @test Transformers.Pretrain.parse_model(model_str)[2] == name
 
-      @test_nowarn Pretrain.@datadep_str "$(uppercase(type))-$name/$(name).tfbson"
-      @test_nowarn x = Pretrain.@pretrain_str model
+      if type == "gpt"
+        @test_nowarn Transformers.Pretrain.@datadep_str "$(uppercase(type))-$name/$(name).npbson"
+      else
+        @test_nowarn Transformers.Pretrain.@datadep_str "$(uppercase(type))-$name/$(name).tfbson"
+      end
+      @test_nowarn x = Transformers.Pretrain.@pretrain_str model_str
     end
   end
 end
