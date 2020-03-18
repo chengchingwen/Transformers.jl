@@ -32,7 +32,8 @@ end
 """
     pretrain"model-description:item"
 
-convenient macro for loading data from pretrain. Use DataDeps to download automatically, if a model is not downlaod. the string should be in `pretrain"<model>-<model-name>:<item>"` format.
+convenient macro for loading data from pretrain. Use DataDeps to automatically download if a model is not found.
+the string should be in `pretrain"<type>-<model-name>:<item>"` format.
 
 see also `Pretrain.pretrains()`.
 """
@@ -44,6 +45,9 @@ loading_method(::Val{:bert}) = Transformers.load_bert_pretrain
 loading_method(::Val{:gpt}) = Transformers.load_gpt_pretrain
 loading_method(x) = error("unknown pretrain type")
 
+pretrain_suffix(::Val{:bert}) = "tfbson"
+pretrain_suffix(::Val{:gpt}) = "npbson"
+
 """
     load_pretrain(name; kw...)
 
@@ -52,13 +56,8 @@ same as `@pretrain_str`, but can pass keyword argument if needed.
 function load_pretrain(str; kw...)
   type, name, item = parse_model(str)
   loader = loading_method(Val(Symbol(type)))
-  if type == "gpt"
-    model_path = @datadep_str("$(uppercase(type))-$name/$(name).npbson")
-  else
-    model_path = @datadep_str("$(uppercase(type))-$name/$(name).tfbson")
-  end
+  model_path = @datadep_str("$(uppercase(type))-$name/$(name).$(pretrain_suffix(Val(Symbol(type))))")
   loader(model_path, item; kw...)
 end
-
 
 end
