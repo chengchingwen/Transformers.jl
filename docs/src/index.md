@@ -13,7 +13,7 @@ In the Julia REPL:
 julia> ]add Transformers
 ```
 
-For using GPU, install & build:
+For using GPU, make sure `CuArrays` is runable on your computer:
 
 ```jl
 julia> ]add CuArrays; build

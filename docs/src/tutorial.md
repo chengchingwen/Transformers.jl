@@ -64,6 +64,8 @@ using Flux
 using CuArrays
 using Transformers
 using Transformers.Basic #for loading the positional embedding
+
+enable_gpu(true) # make `todevice` work on gpu
 ```
 
 ### Copy task
@@ -109,7 +111,7 @@ pe = PositionEmbedding(512) |> gpu
 function embedding(x)
   we = embed(x, inv(sqrt(512))) 
   e = we .+ pe(we)
-	return e
+  return e
 end
 
 #define 2 layer of transformer
@@ -135,7 +137,7 @@ function decoder_forward(x, m)
   t1 = decode_t1(e, m)
   t2 = decode_t2(t1, m)
   p = linear(t2)
-	return p
+  return p
 end
 ```
 
@@ -165,7 +167,7 @@ function loss(x, y)
   label = onehot(vocab, y) #turn the index to one-hot encoding
   label = smooth(label) #perform label smoothing
   enc = encoder_forward(x)
-	probs = decoder_forward(y, enc)
+  probs = decoder_forward(y, enc)
   l = logkldivergence(label[:, 2:end, :], probs[:, 1:end-1, :])
   return l
 end
@@ -186,7 +188,7 @@ function train!()
   @info "start training"
   for i = 1:2000
     data = batched([sample_data() for i = 1:32]) #create 32 random sample and batched
-		x, y = preprocess.(data[1]), preprocess.(data[2])
+	x, y = preprocess.(data[1]), preprocess.(data[2])
     x, y = vocab(x), vocab(y)#encode the data
     x, y = todevice(x, y) #move to gpu
     l = loss(x, y)
