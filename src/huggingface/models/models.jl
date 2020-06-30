@@ -58,7 +58,7 @@ end
 
 FakeTHLinear(w) = FakeTHLinear(w, nothing)
 
-_has_bias(::FakeTHLinear{W, Nothing}) where W = false
+_has_bias(::FakeTHLinear{W, Nothing}) where {W<:AbstractArray}= false
 _has_bias(::FakeTHLinear) = true
 
 function Functors.functor(::Type{<:FakeTHLinear}, linear)
