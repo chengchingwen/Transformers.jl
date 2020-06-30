@@ -1,10 +1,30 @@
 using Flux
 using Functors
 using Pickle.Torch: StridedView
+using DataStructures
 
 using LinearAlgebra
 
 const ACT2FN = (gelu = gelu, relu = relu, swish = swish, gelu_new = gelu, mish = mish)
+
+function get_state_dict(layer)
+  state = OrderedDict{String, Any}()
+  get_state_dict(state, nothing, layer)
+  return state
+end
+
+function get_state_dict(state, prefix, layer)
+  param = Functors.functor(layer)[1]
+  ks = keys(param)
+  for k in ks
+    cprefix = isnothing(prefix) ? k : join((prefix, k), '.')
+    get_state_dict(state, cprefix, param[k])
+  end
+end
+
+function get_state_dict(state, prefix, x::AbstractArray)
+  state[prefix] = x
+end
 
 function load_state(layer, state)
   for k in keys(state)
@@ -82,11 +102,18 @@ Functors.functor(::Type{<:FakeTHModuleList}, modulelist) = modulelist._modules, 
 Base.iterate(modulelist::FakeTHModuleList) = iterate(modulelist._modules)
 Base.iterate(modulelist::FakeTHModuleList, i...) = iterate(modulelist._modules, i...)
 
+function get_state_dict(state, prefix, modulelist::FakeTHModuleList)
+  param = Functors.functor(modulelist)[1]
+  for (i, layer) in enumerate(modulelist)
+    cprefix = join((prefix, i-1), '.')
+    get_state_dict(state, cprefix, layer)
+  end
+end
+
 function load_state(layer::FakeTHModuleList, state)
   for (layerᵢ, stateᵢ) in zip(layer, state)
     load_state(layerᵢ, stateᵢ)
   end
 end
-
 
 include("./model_bert.jl")
