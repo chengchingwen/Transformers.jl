@@ -77,7 +77,7 @@ struct FakeTHModuleList
   _modules::Vector
 end
 
-Functors.functor(::Type{<:FakeTHModuleList}, modulelist) = x._modules, y -> FakeTHModuleList(y)
+Functors.functor(::Type{<:FakeTHModuleList}, modulelist) = modulelist._modules, y -> FakeTHModuleList(y)
 
 Base.iterate(modulelist::FakeTHModuleList) = iterate(modulelist._modules)
 Base.iterate(modulelist::FakeTHModuleList, i...) = iterate(modulelist._modules, i...)

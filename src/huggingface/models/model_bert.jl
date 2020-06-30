@@ -145,7 +145,7 @@ HGFBertLayer(a, i, o) = HGFBertLayer(a, nothing, i, o)
 _is_decode(::HGFBertLayer{Nothing}) = false
 _is_decode(::HGFBertLayer) = true
 
-Functors.functor(::Type{<:HGFBertLayer}, layer) = (_isdecode(layer) ?
+Functors.functor(::Type{<:HGFBertLayer}, layer) = (_is_decode(layer) ?
     (attention = layer.attention, intermediate = layer.intermediate, output = layer.output) :
     (attention = layer.attention, crossattention = layer.crossattention, intermediate = layer.intermediate, output = layer.output)),
     y ->HGFBertLayer(y...)
