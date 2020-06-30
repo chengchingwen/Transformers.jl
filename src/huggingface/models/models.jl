@@ -36,7 +36,7 @@ struct FakeTHLayerNorm{T<:AbstractArray}
   bias::T
 end
 
-Functors.functor(::Type{<:FakeTHLayerNorm}, layernorm) = (layernorm.weight, layernorm.bias), y -> FakeTHEmbedding(layernorm.eps, y...)
+Functors.functor(::Type{<:FakeTHLayerNorm}, layernorm) = (weight = layernorm.weight, bias = layernorm.bias), y -> FakeTHEmbedding(layernorm.eps, y...)
 
 function load_state(layer::FakeTHLayerNorm, state)
   for k in keys(state)
@@ -71,7 +71,7 @@ struct FakeTHEmbedding{T<:AbstractArray}
   weight::T
 end
 
-Functors.functor(::Type{<:FakeTHEmbedding}, embedding) = (embedding.weight,), y -> FakeTHEmbedding(embedding.pad_idx, y...)
+Functors.functor(::Type{<:FakeTHEmbedding}, embedding) = (weight = embedding.weight,), y -> FakeTHEmbedding(embedding.pad_idx, y...)
 
 struct FakeTHModuleList
   _modules::Vector
