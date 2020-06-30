@@ -219,7 +219,7 @@ end
 
 function HGFBertLMPredictionHead(config::HGFBertConfig; input_embedding=nothing)
   trans = HGFBertPredictionHeadTransform(config)
-  if isnothing(output_embedding)
+  if isnothing(input_embedding)
     decoder = FakeTHLinear(config, config.hidden_size, config.vocab_size; bias=false)
   else
     decoder = FakeTHLinear(Transpose(input_embedding), nothing)
@@ -251,7 +251,7 @@ end
 
 function HGFBertOnlyNSPHead(config::HGFBertConfig)
   seq_relationship = FakeTHLinear(config, config.hidden_size, 2)
-  return HGFBert(seq_relationship)
+  return HGFBertOnlyNSPHead(seq_relationship)
 end
 
 # pretrain prediction layers
@@ -266,7 +266,7 @@ end
 function HGFBertPreTrainingHeads(config::HGFBertConfig; input_embedding=nothing)
   predictions = HGFBertLMPredictionHead(config; input_embedding=input_embedding)
   seq_relationship = FakeTHLinear(config, config.hidden_size, 2)
-  return HGFBert(predictions, seq_relationship)
+  return HGFBertPreTrainingHeads(predictions, seq_relationship)
 end
 
 # bert model without prediction
