@@ -1,6 +1,6 @@
 using Flux
 using Functors
-using Strided
+using Pickle.Torch: StridedView
 
 using LinearAlgebra
 
