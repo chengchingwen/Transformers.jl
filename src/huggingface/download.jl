@@ -56,8 +56,10 @@ function find_or_register_hgf_file_hash(path, model_name, file_name)
         filegetter(joinpath(artifact_dir, file_name))
     end
 
-    # register
-    bind_artifact!(ARTIFACTS_TOML, entry_name, file_hash)
+    # register if no in artifact.toml
+    if isnothing(artifact_hash(entry_name, ARTIFACTS_TOML))
+      bind_artifact!(ARTIFACTS_TOML, entry_name, file_hash)
+    end
   end
 
   file_hash
