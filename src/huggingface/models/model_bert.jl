@@ -26,7 +26,7 @@ end
 
 # embedding
 
-struct HGFBertEmbeddings
+struct HGFBertEmbeddings <: THModule
   LayerNorm::FakeTHLayerNorm
   word_embeddings::FakeTHEmbedding
   position_embeddings::FakeTHEmbedding
@@ -51,7 +51,7 @@ end
 
 # self attention part
 
-struct HGFBertSelfAttention
+struct HGFBertSelfAttention <: THModule
   query::FakeTHLinear
   key::FakeTHLinear
   value::FakeTHLinear
@@ -72,7 +72,7 @@ end
 
 # self attention output part
 
-struct HGFBertSelfOutput
+struct HGFBertSelfOutput <: THModule
   LayerNorm::FakeTHLayerNorm
   dense::FakeTHLinear
 end
@@ -87,7 +87,7 @@ end
 
 # self attention
 
-struct HGFBertAttention
+struct HGFBertAttention <: THModule
   self::HGFBertSelfAttention
   output::HGFBertSelfOutput
 end
@@ -102,7 +102,7 @@ end
 
 # positionwise first dense
 
-struct HGFBertIntermediate{F}
+struct HGFBertIntermediate{F} <: THModule
   intermediate_act::F
   dense::FakeTHLinear
 end
@@ -118,7 +118,7 @@ end
 
 # positionwise second dense
 
-struct HGFBertOutput
+struct HGFBertOutput <: THModule
   dense::FakeTHLinear
   LayerNorm::FakeTHLayerNorm
 end
@@ -133,7 +133,7 @@ end
 
 # transformer layer
 
-struct HGFBertLayer{DEC<:Union{Nothing, HGFBertAttention}}
+struct HGFBertLayer{DEC<:Union{Nothing, HGFBertAttention}} <: THModule
   attention::HGFBertAttention
   crossattention::DEC
   intermediate::HGFBertIntermediate
@@ -162,7 +162,7 @@ end
 
 # stacked transformers
 
-struct HGFBertEncoder
+struct HGFBertEncoder <: THModule
   layer::FakeTHModuleList
 end
 
@@ -177,7 +177,7 @@ end
 
 # classify token projection
 
-struct HGFBertPooler
+struct HGFBertPooler <: THModule
   dense::FakeTHLinear
 end
 
@@ -190,7 +190,7 @@ end
 
 # label prediction layer
 
-struct HGFBertPredictionHeadTransform{F}
+struct HGFBertPredictionHeadTransform{F} <: THModule
   transform_act_fn::F
   dense::FakeTHLinear
   LayerNorm::FakeTHLayerNorm
@@ -209,7 +209,7 @@ end
 
 # language model prediction layer
 
-struct HGFBertLMPredictionHead{B<:AbstractArray}
+struct HGFBertLMPredictionHead{B<:AbstractArray} <: THModule
   transform::HGFBertPredictionHeadTransform
   decoder::FakeTHLinear
   bias::B
@@ -230,7 +230,7 @@ end
 
 # language model prediction wrapper
 
-struct HGFBertOnlyMLMHead
+struct HGFBertOnlyMLMHead <: THModule
   predictions::HGFBertLMPredictionHead
 end
 
@@ -243,7 +243,7 @@ end
 
 # next sentence prediction layer
 
-struct HGFBertOnlyNSPHead
+struct HGFBertOnlyNSPHead <: THModule
   seq_relationship::FakeTHLinear
 end
 
@@ -256,7 +256,7 @@ end
 
 # pretrain prediction layers
 
-struct HGFBertPreTrainingHeads
+struct HGFBertPreTrainingHeads <: THModule
   predictions::HGFBertLMPredictionHead
   seq_relationship::FakeTHLinear
 end
@@ -270,8 +270,9 @@ function HGFBertPreTrainingHeads(config::HGFBertConfig; input_embedding=nothing)
 end
 
 # bert model without prediction
+abstract type HGFBertPreTrainedModel <: HGFPreTrainedModel end
 
-struct HGFBertModel
+struct HGFBertModel <: HGFBertPreTrainedModel
   embeddings::HGFBertEmbeddings
   encoder::HGFBertEncoder
   pooler::HGFBertPooler
@@ -292,7 +293,7 @@ get_input_embedding(model::HGFBertModel) = model.embeddings.word_embeddings.weig
 
 # pretrain
 
-struct HGFBertForPreTraining
+struct HGFBertForPreTraining <: HGFBertPreTrainedModel
   bert::HGFBertModel
   cls::HGFBertPreTrainingHeads
 end
@@ -308,7 +309,7 @@ end
 
 # clm finetune
 
-struct HGFBertLMHeadModel
+struct HGFBertLMHeadModel <: HGFBertPreTrainedModel
   bert::HGFBertModel
   cls::HGFBertOnlyMLMHead
 end
@@ -324,7 +325,7 @@ end
 
 # maked lm
 
-struct HGFBertForMaskedLM
+struct HGFBertForMaskedLM <: HGFBertPreTrainedModel
   bert::HGFBertModel
   cls::HGFBertOnlyMLMHead
 end
@@ -340,7 +341,7 @@ end
 
 # next sentence
 
-struct HGFBertForNextSentencePrediction
+struct HGFBertForNextSentencePrediction <: HGFBertPreTrainedModel
   bert::HGFBertModel
   cls::HGFBertOnlyNSPHead
 end
@@ -355,7 +356,7 @@ end
 
 # seq classify
 
-struct HGFBertForSequenceClassification
+struct HGFBertForSequenceClassification <: HGFBertPreTrainedModel
   bert::HGFBertModel
   classifier::FakeTHLinear
 end
@@ -370,7 +371,7 @@ end
 
 # multiple choice
 
-struct HGFBertForMultipleChoice
+struct HGFBertForMultipleChoice <: HGFBertPreTrainedModel
   bert::HGFBertModel
   classifier::FakeTHLinear
 end
@@ -385,7 +386,7 @@ end
 
 # token classify
 
-struct HGFBertForTokenClassification
+struct HGFBertForTokenClassification <: HGFBertPreTrainedModel
   bert::HGFBertModel
   classifier::FakeTHLinear
 end
@@ -400,7 +401,7 @@ end
 
 # qa
 
-struct HGFBertForQuestionAnswering
+struct HGFBertForQuestionAnswering <: HGFBertPreTrainedModel
   bert::HGFBertModel
   qa_outputs::FakeTHLinear
 end
