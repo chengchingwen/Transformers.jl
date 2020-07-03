@@ -77,6 +77,7 @@ function get_th_hgf_cache_dir()
 end
 
 function get_hgf_cached_file(url; cache_dir=get_th_hgf_cache_dir())
+  isdir(cache_dir) || return nothing
   global CLOUDFRONT_DISTRIB_PREFIX, S3_BUCKET_PREFIX
   iscdn = startswith(url, CLOUDFRONT_DISTRIB_PREFIX)
   iss3 = startswith(url, S3_BUCKET_PREFIX)
