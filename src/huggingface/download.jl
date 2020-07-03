@@ -1,4 +1,5 @@
 using Pkg.Artifacts
+using SHA
 
 using HTTP
 
@@ -43,7 +44,7 @@ function find_or_register_hgf_file_hash(path, model_name, file_name)
       url = islegacy ?
         join((path, model_name, file_name), '/', '-') :
         joinpath(path, entry_name)
-      filegetter = Base.Fix1(HTTP.download, url)
+      filegetter = Base.Fix1(hgf_file_download, url)
     else # path is a local file, cp to artifact dir
       file_path = joinpath(path, file_name)
       isfile(file_path) || error("Can't register to $entry_name: file $file_path not found.")
@@ -63,4 +64,58 @@ function find_or_register_hgf_file_hash(path, model_name, file_name)
   end
 
   file_hash
+end
+
+
+function get_th_hgf_cache_dir()
+  return get(ENV, "TRANSFORMERS_CACHE",
+             get(ENV, "PYTORCH_TRANSFORMERS_CACHE",
+                 get(ENV, "PYTORCH_PRETRAINED_BERT_CACHE",
+                     joinpath(
+                       get(ENV, "TORCH_HOME", get(ENV, "XDG_CACHE_HOME", "~/.cache")),
+                       "torch", "transformers")))) |> expanduser
+end
+
+function get_hgf_cached_file(url; cache_dir=get_th_hgf_cache_dir())
+  global CLOUDFRONT_DISTRIB_PREFIX, S3_BUCKET_PREFIX
+  iscdn = startswith(url, CLOUDFRONT_DISTRIB_PREFIX)
+  iss3 = startswith(url, S3_BUCKET_PREFIX)
+
+  hashstr(x) = bytes2hex(sha256(x))
+  match(hash) = filter(f->startswith(f, hash) && !endswith(f, ".json") && !endswith(f, ".lock"),
+                       readdir(cache_dir))
+
+  hash = hashstr(url)
+  mf = match(hash)
+  !isempty(mf) && return joinpath(cache_dir, last(mf)) # if found then return
+
+  if iscdn # using cdn, retry with s3
+    alter_url = replace(url, CLOUDFRONT_DISTRIB_PREFIX=>S3_BUCKET_PREFIX)
+  elseif iss3 # using s3, retry with cdn
+    alter_url = replace(url, S3_BUCKET_PREFIX=>CLOUDFRONT_DISTRIB_PREFIX)
+  else # custom url
+    return nothing
+  end
+
+  # retry with alternative url
+  hash = hashstr(alter_url)
+  mf = match(hash)
+
+  if !isempty(mf)
+    return joinpath(cache_dir, last(mf))
+  else
+    return nothing
+  end
+end
+
+function hgf_file_download(url, dest)
+  cached_file = get_hgf_cached_file(url)
+  file_name = basename(dest)
+  if isnothing(cached_file) # not found, just download
+    @info "No local $file_name found. downloading..."
+    HTTP.download(url, dest)
+  else # found, copy from cache
+    @info "PyTorch cached $file_name found. copying..."
+    cp(cached_file, dest)
+  end
 end
