@@ -71,7 +71,7 @@ include("./pretrain/Pretrain.jl")
 include("./gpt/GenerativePreTrain.jl")
 include("./bert/BidirectionalEncoder.jl")
 
-
+include("./huggingface/HuggingFace.jl")
 
 using .Basic
 using .Stacks
@@ -80,6 +80,7 @@ using .Pretrain
 using .GenerativePreTrain
 using .BidirectionalEncoder
 
+using .HuggingFace
 
 function __init__()
   precompiling = ccall(:jl_generating_output, Cint, ()) != 0
