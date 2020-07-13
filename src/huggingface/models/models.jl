@@ -15,7 +15,7 @@ function get_state_dict(state, prefix, layer)
   param = Functors.functor(layer)[1]
   ks = keys(param)
   for k in ks
-    cprefix = isnothing(prefix) ? k : join((prefix, k), '.')
+    cprefix = isnothing(prefix) ? String(k) : join((prefix, k), '.')
     get_state_dict(state, cprefix, param[k])
   end
 end
