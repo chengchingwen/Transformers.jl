@@ -23,7 +23,7 @@ function load_state(layer::FakeTHLayerNorm, state)
     else
       nk = k
     end
-    getfield(layer, nk) .= getfield(state, k)
+    load_state(getfield(layer, nk), getfield(state, k))
   end
 end
 
@@ -48,6 +48,17 @@ struct FakeTHEmbedding{T<:AbstractArray} <: THModule
 end
 
 Functors.functor(::Type{<:FakeTHEmbedding}, embedding) = (weight = embedding.weight,), y -> FakeTHEmbedding(embedding.pad_idx, y...)
+
+function load_state(layer::FakeTHEmbedding, state)
+  load_state(layer.weight, state.weight')
+end
+
+function get_state_dict(state, prefix, embedding::FakeTHEmbedding)
+  param = Functors.functor(embedding)[1]
+  k = :weight
+  cprefix = isnothing(prefix) ? String(k) : join((prefix, k), '.')
+  state[cprefix] = param.weight'
+end
 
 struct FakeTHModuleList <: THModule
   _modules::Vector

@@ -36,11 +36,6 @@ function load_state(weight::A1, state::A2) where {A1<:AbstractArray, A2<:Abstrac
     weight .= state
 end
 
-function load_state(weight::A, state::S) where {A<:AbstractArray, S<:StridedView}
-  # state is probably row major array
-  weight .= PermutedDimsArray(state, ndims(state):-1:1)
-end
-
 function load_state(weight::T, state::S) where {T<:Transpose, S<:StridedView}
   # weight is probably share weighted
   if weight != state
