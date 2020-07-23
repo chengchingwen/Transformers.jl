@@ -23,7 +23,7 @@ function gather(w::CuMatrix{T}, xs::CuArray{Int}) where T
     threads = (threads_x, threads_y)
     blocks = ceil.(Int, (size(ys,1), length(xs)) ./ threads)
 
-    CuArrays.@cuda blocks=blocks threads=threads kernel!(ys, w, xs)
+    CUDA.@cuda blocks=blocks threads=threads kernel!(ys, w, xs)
     return ys
 end
 
@@ -48,6 +48,6 @@ function gather(W::CuArray{T}, xs::CuArray{<:Tuple}) where T
     threads = (threads_x, threads_y)
     blocks = ceil.(Int, (size(ys,1), length(xs)) ./ threads)
 
-    CuArrays.@cuda blocks=blocks threads=threads kernel!(ys, W, xs)
+    CUDA.@cuda blocks=blocks threads=threads kernel!(ys, W, xs)
     return ys
 end

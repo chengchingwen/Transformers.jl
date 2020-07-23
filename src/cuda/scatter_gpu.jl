@@ -7,7 +7,7 @@ for op = [:add, # :sub, :max, :min,
 
             @inbounds if li <= length(xs) && i <= size(ys, 1)
                 ind = Tuple(CartesianIndices(xs)[li])
-                CUDAnative.$(Symbol("atomic_", op, "!"))(
+                CUDA.$(Symbol("atomic_", op, "!"))(
                     pointer(ys,
                             Base._to_linear_index(ys,
                                                   i, xs[li]
@@ -36,7 +36,7 @@ for op = [:add, # :sub, :max, :min,
 
             @inbounds if li <= length(xs) && i <= size(ys, 1)
                 ind = Tuple(CartesianIndices(xs)[li])
-                CUDAnative.$(Symbol("atomic_", op, "!"))(
+                CUDA.$(Symbol("atomic_", op, "!"))(
                     pointer(ys,
                             Base._to_linear_index(ys,
                                                   i, xs[li]...
