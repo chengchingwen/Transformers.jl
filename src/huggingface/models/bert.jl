@@ -783,6 +783,70 @@ end
 
 @functor HGFBertForPreTraining
 
+(self::HGFBertForPreTraining)(input;
+                              position_ids = nothing, token_type_ids = nothing,
+                              attention_mask = nothing,
+                              output_attentions = false,
+                              output_hidden_states = false
+                              ) = self(input, position_ids, token_type_ids,
+                                       attention_mask,
+                                       Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForPreTraining)(input, position_ids, token_type_ids,
+                                       attention_mask,
+                                       _output_attentions::Val{output_attentions},
+                                       _output_hidden_states::Val{output_hidden_states}
+                                       ) where {output_attentions, output_hidden_states}
+  outputs = self.bert(input, position_ids, token_type_ids,
+                      attention_mask, _output_attentions, _output_hidden_states)
+  sequence_output, pooled_output = outputs
+  prediction_scores, seq_relationship_score = self.cls(sequence_output, pooled_output)
+  total_loss = nothing
+
+  return (
+    loss = total_loss,
+    prediction_logits = prediction_scores,
+    seq_relationship_logits = seq_relationship_score,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
+(self::HGFBertForPreTraining)(input, labels, next_sentence_label;
+                              position_ids = nothing, token_type_ids = nothing,
+                              attention_mask = nothing,
+                              output_attentions = false,
+                              output_hidden_states = false
+                              ) = self(input, labels, next_sentence_label,
+                                       position_ids, token_type_ids,
+                                       attention_mask,
+                                       Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForPreTraining)(input, labels, next_sentence_label,
+                                       position_ids, token_type_ids,
+                                       attention_mask,
+                                       _output_attentions::Val{output_attentions},
+                                       _output_hidden_states::Val{output_hidden_states}
+                                       ) where {output_attentions, output_hidden_states}
+  outputs = self(input, position_ids, token_type_ids, attention_mask,
+                _output_attentions, _output_hidden_states)
+
+  prediction_scores = outputs.prediction_logits
+  seq_relationship_score = outputs.seq_relationship_logits
+
+  masked_lm_loss = Flux.logitcrossentropy(prediction_scores, labels)
+  next_sentence_loss = Flux.logitcrossentropy(seq_relationship_score, next_sentence_label)
+  total_loss = masked_lm_loss + next_sentence_loss
+
+  return (
+    loss = total_loss,
+    prediction_logits = prediction_scores,
+    seq_relationship_logits = seq_relationship_score,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
 function HGFBertForPreTraining(config::HGFBertConfig)
   bert = HGFBertModel(config)
   input_embedding = get_input_embedding(bert)
@@ -798,6 +862,68 @@ struct HGFBertLMHeadModel <: HGFBertPreTrainedModel
 end
 
 @functor HGFBertLMHeadModel
+
+(self::HGFBertLMHeadModel)(input;
+                              position_ids = nothing, token_type_ids = nothing,
+                              attention_mask = nothing,
+                              output_attentions = false,
+                              output_hidden_states = false
+                              ) = self(input, position_ids, token_type_ids,
+                                       attention_mask,
+                                       Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertLMHeadModel)(input, position_ids, token_type_ids,
+                                    attention_mask,
+                                    _output_attentions::Val{output_attentions},
+                                    _output_hidden_states::Val{output_hidden_states}
+                                    ) where {output_attentions, output_hidden_states}
+  outputs = self.bert(input, position_ids, token_type_ids,
+                      attention_mask, _output_attentions, _output_hidden_states)
+  sequence_output = outputs[1]
+  prediction_scores = self.cls(sequence_output)
+  lm_loss = nothing
+
+  return (
+    loss = lm_loss,
+    prediction_logits = prediction_scores,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
+(self::HGFBertLMHeadModel)(input, labels;
+                           position_ids = nothing, token_type_ids = nothing,
+                           attention_mask = nothing,
+                           output_attentions = false,
+                           output_hidden_states = false
+                           ) = self(input, labels,
+                                    position_ids, token_type_ids,
+                                    attention_mask,
+                                    Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertLMHeadModel)(input, labels,
+                                    position_ids, token_type_ids,
+                                       attention_mask,
+                                       _output_attentions::Val{output_attentions},
+                                       _output_hidden_states::Val{output_hidden_states}
+                                       ) where {output_attentions, output_hidden_states}
+  outputs = self(input, position_ids, token_type_ids, attention_mask,
+                _output_attentions, _output_hidden_states)
+
+  prediction_scores = outputs.prediction_logits
+
+  shifted_prediction_scores = prediction_scores[:, 1:end-1, :]
+  shifted_labels = labels[:, 2:end]
+
+  lm_loss = Flux.logitcrossentropy(shifted_prediction_scores, shifted_labels)
+
+  return (
+    loss = lm_loss,
+    prediction_logits = prediction_scores,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
 
 function HGFBertLMHeadModel(config::HGFBertConfig)
   bert = HGFBertModel(config)
@@ -815,6 +941,64 @@ end
 
 @functor HGFBertForMaskedLM
 
+(self::HGFBertForMaskedLM)(input;
+                              position_ids = nothing, token_type_ids = nothing,
+                              attention_mask = nothing,
+                              output_attentions = false,
+                              output_hidden_states = false
+                              ) = self(input, position_ids, token_type_ids,
+                                       attention_mask,
+                                       Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForMaskedLM)(input, position_ids, token_type_ids,
+                                    attention_mask,
+                                    _output_attentions::Val{output_attentions},
+                                    _output_hidden_states::Val{output_hidden_states}
+                                    ) where {output_attentions, output_hidden_states}
+  outputs = self.bert(input, position_ids, token_type_ids,
+                      attention_mask, _output_attentions, _output_hidden_states)
+  sequence_output = outputs[1]
+  prediction_scores = self.cls(sequence_output)
+  masked_lm_loss = nothing
+
+  return (
+    loss = masked_lm_loss,
+    logits = prediction_scores,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
+(self::HGFBertForMaskedLM)(input, labels;
+                           position_ids = nothing, token_type_ids = nothing,
+                           attention_mask = nothing,
+                           output_attentions = false,
+                           output_hidden_states = false
+                           ) = self(input, labels,
+                                    position_ids, token_type_ids,
+                                    attention_mask,
+                                    Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForMaskedLM)(input, labels,
+                                    position_ids, token_type_ids,
+                                       attention_mask,
+                                       _output_attentions::Val{output_attentions},
+                                       _output_hidden_states::Val{output_hidden_states}
+                                       ) where {output_attentions, output_hidden_states}
+  outputs = self(input, position_ids, token_type_ids, attention_mask,
+                _output_attentions, _output_hidden_states)
+
+  prediction_scores = outputs.logits
+  masked_lm_loss = Flux.logitcrossentropy(prediction_scores, labels)
+
+  return (
+    loss = masked_lm_loss,
+    logits = prediction_scores,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
 function HGFBertForMaskedLM(config::HGFBertConfig)
   bert = HGFBertModel(config)
   input_embedding = get_input_embedding(bert)
@@ -831,6 +1015,64 @@ end
 
 @functor HGFBertForNextSentencePrediction
 
+(self::HGFBertForNextSentencePrediction)(input;
+                              position_ids = nothing, token_type_ids = nothing,
+                              attention_mask = nothing,
+                              output_attentions = false,
+                              output_hidden_states = false
+                              ) = self(input, position_ids, token_type_ids,
+                                       attention_mask,
+                                       Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForNextSentencePrediction)(input, position_ids, token_type_ids,
+                                    attention_mask,
+                                    _output_attentions::Val{output_attentions},
+                                    _output_hidden_states::Val{output_hidden_states}
+                                    ) where {output_attentions, output_hidden_states}
+  outputs = self.bert(input, position_ids, token_type_ids,
+                      attention_mask, _output_attentions, _output_hidden_states)
+  pooled_output = outputs[2]
+  seq_relationship_scores = self.cls(pooled_output)
+  next_sentence_loss = nothing
+
+  return (
+    loss = next_sentence_loss,
+    logits = seq_relationship_scores,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
+(self::HGFBertForNextSentencePrediction)(input, next_sentence_label;
+                           position_ids = nothing, token_type_ids = nothing,
+                           attention_mask = nothing,
+                           output_attentions = false,
+                           output_hidden_states = false
+                           ) = self(input, next_sentence_label,
+                                    position_ids, token_type_ids,
+                                    attention_mask,
+                                    Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForNextSentencePrediction)(input, next_sentence_label,
+                                    position_ids, token_type_ids,
+                                       attention_mask,
+                                       _output_attentions::Val{output_attentions},
+                                       _output_hidden_states::Val{output_hidden_states}
+                                       ) where {output_attentions, output_hidden_states}
+  outputs = self(input, position_ids, token_type_ids, attention_mask,
+                _output_attentions, _output_hidden_states)
+
+  seq_relationship_scores = outputs.logits
+  next_sentence_loss = Flux.logitcrossentropy(seq_relationship_scores, next_sentence_label)
+
+  return (
+    loss = next_sentence_loss,
+    logits = seq_relationship_scores,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
 function HGFBertForNextSentencePrediction(config::HGFBertConfig)
   bert = HGFBertModel(config)
   cls = HGFBertOnlyNSPHead(config)
@@ -845,6 +1087,68 @@ struct HGFBertForSequenceClassification <: HGFBertPreTrainedModel
 end
 
 @functor HGFBertForSequenceClassification
+
+(self::HGFBertForSequenceClassification)(input;
+                              position_ids = nothing, token_type_ids = nothing,
+                              attention_mask = nothing,
+                              output_attentions = false,
+                              output_hidden_states = false
+                              ) = self(input, position_ids, token_type_ids,
+                                       attention_mask,
+                                       Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForSequenceClassification)(input, position_ids, token_type_ids,
+                                    attention_mask,
+                                    _output_attentions::Val{output_attentions},
+                                    _output_hidden_states::Val{output_hidden_states}
+                                    ) where {output_attentions, output_hidden_states}
+  outputs = self.bert(input, position_ids, token_type_ids,
+                      attention_mask, _output_attentions, _output_hidden_states)
+  pooled_output = outputs[2]
+  logits = self.classifier(pooled_output)
+  loss = nothing
+
+  return (
+    loss = loss,
+    logits = logits,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
+(self::HGFBertForSequenceClassification)(input, labels;
+                           position_ids = nothing, token_type_ids = nothing,
+                           attention_mask = nothing,
+                           output_attentions = false,
+                           output_hidden_states = false
+                           ) = self(input, labels,
+                                    position_ids, token_type_ids,
+                                    attention_mask,
+                                    Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForSequenceClassification)(input, labels,
+                                    position_ids, token_type_ids,
+                                       attention_mask,
+                                       _output_attentions::Val{output_attentions},
+                                       _output_hidden_states::Val{output_hidden_states}
+                                       ) where {output_attentions, output_hidden_states}
+  outputs = self(input, position_ids, token_type_ids, attention_mask,
+                _output_attentions, _output_hidden_states)
+
+  logits = outputs.logits
+  if size(logits, 1) == 1
+    loss = Flux.mse(logits, labels)
+  else
+    loss = Flux.logitcrossentropy(logits, labels)
+  end
+
+  return (
+    loss = loss,
+    logits = logits,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
 
 function HGFBertForSequenceClassification(config::HGFBertConfig)
   bert = HGFBertModel(config)
@@ -861,6 +1165,74 @@ end
 
 @functor HGFBertForMultipleChoice
 
+(self::HGFBertForMultipleChoice)(input;
+                              position_ids = nothing, token_type_ids = nothing,
+                              attention_mask = nothing,
+                              output_attentions = false,
+                              output_hidden_states = false
+                              ) = self(input, position_ids, token_type_ids,
+                                       attention_mask,
+                                       Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForMultipleChoice)(input, position_ids, token_type_ids,
+                                    attention_mask,
+                                    _output_attentions::Val{output_attentions},
+                                    _output_hidden_states::Val{output_hidden_states}
+                                          ) where {output_attentions, output_hidden_states}
+
+  num_choices = size(input, ndims(input)-1)
+  flat_choice(x) = reshape(x, size(x)[1:end-2]..., :)
+  flat_input = flat_choice(input)
+  flat_position_ids = flat_choice(position_ids)
+  flat_token_type_ids = flat_choice(token_type_ids)
+  flat_attention_mask = flat_choice(attention_mask)
+
+  outputs = self.bert(flat_input, flat_position_ids, flat_token_type_ids,
+                      flat_attention_mask, _output_attentions, _output_hidden_states)
+
+  pooled_output = outputs[2]
+  logits = self.classifier(pooled_output)
+  reshaped_logits = reshape(logits, num_choices, :)
+  loss = nothing
+
+  return (
+    loss = loss,
+    logits = reshaped_logits,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
+(self::HGFBertForMultipleChoice)(input, labels;
+                           position_ids = nothing, token_type_ids = nothing,
+                           attention_mask = nothing,
+                           output_attentions = false,
+                           output_hidden_states = false
+                           ) = self(input, labels,
+                                    position_ids, token_type_ids,
+                                    attention_mask,
+                                    Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForMultipleChoice)(input, labels,
+                                          position_ids, token_type_ids,
+                                          attention_mask,
+                                          _output_attentions::Val{output_attentions},
+                                          _output_hidden_states::Val{output_hidden_states}
+                                          ) where {output_attentions, output_hidden_states}
+  outputs = self(input, position_ids, token_type_ids, attention_mask,
+                 _output_attentions, _output_hidden_states)
+
+  logits = outputs.logits
+  loss = Flux.logitcrossentropy(logits, labels)
+
+  return (
+    loss = loss,
+    logits = logits,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
 function HGFBertForMultipleChoice(config::HGFBertConfig)
   bert = HGFBertModel(config)
   classifier = FakeTHLinear(config, config.hidden_size, 1)
@@ -876,6 +1248,64 @@ end
 
 @functor HGFBertForTokenClassification
 
+(self::HGFBertForTokenClassification)(input;
+                              position_ids = nothing, token_type_ids = nothing,
+                              attention_mask = nothing,
+                              output_attentions = false,
+                              output_hidden_states = false
+                              ) = self(input, position_ids, token_type_ids,
+                                       attention_mask,
+                                       Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForTokenClassification)(input, position_ids, token_type_ids,
+                                    attention_mask,
+                                    _output_attentions::Val{output_attentions},
+                                    _output_hidden_states::Val{output_hidden_states}
+                                    ) where {output_attentions, output_hidden_states}
+  outputs = self.bert(input, position_ids, token_type_ids,
+                      attention_mask, _output_attentions, _output_hidden_states)
+  sequence_output = outputs[1]
+  logits = self.classifier(sequence_output)
+  loss = nothing
+
+  return (
+    loss = loss,
+    logits = logits,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
+(self::HGFBertForTokenClassification)(input, labels;
+                           position_ids = nothing, token_type_ids = nothing,
+                           attention_mask = nothing,
+                           output_attentions = false,
+                           output_hidden_states = false
+                           ) = self(input, labels,
+                                    position_ids, token_type_ids,
+                                    attention_mask,
+                                    Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForTokenClassification)(input, labels,
+                                    position_ids, token_type_ids,
+                                       attention_mask,
+                                       _output_attentions::Val{output_attentions},
+                                       _output_hidden_states::Val{output_hidden_states}
+                                       ) where {output_attentions, output_hidden_states}
+  outputs = self(input, position_ids, token_type_ids, attention_mask,
+                _output_attentions, _output_hidden_states)
+
+  logits = outputs.logits
+  loss = Flux.logitcrossentropy(logits, labels)
+
+  return (
+    loss = loss,
+    logits = logits,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
 function HGFBertForTokenClassification(config::HGFBertConfig)
   bert = HGFBertModel(config)
   classifier = FakeTHLinear(config, config.hidden_size, config.num_labels)
@@ -890,6 +1320,71 @@ struct HGFBertForQuestionAnswering <: HGFBertPreTrainedModel
 end
 
 @functor HGFBertForQuestionAnswering
+
+(self::HGFBertForQuestionAnswering)(input;
+                              position_ids = nothing, token_type_ids = nothing,
+                              attention_mask = nothing,
+                              output_attentions = false,
+                              output_hidden_states = false
+                              ) = self(input, position_ids, token_type_ids,
+                                       attention_mask,
+                                       Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForQuestionAnswering)(input, position_ids, token_type_ids,
+                                    attention_mask,
+                                    _output_attentions::Val{output_attentions},
+                                    _output_hidden_states::Val{output_hidden_states}
+                                    ) where {output_attentions, output_hidden_states}
+  outputs = self.bert(input, position_ids, token_type_ids,
+                      attention_mask, _output_attentions, _output_hidden_states)
+  sequence_output = outputs[1]
+  logits = self.qa_outputs(sequence_output)
+  start_logits = @view(logits[1, :])
+  end_logits = @view(logits[2, :])
+  total_loss = nothing
+
+  return (
+    loss = total_loss,
+    start_logits = start_logits,
+    end_logits = end_logits,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
+
+(self::HGFBertForQuestionAnswering)(input, start_positions, end_positions;
+                           position_ids = nothing, token_type_ids = nothing,
+                           attention_mask = nothing,
+                           output_attentions = false,
+                           output_hidden_states = false
+                           ) = self(input, start_positions, end_positions,
+                                    position_ids, token_type_ids,
+                                    attention_mask,
+                                    Val(output_attentions), Val(output_hidden_states))
+
+function (self::HGFBertForQuestionAnswering)(input, start_positions, end_positions,
+                                    position_ids, token_type_ids,
+                                       attention_mask,
+                                       _output_attentions::Val{output_attentions},
+                                       _output_hidden_states::Val{output_hidden_states}
+                                       ) where {output_attentions, output_hidden_states}
+  outputs = self(input, position_ids, token_type_ids, attention_mask,
+                _output_attentions, _output_hidden_states)
+
+  start_logits = outputs.start_logits
+  end_logits = outputs.end_logits
+  start_loss = Flux.logitcrossentropy(start_logits, start_positions)
+  end_loss = Flux.logitcrossentropy(end_logits, end_positions)
+  total_loss = (start_loss + end_loss) / 2
+
+  return (
+    loss = total_loss,
+    start_logits = start_logits,
+    end_logits = end_logits,
+    hidden_states = outputs.hidden_states,
+    attentions = outputs.attentions
+  )
+end
 
 function HGFBertForQuestionAnswering(config::HGFBertConfig)
   bert = HGFBertModel(config)
