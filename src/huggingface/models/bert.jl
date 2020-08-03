@@ -776,9 +776,9 @@ get_input_embedding(model::HGFBertModel) = model.embeddings.word_embeddings.weig
 
 # pretrain
 
-struct HGFBertForPreTraining <: HGFBertPreTrainedModel
-  bert::HGFBertModel
-  cls::HGFBertPreTrainingHeads
+struct HGFBertForPreTraining{B<:HGFBertModel, C<:HGFBertPreTrainingHeads} <: HGFBertPreTrainedModel
+  bert::B
+  cls::C
 end
 
 @functor HGFBertForPreTraining
@@ -856,9 +856,9 @@ end
 
 # clm finetune
 
-struct HGFBertLMHeadModel <: HGFBertPreTrainedModel
-  bert::HGFBertModel
-  cls::HGFBertOnlyMLMHead
+struct HGFBertLMHeadModel{B<:HGFBertModel, C<:HGFBertOnlyMLMHead} <: HGFBertPreTrainedModel
+  bert::B
+  cls::C
 end
 
 @functor HGFBertLMHeadModel
@@ -934,9 +934,9 @@ end
 
 # maked lm
 
-struct HGFBertForMaskedLM <: HGFBertPreTrainedModel
-  bert::HGFBertModel
-  cls::HGFBertOnlyMLMHead
+struct HGFBertForMaskedLM{B<:HGFBertModel, C<:HGFBertOnlyMLMHead} <: HGFBertPreTrainedModel
+  bert::B
+  cls::C
 end
 
 @functor HGFBertForMaskedLM
@@ -1008,9 +1008,9 @@ end
 
 # next sentence
 
-struct HGFBertForNextSentencePrediction <: HGFBertPreTrainedModel
-  bert::HGFBertModel
-  cls::HGFBertOnlyNSPHead
+struct HGFBertForNextSentencePrediction{B<:HGFBertModel, C<:HGFBertOnlyNSPHead} <: HGFBertPreTrainedModel
+  bert::B
+  cls::C
 end
 
 @functor HGFBertForNextSentencePrediction
@@ -1081,9 +1081,9 @@ end
 
 # seq classify
 
-struct HGFBertForSequenceClassification <: HGFBertPreTrainedModel
-  bert::HGFBertModel
-  classifier::FakeTHLinear
+struct HGFBertForSequenceClassification{B<:HGFBertModel, C<:FakeTHLinear} <: HGFBertPreTrainedModel
+  bert::B
+  classifier::C
 end
 
 @functor HGFBertForSequenceClassification
@@ -1158,9 +1158,9 @@ end
 
 # multiple choice
 
-struct HGFBertForMultipleChoice <: HGFBertPreTrainedModel
-  bert::HGFBertModel
-  classifier::FakeTHLinear
+struct HGFBertForMultipleChoice{B<:HGFBertModel, C<:FakeTHLinear} <: HGFBertPreTrainedModel
+  bert::B
+  classifier::C
 end
 
 @functor HGFBertForMultipleChoice
@@ -1241,9 +1241,9 @@ end
 
 # token classify
 
-struct HGFBertForTokenClassification <: HGFBertPreTrainedModel
-  bert::HGFBertModel
-  classifier::FakeTHLinear
+struct HGFBertForTokenClassification{B<:HGFBertModel, C<:FakeTHLinear} <: HGFBertPreTrainedModel
+  bert::B
+  classifier::C
 end
 
 @functor HGFBertForTokenClassification
@@ -1314,9 +1314,9 @@ end
 
 # qa
 
-struct HGFBertForQuestionAnswering <: HGFBertPreTrainedModel
-  bert::HGFBertModel
-  qa_outputs::FakeTHLinear
+struct HGFBertForQuestionAnswering{B<:HGFBertModel, C<:FakeTHLinear} <: HGFBertPreTrainedModel
+  bert::B
+  qa_outputs::C
 end
 
 @functor HGFBertForQuestionAnswering
