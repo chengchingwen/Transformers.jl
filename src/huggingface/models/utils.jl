@@ -182,37 +182,55 @@ function Base.getindex(xs::CuArray{T}, indices::CuVector{<:Integer}) where T
   return ys
 end
 
-# function Base.getindex(ma::MaskedArray{T, N}, indices::Vararg{Union{Colon, UnitRange, Int}, N}) where {T, N}
-#   @boundscheck checkbounds(ma, indices...)
-#   _match(x::Tuple{Colon, Int}) = true
-#   _match(x::Tuple{UnitRange, Int}) = x[2] in x[1]
-#   _match(x) = x[1] == x[2]
-#   match(idx) = all(_match, zip(indices, idx))
+function Base.getindex(ma::MaskedArray{T, N}, indices::Vararg{Union{Colon, UnitRange, StepRange, Int}, N}) where {T, N}
+  @boundscheck checkbounds(ma, indices...)
 
-#   _compute_size(idx::Tuple{Int, Colon}) = size(ma, idx[1])
-#   _compute_size(idx::Tuple{Int, UnitRange}) = length(idx[2])
-#   _compute_size(_) = nothing
+  indices_region = map(size(ma), indices) do si, ii
+    if ii isa Int
+      0
+    elseif ii isa Colon
+      si
+    else
+      length(ii)
+    end
+  end
+  remaining_dim = map(!isequal(0), indices_region)
+  new_size = filter(!iszero, indices_region)
 
-#   remaining_idx = map(x->(x[1], !isa(x[2], Int)), enumerate(indices)) |>
-#     Base.Fix1(filter, x->x[2]) |>
-#     Tuple |>
-#     Base.Fix1(map, x->x[1])
+  function transform_idx(old_idx)
+    new_idx = map(old_idx, indices) do idx, ii
+      if ii isa Int
+        0
+      elseif ii isa Colon
+        idx
+      else
+        findfirst(isequal(idx), ii)
+      end
+    end
+    filter(!iszero, new_idx)
+  end
 
-#   pos_transform(pos) = map(x->pos[x], remaining_idx)
+  _match(x::Tuple{Colon, Int}) = true
+  _match(x::Tuple{Int, Int}) = x[1] == x[2]
+  _match(x) = x[2] in x[1]
+  match(idx) = all(_match, zip(indices, idx))
 
-#   new_size = filter(!isnothing, map(_compute_size , enumerate(indices))) |> Tuple
+  if ma.positions isa CUDA.CuArray
+    CUDA.@allowscalar idx = findall(match, ma.positions)
+  else
+    idx = findall(match, ma.positions)
+  end
 
-#   if ma.positions isa CUDA.CuArray
-#     CUDA.@allowscalar idx = findall(match, ma.positions)
-#   else
-#     idx = findall(match, ma.positions)
-#   end
+  new_values = ma.values[idx]
+  new_positions = ma.positions[idx]
+  if ma.positions isa CUDA.CuArray
+    CUDA.@allowscalar new_positions = map(transform_idx, new_positions)
+  else
+    new_positions = map(transform_idx, new_positions)
+  end
 
-#   new_values = ma.values[idx]
-#   new_positions = ma.positions[idx]
-#   new_positions = map(pos_transform, new_positions)
-#   MaskedArray(new_size, ma.masked_val, new_values, new_positions)
-# end
+  MaskedArray(new_size, ma.masked_val, new_values, new_positions)
+end
 
 function Base.setindex!(ma::MaskedArray{T, N}, v, i::Vararg{Int, N}) where {T, N}
   @boundscheck checkbounds(ma, i...)
