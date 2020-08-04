@@ -14,6 +14,8 @@ Base.Int(o::OneHot) = Int(UInt32(o))
 Base.convert(::Type{UInt32}, o::OneHot) = UInt32(o)
 Base.convert(::Type{T}, o::OneHot) where {T<:Integer} = T(UInt32(o))
 
+Base.iszero(o::OneHot{K}) where K = iszero(UInt32(o))
+
 Base.size(::OneHot{K}) where K = (K,)
 function Base.getindex(o::OneHot{K}, i::I) where {K, I<:Integer}
   @boundscheck checkbounds(o, i)
@@ -259,12 +261,37 @@ import Adapt: adapt, adapt_structure
 adapt_structure(T, oa::OneHotArray{K}) where K = OneHotArray(adapt(T, oa.data))
 adapt_structure(T, ma::MaskedArray) = MaskedArray(ma.size, ma.masked_val, adapt(T, ma.values), adapt(T, ma.positions))
 
+num_effective_entry(y::OneHotArray) = sum(map(!iszero, y.data))
+Flux.@nograd num_effective_entry
+
 function Losses.crossentropy(ŷ::AbstractArray{T, N}, y::OneHotArray{K, N}; agg=mean, ϵ=Flux.epseltype(ŷ)) where {T, K, N}
-  agg((.-log.(ŷ .+ ϵ))[y])
+  ce = (.-log.(ŷ .+ ϵ))[y]
+  if agg === sum || agg === mean
+    ce = sum(ce)
+    if agg === mean
+      n = convert(T, num_effective_entry(y))
+      return ce / n
+    else
+      return ce
+    end
+  else
+    return agg(ce)
+  end
 end
 
 function Losses.logitcrossentropy(ŷ::AbstractArray{T, N}, y::OneHotArray{K, N}; agg=mean) where {T, N, K}
-  agg(.-logsoftmax(ŷ)[y])
+  ce = .-logsoftmax(ŷ)[y]
+  if agg === sum || agg === mean
+    ce = sum(ce)
+    if agg === mean
+      n = convert(T, num_effective_entry(y))
+      return ce / n
+    else
+      return ce
+    end
+  else
+    return agg(ce)
+  end
 end
 
 function Losses.crossentropy(ŷ, y::MaskedArray{OneHot{K}}; agg=mean, ϵ=Flux.epseltype(ŷ)) where K
