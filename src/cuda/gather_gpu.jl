@@ -9,7 +9,7 @@ function gather(w::CuMatrix{T}, xs::CuArray{Int}) where T
         li = threadIdx().y + (blockIdx().y - 1) * blockDim().y
         i = threadIdx().x + (blockIdx().x - 1) * blockDim().x
 
-        @inbounds if li <= length(xs)
+        @inbounds if li <= length(xs) && i <= size(ys, 1)
             ind = Tuple(CartesianIndices(xs)[li])
             ys[i, ind...] = w[i, xs[li]]
         end
@@ -34,7 +34,7 @@ function gather(W::CuArray{T}, xs::CuArray{<:Tuple}) where T
         li = threadIdx().y + (blockIdx().y - 1) * blockDim().y
         i = threadIdx().x + (blockIdx().x - 1) * blockDim().x
 
-        @inbounds if li <= length(xs)
+        @inbounds if li <= length(xs) && i <= size(ys, 1)
             ind = Tuple(CartesianIndices(xs)[li])
             ys[i, ind...] = w[i, xs[li]...]
         end
