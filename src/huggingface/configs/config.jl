@@ -6,7 +6,7 @@ Base.length(cfg::AbstractHGFConfig) = fieldcount(typeof(cfg))
 Base.isempty(::AbstractHGFConfig) = false
 Base.getindex(cfg::AbstractHGFConfig, k::Symbol) = getfield(cfg, k)
 Base.iterate(cfg::AbstractHGFConfig) = iterate(cfg, 1)
-Base.iterate(cfg::AbstractHGFConfig, i) = i <= length(cfg) ? (fieldname(HGFBertConfig, i)=> getfield(cfg, i), i+1) : nothing
+Base.iterate(cfg::AbstractHGFConfig, i) = i <= length(cfg) ? (fieldname(typeof(cfg), i)=> getfield(cfg, i), i+1) : nothing
 
 function load_config(model_name)
   cfg = JSON.parsefile(get_registered_config_path(model_name); dicttype=Dict{Symbol, Any})
