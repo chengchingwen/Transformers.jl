@@ -135,7 +135,7 @@ function ∇getindex!(xs::CuArray{T}, ys::CuArray{T}, onehots::OneHotArray{K, N,
   return xs
 end
 
-struct MaskedArray{T, N, S<:NTuple{N, Int},
+struct MaskFillArray{T, N, S<:NTuple{N, Int},
                    L<:AbstractVector{T},
                    I<:NTuple{N, <:Integer}, P<:AbstractVector{I}} <: AbstractArray{T, N}
   size::S
@@ -144,11 +144,11 @@ struct MaskedArray{T, N, S<:NTuple{N, Int},
   positions::P
 end
 
-MaskedArray(size, masked_val::T) where T = MaskedArray(size, masked_val, Vector{T}(), Vector{NTuple{length(size), Int}}())
+MaskFillArray(size, masked_val::T) where T = MaskFillArray(size, masked_val, Vector{T}(), Vector{NTuple{length(size), Int}}())
 
-Base.size(ma::MaskedArray) = ma.size
+Base.size(ma::MaskFillArray) = ma.size
 
-function Base.getindex(ma::MaskedArray{T, N}, i::Vararg{Int, N}) where {T, N}
+function Base.getindex(ma::MaskFillArray{T, N}, i::Vararg{Int, N}) where {T, N}
   @boundscheck checkbounds(ma, i...)
   idx = findfirst(isequal(i), ma.positions)
   if isnothing(idx)
@@ -184,7 +184,7 @@ function Base.getindex(xs::CuArray{T}, indices::CuVector{<:Integer}) where T
   return ys
 end
 
-function Base.getindex(ma::MaskedArray{T, N}, indices::Vararg{Union{Colon, UnitRange, StepRange, Int}, N}) where {T, N}
+function Base.getindex(ma::MaskFillArray{T, N}, indices::Vararg{Union{Colon, UnitRange, StepRange, Int}, N}) where {T, N}
   @boundscheck checkbounds(ma, indices...)
 
   indices_region = map(size(ma), indices) do si, ii
@@ -231,10 +231,10 @@ function Base.getindex(ma::MaskedArray{T, N}, indices::Vararg{Union{Colon, UnitR
     new_positions = map(transform_idx, new_positions)
   end
 
-  MaskedArray(new_size, ma.masked_val, new_values, new_positions)
+  MaskFillArray(new_size, ma.masked_val, new_values, new_positions)
 end
 
-function Base.setindex!(ma::MaskedArray{T, N}, v, i::Vararg{Int, N}) where {T, N}
+function Base.setindex!(ma::MaskFillArray{T, N}, v, i::Vararg{Int, N}) where {T, N}
   @boundscheck checkbounds(ma, i...)
   idx = findfirst(isequal(i), ma.positions)
   if isnothing(idx)
@@ -246,20 +246,20 @@ function Base.setindex!(ma::MaskedArray{T, N}, v, i::Vararg{Int, N}) where {T, N
   end
 end
 
-function MaskedArray(oma::MaskedArray{OneHot{K}}) where K
+function MaskFillArray(oma::MaskFillArray{OneHot{K}}) where K
   new_size = (K, size(oma)...)
   new_values = map(x->true, oma.values)
   new_positions = map(zip(oma.values, oma.positions)) do (val, pos)
     (convert(Int, val), pos...)
   end
-  MaskedArray(new_size, false, new_values, new_positions)
+  MaskFillArray(new_size, false, new_values, new_positions)
 end
 
-Flux.@nograd MaskedArray
+Flux.@nograd MaskFillArray
 
 import Adapt: adapt, adapt_structure
 adapt_structure(T, oa::OneHotArray{K}) where K = OneHotArray(adapt(T, oa.data))
-adapt_structure(T, ma::MaskedArray) = MaskedArray(ma.size, ma.masked_val, adapt(T, ma.values), adapt(T, ma.positions))
+adapt_structure(T, ma::MaskFillArray) = MaskFillArray(ma.size, ma.masked_val, adapt(T, ma.values), adapt(T, ma.positions))
 
 num_effective_entry(y::OneHotArray) = sum(map(!iszero, y.data))
 Flux.@nograd num_effective_entry
@@ -294,13 +294,13 @@ function Losses.logitcrossentropy(ŷ::AbstractArray{T, N}, y::OneHotArray{K, N}
   end
 end
 
-function Losses.crossentropy(ŷ, y::MaskedArray{OneHot{K}}; agg=mean, ϵ=Flux.epseltype(ŷ)) where K
+function Losses.crossentropy(ŷ, y::MaskFillArray{OneHot{K}}; agg=mean, ϵ=Flux.epseltype(ŷ)) where K
   real_ŷ = gather(ŷ, y.positions)
   real_y = OneHotArray(y.values)
   Losses.crossentropy(real_ŷ, real_y; agg=agg)
 end
 
-function Losses.logitcrossentropy(ŷ, y::MaskedArray{OneHot{K}}; agg=mean) where K
+function Losses.logitcrossentropy(ŷ, y::MaskFillArray{OneHot{K}}; agg=mean) where K
   real_ŷ = gather(ŷ, y.positions)
   real_y = OneHotArray(y.values)
   Losses.logitcrossentropy(real_ŷ, real_y; agg=agg)
