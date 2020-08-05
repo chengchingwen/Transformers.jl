@@ -14,8 +14,12 @@ end
 
 function FakeTHEmbedding(config::HGFBertConfig, num, dims; pad_idx=nothing)
   weight = randn(Float32, dims, num)
-  !isnothing(pad_idx) && (@view(weight[:, pad_idx+1]) .= 0)
-  FakeTHEmbedding(pad_idx, weight)
+  if !isnothing(pad_idx)
+    real_pad_idx = pad_idx+1
+  else
+    real_pad_idx = 0
+  end
+  FakeTHEmbedding(real_pad_idx, weight)
 end
 
 function FakeTHLayerNorm(config::HGFBertConfig, dims; eps::Float32=1e-05)
