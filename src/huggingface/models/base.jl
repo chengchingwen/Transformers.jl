@@ -60,21 +60,31 @@ function (l::FakeTHLinear)(x::AbstractArray)
 end
 
 struct FakeTHEmbedding{T<:AbstractArray} <: THModule
-  pad_idx::Union{Nothing, Int}
+  pad_idx::Int
   weight::T
+end
+
+function FakeTHEmbedding(pad_idx, weight)
+  @assert pad_idx <= size(weight, 2)
+  if !iszero(pad_idx)
+    @view(weight[:, pad_idx]) .= 0
+  end
+
+  FakeTHEmbedding(pad_idx, weight)
 end
 
 Functors.functor(::Type{<:FakeTHEmbedding}, embedding) = (weight = embedding.weight,), y -> FakeTHEmbedding(embedding.pad_idx, y...)
 
+#TODO: refactor basic/embeds/gather.jl
 _padded_gather(w, x, padded_idx) = gather(w, x)
 @adjoint function _padded_gather(w, x, padded_idx)
   y, back = pullback(gather, w, x)
   return y, Δ -> begin
-    Δ′ = back(Δ)
-    if !isnothing(padded_idx)
-      @view(Δ′[:, padded_idx+1]) .= 0
+    Δ′, _ = back(Δ)
+    if !iszero(padded_idx)
+      @view(Δ′[:, padded_idx]) .= 0
     end
-    return Δ′
+    return (Δ′, nothing, nothing)
   end
 end
 
