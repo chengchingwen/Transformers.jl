@@ -16,10 +16,9 @@ struct FakeTHLayerNorm{T<:AbstractArray} <: THModule
   bias::T
 end
 
-Functors.functor(::Type{<:FakeTHLayerNorm}, layernorm) = (weight = layernorm.weight, bias = layernorm.bias), y -> FakeTHEmbedding(layernorm.eps, y...)
+Functors.functor(::Type{<:FakeTHLayerNorm}, layernorm) = (weight = layernorm.weight, bias = layernorm.bias), y -> FakeTHLayerNorm(layernorm.eps, y...)
 
-#(ln::FakeTHLayerNorm)(x) = ln.weight .* Flux.normalise(x, dims=1, ϵ=ln.eps) .+ ln.bias
-(ln::FakeTHLayerNorm)(x) = ln.weight .* Flux.normalise(x, dims=1) .+ ln.bias
+(ln::FakeTHLayerNorm)(x) = ln.weight .* Flux.normalise(x, dims=1, ϵ=ln.eps) .+ ln.bias
 
 function load_state(layer::FakeTHLayerNorm, state)
   for k in keys(state)
