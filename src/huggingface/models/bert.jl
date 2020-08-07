@@ -13,7 +13,7 @@ function FakeTHLinear(config::HGFBertConfig, hi, ho; bias=true)
 end
 
 function FakeTHEmbedding(config::HGFBertConfig, num, dims; pad_idx=nothing)
-  weight = randn(Float32, dims, num)
+  weight = randn(Float32, dims, num) .* config.initializer_range
   if !isnothing(pad_idx)
     real_pad_idx = pad_idx+1
   else
@@ -248,7 +248,7 @@ struct HGFBertIntermediate{F, D<:FakeTHLinear} <: THModule
   dense::D
 end
 
-@functor HGFBertIntermediate (dense,)
+Functors.functor(::Type{<:HGFBertIntermediate}, intermediate) = (dense = intermediate.dense,), y->HGFBertIntermediate(intermediate.intermediate_act, y...)
 
 (i::HGFBertIntermediate)(hidden_states) = i.intermediate_act.(i.dense(hidden_states))
 
