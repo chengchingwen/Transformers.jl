@@ -13,7 +13,7 @@ function FakeTHLinear(config::HGFBertConfig, hi, ho; bias=true)
 end
 
 function FakeTHEmbedding(config::HGFBertConfig, num, dims; pad_idx=nothing)
-  weight = randn(Float32, dims, num)
+  weight = randn(Float32, dims, num) .* config.initializer_range
   if !isnothing(pad_idx)
     real_pad_idx = pad_idx+1
   else
