@@ -148,4 +148,20 @@ function _printnode(io::IO, p::Pair)
   summary(io, p[2])
 end
 
+struct FakeHGFConv1D{W<:AbstractArray, B<:AbstractArray} <: THModule
+  weight::W
+  bias::B
+end
 
+@functor FakeHGFConv1D
+
+(c::FakeHGFConv1D)(x::AbstractMatrix) = l.weight' * x .+ l.bias
+
+function (c::FakeHGFConv1D)(x::AbstractArray)
+  old_size = size(x)
+  new_size = Base.setindex(old_size, size(l.weight, 2), 1)
+
+  new_x = reshape(x, old_size[1], :)
+  y = l(new_x)
+  return reshape(y, new_size)
+end
