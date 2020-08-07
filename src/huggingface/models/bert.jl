@@ -248,7 +248,7 @@ struct HGFBertIntermediate{F, D<:FakeTHLinear} <: THModule
   dense::D
 end
 
-@functor HGFBertIntermediate (dense,)
+Functors.functor(::Type{<:HGFBertIntermediate}, intermediate) = (dense = intermediate.dense,), y->HGFBertIntermediate(intermediate.intermediate_act, y...)
 
 (i::HGFBertIntermediate)(hidden_states) = i.intermediate_act.(i.dense(hidden_states))
 
