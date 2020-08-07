@@ -1,3 +1,7 @@
+using ..Transformers.Basic: gather
+
+using ZygoteRules: @adjoint, pullback
+
 using AbstractTrees
 import AbstractTrees: children
 
@@ -12,7 +16,9 @@ struct FakeTHLayerNorm{T<:AbstractArray} <: THModule
   bias::T
 end
 
-Functors.functor(::Type{<:FakeTHLayerNorm}, layernorm) = (weight = layernorm.weight, bias = layernorm.bias), y -> FakeTHEmbedding(layernorm.eps, y...)
+Functors.functor(::Type{<:FakeTHLayerNorm}, layernorm) = (weight = layernorm.weight, bias = layernorm.bias), y -> FakeTHLayerNorm(layernorm.eps, y...)
+
+(ln::FakeTHLayerNorm)(x) = ln.weight .* Flux.normalise(x, dims=1, ϵ=ln.eps) .+ ln.bias
 
 function load_state(layer::FakeTHLayerNorm, state)
   for k in keys(state)
@@ -42,12 +48,46 @@ function Functors.functor(::Type{<:FakeTHLinear}, linear)
   y -> FakeTHLinear(y...)
 end
 
+(l::FakeTHLinear)(x::AbstractMatrix) = _has_bias(l) ? l.weight * x .+ l.bias : l.weight * x
+function (l::FakeTHLinear)(x::AbstractArray)
+  old_size = size(x)
+  new_size = Base.setindex(old_size, size(l.weight, 1), 1)
+
+  new_x = reshape(x, old_size[1], :)
+  y = l(new_x)
+  return reshape(y, new_size)
+end
+
 struct FakeTHEmbedding{T<:AbstractArray} <: THModule
-  pad_idx::Union{Nothing, Int}
+  pad_idx::Int
   weight::T
 end
 
+function FakeTHEmbedding(pad_idx, weight)
+  @assert pad_idx <= size(weight, 2)
+  if !iszero(pad_idx)
+    @view(weight[:, pad_idx]) .= 0
+  end
+
+  FakeTHEmbedding(pad_idx, weight)
+end
+
 Functors.functor(::Type{<:FakeTHEmbedding}, embedding) = (weight = embedding.weight,), y -> FakeTHEmbedding(embedding.pad_idx, y...)
+
+#TODO: refactor basic/embeds/gather.jl
+_padded_gather(w, x, padded_idx) = gather(w, x)
+@adjoint function _padded_gather(w, x, padded_idx)
+  y, back = pullback(gather, w, x)
+  return y, Δ -> begin
+    Δ′, _ = back(Δ)
+    if !iszero(padded_idx)
+      @view(Δ′[:, padded_idx]) .= 0
+    end
+    return (Δ′, nothing, nothing)
+  end
+end
+
+(e::FakeTHEmbedding)(x) = _padded_gather(e.weight, x, e.pad_idx)
 
 function load_state(layer::FakeTHEmbedding, state)
   load_state(layer.weight, state.weight')
@@ -60,14 +100,20 @@ function get_state_dict(state, prefix, embedding::FakeTHEmbedding)
   state[cprefix] = param.weight'
 end
 
-struct FakeTHModuleList <: THModule
-  _modules::Vector
+struct FakeTHModuleList{N, T<:Tuple} <: THModule
+  _modules::T
+  FakeTHModuleList(ms) = new{length(ms), typeof(ms)}(ms)
 end
+
+FakeTHModuleList(ms...) = FakeTHModuleList(ms)
+FakeTHModuleList(ms::Vector) = FakeTHModuleList(Tuple(ms))
 
 Functors.functor(::Type{<:FakeTHModuleList}, modulelist) = modulelist._modules, y -> FakeTHModuleList(y)
 
 Base.iterate(modulelist::FakeTHModuleList) = iterate(modulelist._modules)
 Base.iterate(modulelist::FakeTHModuleList, i...) = iterate(modulelist._modules, i...)
+Base.length(::FakeTHModuleList{N}) where N = N
+Base.getindex(modulelist::FakeTHModuleList, i) = modulelist._modules[i]
 
 function get_state_dict(state, prefix, modulelist::FakeTHModuleList)
   param = Functors.functor(modulelist)[1]

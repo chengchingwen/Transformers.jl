@@ -43,5 +43,6 @@ function load_state(weight::T, state::S) where {T<:Transpose, S<:StridedView}
   end
 end
 
+include("./utils.jl")
 include("./base.jl")
 include("./bert.jl")
