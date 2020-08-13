@@ -18,6 +18,7 @@ Base.@kwdef struct HGFGPT2Config <: AbstractHGFConfig
   summary_first_dropout::Float64 = 0.1
   bos_token_id::Int = 50256
   eos_token_id::Int = 50256
+  num_labels::Int = 2
 end
 
 config_type(::Val{:gpt2}) = HGFGPT2Config
