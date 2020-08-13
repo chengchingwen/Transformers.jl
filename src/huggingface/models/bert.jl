@@ -1186,6 +1186,7 @@ function (self::HGFBertForMultipleChoice)(input, position_ids, token_type_ids,
 
   num_choices = size(input, ndims(input)-1)
   flat_choice(x) = reshape(x, size(x)[1:end-2]..., :)
+  flat_choice(::Nothing) = nothing
   flat_input = flat_choice(input)
   flat_position_ids = flat_choice(position_ids)
   flat_token_type_ids = flat_choice(token_type_ids)
