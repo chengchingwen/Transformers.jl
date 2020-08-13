@@ -155,14 +155,14 @@ end
 
 @functor FakeHGFConv1D
 
-(c::FakeHGFConv1D)(x::AbstractMatrix) = l.weight' * x .+ l.bias
+(c::FakeHGFConv1D)(x::AbstractMatrix) = c.weight' * x .+ c.bias
 
 function (c::FakeHGFConv1D)(x::AbstractArray)
   old_size = size(x)
-  new_size = Base.setindex(old_size, size(l.weight, 2), 1)
+  new_size = Base.setindex(old_size, size(c.weight, 2), 1)
 
   new_x = reshape(x, old_size[1], :)
-  y = l(new_x)
+  y = c(new_x)
   return reshape(y, new_size)
 end
 
