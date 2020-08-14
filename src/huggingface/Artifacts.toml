@@ -18,3 +18,6 @@ git-tree-sha1 = "4d1f78a5b6d4cac3d6e29f5bc3246729eb2969f9"
 
 ["gpt2/pytorch_model.bin"]
 git-tree-sha1 = "80caf29d6e3cd928bc3071961afd62afbbf84083"
+
+["roberta-base/config.json"]
+git-tree-sha1 = "cf4955f672842a15d20d1c4e3392dff5424b9211"
