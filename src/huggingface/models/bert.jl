@@ -2,7 +2,8 @@ using ..Transformers: batchedmul, batched_triu!
 
 # Bert specific initializers
 
-function FakeTHLinear(config::HGFBertConfig, hi, ho; bias=true)
+FakeTHLinear(cfg::AbstractHGFConfig, args...; kwargs...) = FakeTHLinear(typeof(cfg), cfg, args...; kwargs...)
+function FakeTHLinear(::Type{HGFBertConfig}, config, hi, ho; bias=true)
   weight = randn(Float32, ho, hi) .* config.initializer_range
   if bias
     bias = zeros(Float32, ho)
@@ -12,7 +13,8 @@ function FakeTHLinear(config::HGFBertConfig, hi, ho; bias=true)
   FakeTHLinear(weight, bias)
 end
 
-function FakeTHEmbedding(config::HGFBertConfig, num, dims; pad_idx=nothing)
+FakeTHEmbedding(cfg::AbstractHGFConfig, args...; kwargs...) = FakeTHEmbedding(typeof(cfg), cfg, args...; kwargs...)
+function FakeTHEmbedding(::Type{HGFBertConfig}, config, num, dims; pad_idx=nothing)
   weight = randn(Float32, dims, num) .* config.initializer_range
   if !isnothing(pad_idx)
     real_pad_idx = pad_idx+1
@@ -22,7 +24,8 @@ function FakeTHEmbedding(config::HGFBertConfig, num, dims; pad_idx=nothing)
   FakeTHEmbedding(real_pad_idx, weight)
 end
 
-function FakeTHLayerNorm(config::HGFBertConfig, dims; eps::Float32=1e-05)
+FakeTHLayerNorm(cfg::AbstractHGFConfig, args...; kwargs...) = FakeTHLayerNorm(typeof(cfg), cfg, args...; kwargs...)
+function FakeTHLayerNorm(::Type{HGFBertConfig}, config, dims; eps::Float32=1e-05)
   weight = ones(Float32, dims)
   bias = zeros(Float32, dims)
   FakeTHLayerNorm(eps, weight, bias)
@@ -46,15 +49,16 @@ end
 
 @functor HGFBertEmbeddings
 
-function HGFBertEmbeddings(config::HGFBertConfig)
-  layernorm = FakeTHLayerNorm(config, config.hidden_size; eps=config.layer_norm_eps)
+HGFBertEmbeddings(cfg::AbstractHGFConfig, args...; kwargs...) = HGFBertEmbeddings(typeof(cfg), cfg, args...; kwargs...)
+function HGFBertEmbeddings(T::Type{HGFBertConfig}, config)
+  layernorm = FakeTHLayerNorm(T, config, config.hidden_size; eps=config.layer_norm_eps)
 
-  word_emb = FakeTHEmbedding(config, config.vocab_size,
+  word_emb = FakeTHEmbedding(T, config, config.vocab_size,
                              config.hidden_size;
                              pad_idx=config.pad_token_id)
-  posi_emb = FakeTHEmbedding(config, config.max_position_embeddings,
+  posi_emb = FakeTHEmbedding(T, config, config.max_position_embeddings,
                              config.hidden_size)
-  toke_emb = FakeTHEmbedding(config, config.type_vocab_size,
+  toke_emb = FakeTHEmbedding(T, config, config.type_vocab_size,
                              config.hidden_size)
 
   HGFBertEmbeddings(layernorm, word_emb, posi_emb, toke_emb)
@@ -172,13 +176,14 @@ function (sa::HGFBertSelfAttention)(mixed_query_layer, mixed_key_layer, mixed_va
   end
 end
 
-function HGFBertSelfAttention(config::HGFBertConfig)
+HGFBertSelfAttention(cfg::AbstractHGFConfig, args...; kwargs...) = HGFBertSelfAttention(typeof(cfg), cfg, args...; kwargs...)
+function HGFBertSelfAttention(T::Type{HGFBertConfig}, config)
   attention_head_size = config.hidden_size ÷ config.num_attention_heads
   all_head_size = config.num_attention_heads * attention_head_size
 
-  query = FakeTHLinear(config, config.hidden_size, all_head_size)
-  key   = FakeTHLinear(config, config.hidden_size, all_head_size)
-  value = FakeTHLinear(config, config.hidden_size, all_head_size)
+  query = FakeTHLinear(T, config, config.hidden_size, all_head_size)
+  key   = FakeTHLinear(T, config, config.hidden_size, all_head_size)
+  value = FakeTHLinear(T, config, config.hidden_size, all_head_size)
 
   HGFBertSelfAttention(config.num_attention_heads, query, key, value)
 end
@@ -201,9 +206,10 @@ function (so::HGFBertSelfOutput)(hidden_states, input_tensor)
   return hidden_states
 end
 
-function HGFBertSelfOutput(config::HGFBertConfig)
-  layernorm = FakeTHLayerNorm(config, config.hidden_size; eps=config.layer_norm_eps)
-  dense = FakeTHLinear(config, config.hidden_size, config.hidden_size)
+HGFBertSelfOutput(cfg::AbstractHGFConfig, args...; kwargs...) = HGFBertSelfOutput(typeof(cfg), cfg, args...; kwargs...)
+function HGFBertSelfOutput(T::Type{HGFBertConfig}, config)
+  layernorm = FakeTHLayerNorm(T, config, config.hidden_size; eps=config.layer_norm_eps)
+  dense = FakeTHLinear(T, config, config.hidden_size, config.hidden_size)
   HGFBertSelfOutput(layernorm, dense)
 end
 
@@ -235,9 +241,10 @@ function (a::HGFBertAttention)(hidden_states,
   end
 end
 
-function HGFBertAttention(config::HGFBertConfig)
-  self = HGFBertSelfAttention(config)
-  output = HGFBertSelfOutput(config)
+HGFBertAttention(cfg::AbstractHGFConfig, args...; kwargs...) = HGFBertAttention(typeof(cfg), cfg, args...; kwargs...)
+function HGFBertAttention(T::Type{HGFBertConfig}, config)
+  self = HGFBertSelfAttention(T, config)
+  output = HGFBertSelfOutput(T, config)
   HGFBertAttention(self, output)
 end
 
@@ -252,10 +259,11 @@ Functors.functor(::Type{<:HGFBertIntermediate}, intermediate) = (dense = interme
 
 (i::HGFBertIntermediate)(hidden_states) = i.intermediate_act.(i.dense(hidden_states))
 
-function HGFBertIntermediate(config::HGFBertConfig)
+HGFBertIntermediate(cfg::AbstractHGFConfig, args...; kwargs...) = HGFBertIntermediate(typeof(cfg), cfg, args...; kwargs...)
+function HGFBertIntermediate(T::Type{HGFBertConfig}, config)
   global ACT2FN
   act = ACT2FN[Symbol(config.hidden_act)]
-  dense = FakeTHLinear(config, config.hidden_size, config.intermediate_size)
+  dense = FakeTHLinear(T, config, config.hidden_size, config.intermediate_size)
   HGFBertIntermediate(act, dense)
 end
 
@@ -277,9 +285,10 @@ function (o::HGFBertOutput)(hidden_states, input_tensor)
   return hidden_states
 end
 
-function HGFBertOutput(config::HGFBertConfig)
-  dense = FakeTHLinear(config, config.intermediate_size, config.hidden_size)
-  layernorm = FakeTHLayerNorm(config, config.hidden_size; eps=config.layer_norm_eps)
+HGFBertOutput(cfg::AbstractHGFConfig, args...; kwargs...) = HGFBertOutput(typeof(cfg), cfg, args...; kwargs...)
+function HGFBertOutput(T::Type{HGFBertConfig}, config)
+  dense = FakeTHLinear(T, config, config.intermediate_size, config.hidden_size)
+  layernorm = FakeTHLayerNorm(T, config, config.hidden_size; eps=config.layer_norm_eps)
   HGFBertOutput(dense, layernorm)
 end
 
@@ -345,13 +354,14 @@ function (l::HGFBertLayer)(hidden_states, attention_mask,
   end
 end
 
-function HGFBertLayer(config::HGFBertConfig)
-  attention = HGFBertAttention(config)
+HGFBertLayer(cfg::AbstractHGFConfig, args...; kwargs...) = HGFBertLayer(typeof(cfg), cfg, args...; kwargs...)
+function HGFBertLayer(T::Type{HGFBertConfig}, config)
+  attention = HGFBertAttention(T, config)
   crossattention = config.is_decode ?
-    HGFBertAttention(config) :
+    HGFBertAttention(T, config) :
     nothing
-  intermediate = HGFBertIntermediate(config)
-  output = HGFBertOutput(config)
+  intermediate = HGFBertIntermediate(T, config)
+  output = HGFBertOutput(T, config)
   HGFBertLayer(attention, crossattention, intermediate, output)
 end
 
@@ -504,9 +514,10 @@ end
   end
 end
 
-function HGFBertEncoder(config::HGFBertConfig)
+HGFBertEncoder(cfg::AbstractHGFConfig, args...; kwargs...) = HGFBertEncoder(typeof(cfg), cfg, args...; kwargs...)
+function HGFBertEncoder(T::Type{HGFBertConfig}, config)
   layer = FakeTHModuleList(
-    [HGFBertLayer(config) for _ in 1:config.num_hidden_layers]
+    [HGFBertLayer(T, config) for _ in 1:config.num_hidden_layers]
   )
   HGFBertEncoder(layer)
 end
@@ -525,8 +536,9 @@ function (p::HGFBertPooler)(hidden_states)
   return pooled_output
 end
 
-function HGFBertPooler(config::HGFBertConfig)
-  dense = FakeTHLinear(config, config.hidden_size, config.hidden_size)
+HGFBertPooler(cfg::AbstractHGFConfig, args...; kwargs...) = HGFBertPooler(typeof(cfg), cfg, args...; kwargs...)
+function HGFBertPooler(T::Type{HGFBertConfig}, config)
+  dense = FakeTHLinear(T, config, config.hidden_size, config.hidden_size)
   HGFBertPooler(dense)
 end
 
