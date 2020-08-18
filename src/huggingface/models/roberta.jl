@@ -37,6 +37,19 @@ end
 @inline get_word_emb(be::HGFRobertaEmbeddings, input_ids::AbstractArray{<:Integer}) = be.word_embeddings(input_ids)
 @inline get_word_emb(be::HGFRobertaEmbeddings, input_embed::AbstractArray{T}) where T = input_embed
 
+function _create_position_ids_from_input_ids(input_ids, pad_idx)
+  mask = input_ids .!= pad_idx
+  inc_indices = cumsum(mask; dims=1) .* mask
+  return inc_indices .+ pad_idx
+end
+
+Flux.@nograd _create_position_ids_from_input_ids
+
+@inline function get_position_emb(be::HGFRobertaEmbeddings, input_ids::AbstractArray{<:Integer}, ::Nothing)
+  position_ids = _create_position_ids_from_input_ids(input_ids, be.position_embeddings.pad_idx)
+  get_position_emb(be, input_ids, position_ids)
+end
+
 @inline function get_position_emb(be::HGFRobertaEmbeddings, inputs_embeds, ::Nothing)
   position_ids = _arange(inputs_embeds, size(inputs_embeds)[end-1]) .+ be.position_embeddings.pad_idx
   get_position_emb(be, inputs_embeds, position_ids)
@@ -50,9 +63,8 @@ end
 function (be::HGFRobertaEmbeddings)(input,
                                  position_ids::Union{Nothing, AbstractArray{<:Integer}},
                                  token_type_ids::Union{Nothing, AbstractArray{<:Integer}})
-
+  position_embeds = get_position_emb(be, input, position_ids)
   inputs_embeds = get_word_emb(be, input)
-  position_embeds = get_position_emb(be, inputs_embeds, position_ids)
   token_type_embeds = get_token_type_emb(be, inputs_embeds, token_type_ids)
   return be(inputs_embeds, position_embeds, token_type_embeds)
 end
@@ -259,7 +271,7 @@ function (self::HGFRobertaForCausalLM)(input, position_ids, token_type_ids,
 
   return (
     loss = lm_loss,
-    prediction_logits = prediction_scores,
+    logits = prediction_scores,
     hidden_states = outputs.hidden_states,
     attentions = outputs.attentions
   )
@@ -293,7 +305,7 @@ function (self::HGFRobertaForCausalLM)(input, labels,
 
   return (
     loss = lm_loss,
-    prediction_logits = prediction_scores,
+    logits = prediction_scores,
     hidden_states = outputs.hidden_states,
     attentions = outputs.attentions
   )
@@ -339,7 +351,7 @@ function (self::HGFRobertaForMaskedLM)(input, position_ids, token_type_ids,
 
   return (
     loss = lm_loss,
-    prediction_logits = prediction_scores,
+    logits = prediction_scores,
     hidden_states = outputs.hidden_states,
     attentions = outputs.attentions
   )
@@ -370,7 +382,7 @@ function (self::HGFRobertaForMaskedLM)(input, labels,
 
   return (
     loss = lm_loss,
-    prediction_logits = prediction_scores,
+    logits = prediction_scores,
     hidden_states = outputs.hidden_states,
     attentions = outputs.attentions
   )
