@@ -29,3 +29,4 @@ end
 
 include("./config_bert.jl")
 include("./config_gpt2.jl")
+include("./config_roberta.jl")
