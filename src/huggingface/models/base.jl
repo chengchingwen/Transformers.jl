@@ -1,3 +1,4 @@
+using Statistics
 using ..Transformers.Basic: gather
 
 using ZygoteRules: @adjoint, pullback
@@ -154,4 +155,56 @@ function _printnode(io::IO, p::Pair)
   end
 end
 
+struct FakeHGFConv1D{W<:AbstractArray, B<:AbstractArray} <: THModule
+  weight::W
+  bias::B
+end
 
+@functor FakeHGFConv1D
+
+(c::FakeHGFConv1D)(x::AbstractMatrix) = c.weight' * x .+ c.bias
+
+function (c::FakeHGFConv1D)(x::AbstractArray)
+  old_size = size(x)
+  new_size = Base.setindex(old_size, size(c.weight, 2), 1)
+
+  new_x = reshape(x, old_size[1], :)
+  y = c(new_x)
+  return reshape(y, new_size)
+end
+
+abstract type AbstractSummaryType end
+struct LastSummary <: AbstractSummaryType end
+struct FirstSummary <: AbstractSummaryType end
+struct MeanSummary <: AbstractSummaryType end
+struct CLSindexSummary <: AbstractSummaryType end
+
+struct FakeHGFSequenceSummary{T<:AbstractSummaryType, S, F} <: THModule
+  summary::S
+  activation::F
+
+  FakeHGFSequenceSummary{T}(s, a) where {T} = new{T, typeof(s), typeof(a)}(s, a)
+end
+
+SummaryType(s::Symbol) = (LastSummary, FirstSummary, MeanSummary, CLSindexSummary)[
+  findfirst(isequal(s), (:last, :first, :mean, :cls_index))
+]
+
+summarytype(s::FakeHGFSequenceSummary{T}) where {T<:AbstractSummaryType} = T
+
+Functors.functor(::Type{<:FakeHGFSequenceSummary}, ss) = (summary = ss.summary, activation = ss.activation), y -> FakeHGFSequenceSummary{summarytype(ss)}(y...)
+
+summary_input(s::FakeHGFSequenceSummary{LastSummary}, x) = x[:, end, :, :]
+summary_input(s::FakeHGFSequenceSummary{FirstSummary}, x) = x[:, 1, :, :]
+summary_input(s::FakeHGFSequenceSummary{MeanSummary}, x) = mean(x, dims=2)
+
+summary_input(s::FakeHGFSequenceSummary, x, _) = summary_input(s, x)
+summary_input(s::FakeHGFSequenceSummary{CLSindexSummary}, x, ::Nothing) = x[:, end, :, :]
+summary_input(s::FakeHGFSequenceSummary{CLSindexSummary}, x, cls_index) = gather(x, cls_index)
+
+function (s::FakeHGFSequenceSummary)(hidden_states, cls_index)
+  output = summary_input(s, hidden_states, cls_index)
+  output = s.summary(output)
+  output = s.activation(output)
+  return output
+end

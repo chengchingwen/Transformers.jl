@@ -46,3 +46,4 @@ end
 include("./utils.jl")
 include("./base.jl")
 include("./bert.jl")
+include("./gpt2.jl")

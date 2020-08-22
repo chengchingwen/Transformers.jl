@@ -10,5 +10,11 @@ git-tree-sha1 = "baf31f61198199243065f77763b98f4eef02e17d"
 ["bert-base-uncased/pytorch_model.bin"]
 git-tree-sha1 = "e37b54011bd9e2aa791f1e8eb9c3367cc471a593"
 
+["gpt2-medium/config.json"]
+git-tree-sha1 = "e2ad694fd9f7c1a15c554963e639822259168d84"
+
 ["gpt2/config.json"]
 git-tree-sha1 = "4d1f78a5b6d4cac3d6e29f5bc3246729eb2969f9"
+
+["gpt2/pytorch_model.bin"]
+git-tree-sha1 = "80caf29d6e3cd928bc3071961afd62afbbf84083"

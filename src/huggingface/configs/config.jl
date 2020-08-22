@@ -28,3 +28,4 @@ function load_config(model_type::Val, cfg)
 end
 
 include("./config_bert.jl")
+include("./config_gpt2.jl")
