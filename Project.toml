@@ -30,7 +30,7 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 ZygoteRules = "700de1a5-db45-46bc-99cf-38207098b444"
 
 [compat]
-Adapt = "1.0"
+Adapt = "1.0, 2.0"
 BSON = "0.2"
 BytePairEncoding = "0.1"
 CUDAnative = "2.7"
