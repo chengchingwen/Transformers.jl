@@ -10,8 +10,45 @@ const S3_BUCKET_PREFIX = "https://s3.amazonaws.com/models.huggingface.co/bert"
 const DEFAULT_CONFIG_NAME = "config.json"
 const DEFAULT_WEIGHT_NAME = "pytorch_model.bin"
 
+"""
+Workflow:
+1. Pretrained model is from huggingface (yes=>a. / no=>b.)
+
+a. Already use the model in python before. (yes=>a-1. / no=>a-2.)
+
+a-1. There is a cached pretrain file on the computer. Use [`get_or_download_hgf_file`](@ref) directly. This will copy
+the file from cached dir to our Artifacts dir and register on Artifacts.toml.
+a-2. No cached files. Also use [`get_or_download_hgf_file`](@ref) directly. This will download the file from 
+huggingface's model server to our Artifacts dir and register on Artifact.toml.
+
+b. Using the local pretrained files. Use [`find_or_register_hgf_file_hash`](@ref) to register the file to our 
+Artifacts system. Once the file is registered, you can find the entry appear on Artifacts.toml.
+
+2. Once the model is managed under Julia's Artifacts system. we can use either [`get_registered_file_dir`](@ref) or 
+[`get_or_download_hgf_file`](@ref) to get the pretrain file or dir.
+"""
+
+"""
+  get_registered_config_path(model_name; config=DEFAULT_CONFIG_NAME)
+
+Get the config path of a given model_name which should be already registered on Artifacts.toml.
+"""
 get_registered_config_path(model_name; config=DEFAULT_CONFIG_NAME) = joinpath(get_registered_file_dir(joinpath(model_name, config)), config)
+
+"""
+  get_registered_weight_path(model_name; weight=DEFAULT_WEIGHT_NAME)
+
+Get the weight path of a given model_name which should be already registered on Artifacts.toml.
+"""
 get_registered_weight_path(model_name; weight=DEFAULT_WEIGHT_NAME) = joinpath(get_registered_file_dir(joinpath(model_name, weight)), weight)
+
+"""
+  get_registered_file_dir(name)
+
+Get the dir path of a given name which should be already registered on Artifacts.toml.
+
+See also: [`get_registered_config_path`](@ref), [`get_registered_weight_path`](@ref)
+"""
 function get_registered_file_dir(name)
   global ARTIFACTS_TOML
   hash = artifact_hash(name, ARTIFACTS_TOML)
@@ -19,8 +56,31 @@ function get_registered_file_dir(name)
   artifact_path(hash)
 end
 
+"""
+  get_or_download_hgf_config(model_name; config=DEFAULT_CONFIG_NAME)
+
+get the config file path of the given `model_name` and `file_name`
+
+See also: [`get_or_download_hgf_file`](@ref)
+"""
 get_or_download_hgf_config(model_name; config=DEFAULT_CONFIG_NAME) = get_or_download_hgf_file(model_name, config)
+
+"""
+  get_or_download_hgf_weight(model_name; weight=DEFAULT_WEIGHT_NAME)
+
+get the weight file path of the given `model_name` and `file_name`
+
+See also: [`get_or_download_hgf_file`](@ref)
+"""
 get_or_download_hgf_weight(model_name; weight=DEFAULT_WEIGHT_NAME) = get_or_download_hgf_file(model_name, weight)
+
+"""
+  get_or_download_hgf_file(model_name, file_name)
+
+get the file path of the given `model_name` and `file_name`. Automatically download and register from 
+huggingface server if file not found on Artifacts.toml. To use with a local file, register with 
+[`find_or_register_hgf_file_hash`](@ref) first.
+"""
 function get_or_download_hgf_file(model_name, file_name)
   global CLOUDFRONT_DISTRIB_PREFIX
   hash = find_or_register_hgf_file_hash(CLOUDFRONT_DISTRIB_PREFIX, model_name, file_name)
@@ -31,8 +91,30 @@ isregistered(name) = (global ARTIFACTS_TOML; !isnothing(artifact_hash(name, ARTI
 
 isurl(path::AbstractString) = startswith(path, "http://") || startswith(path, "https://")
 
+"""
+  find_or_register_hgf_config_hash(path, model_name; config=DEFAULT_CONFIG_NAME)
+
+Get the artifacts hash of config of the give model.
+
+See also: [`find_or_register_hgf_file_hash`](@ref)
+"""
 find_or_register_hgf_config_hash(path, model_name; config=DEFAULT_CONFIG_NAME) = find_or_register_hgf_file_hash(path, model_name, config)
+
+"""
+  find_or_register_hgf_weight_hash(path, model_name; weight=DEFAULT_WEIGHT_NAME)
+
+Get the artifacts hash of weight of the give model.
+
+See also: [`find_or_register_hgf_file_hash`](@ref)
+"""
 find_or_register_hgf_weight_hash(path, model_name; weight=DEFAULT_WEIGHT_NAME) = find_or_register_hgf_file_hash(path, model_name, weight)
+
+"""
+  find_or_register_hgf_file_hash(path, model_name, file_name)
+
+Get the artifacts hash of the give `<model_name>/<file_name>`. If not found in Artifacts.toml, get the file from `path` 
+and register on Artifacts.toml. `path` can be either a url or a local path.
+"""
 function find_or_register_hgf_file_hash(path, model_name, file_name)
   global ARTIFACTS_TOML
   entry_name = joinpath(model_name, file_name)
@@ -66,7 +148,7 @@ function find_or_register_hgf_file_hash(path, model_name, file_name)
   file_hash
 end
 
-
+"Get the cache dir used by huggingface/transformers"
 function get_th_hgf_cache_dir()
   return get(ENV, "TRANSFORMERS_CACHE",
              get(ENV, "PYTORCH_TRANSFORMERS_CACHE",
@@ -76,6 +158,7 @@ function get_th_hgf_cache_dir()
                        "torch", "transformers")))) |> expanduser
 end
 
+"Find the huggingface cached files from their cache dir"
 function get_hgf_cached_file(url; cache_dir=get_th_hgf_cache_dir())
   isdir(cache_dir) || return nothing
   global CLOUDFRONT_DISTRIB_PREFIX, S3_BUCKET_PREFIX
@@ -109,6 +192,7 @@ function get_hgf_cached_file(url; cache_dir=get_th_hgf_cache_dir())
   end
 end
 
+"Get files from huggingface. Copy if found in cache dir, otherwise download from their server."
 function hgf_file_download(url, dest)
   cached_file = get_hgf_cached_file(url)
   file_name = basename(dest)
