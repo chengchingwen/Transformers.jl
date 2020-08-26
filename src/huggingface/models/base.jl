@@ -11,6 +11,8 @@ const ACT2FN = (gelu = gelu, relu = relu, swish = swish, gelu_new = gelu, mish =
 abstract type THModule end
 abstract type HGFPreTrainedModel <: THModule end
 
+# torch.nn.LayerNorm
+
 struct FakeTHLayerNorm{T<:AbstractArray} <: THModule
   eps::Float32
   weight::T
@@ -33,6 +35,8 @@ function load_state(layer::FakeTHLayerNorm, state)
     load_state(getfield(layer, nk), getfield(state, k))
   end
 end
+
+# torch.nn.Linear
 
 struct FakeTHLinear{W<:AbstractArray, B<:Union{Nothing, AbstractArray}} <: THModule
   weight::W
@@ -58,6 +62,8 @@ function (l::FakeTHLinear)(x::AbstractArray)
   y = l(new_x)
   return reshape(y, new_size)
 end
+
+# torch.nn.Embedding
 
 struct FakeTHEmbedding{T<:AbstractArray} <: THModule
   pad_idx::Int
@@ -101,6 +107,8 @@ function get_state_dict(state, prefix, embedding::FakeTHEmbedding)
   state[cprefix] = param.weight'
 end
 
+# torch.nn.ModuleList
+
 struct FakeTHModuleList{N, T<:Tuple} <: THModule
   _modules::T
   FakeTHModuleList(ms) = new{length(ms), typeof(ms)}(ms)
@@ -130,6 +138,8 @@ function load_state(layer::FakeTHModuleList, state)
   end
 end
 
+# displaying layer in tree structure
+
 function Base.show(io::IO, x::M; depth=10) where {M<:THModule}
   print_tree(_printnode, io, x, depth)
   io
@@ -142,8 +152,7 @@ function children(::THModule, x::Pair{Symbol})
 end
 children(::THModule, x::Pair{Int}) = children(x[2])
 
-
-_printnode(io, x) = print(io, Base.typename(typeof(x)))#summary(io, x)
+_printnode(io, x) = print(io, Base.typename(typeof(x)))
 function _printnode(io::IO, p::Pair)
   print(io, p[1])
   print(io, " => ")
@@ -154,6 +163,8 @@ function _printnode(io::IO, p::Pair)
     print(io, Base.typename(typeof(v)))
   end
 end
+
+# transformers.modeling_utils.Conv1D
 
 struct FakeHGFConv1D{W<:AbstractArray, B<:AbstractArray} <: THModule
   weight::W
@@ -172,6 +183,8 @@ function (c::FakeHGFConv1D)(x::AbstractArray)
   y = c(new_x)
   return reshape(y, new_size)
 end
+
+# transformers.modeling_utils.SequenceSummary
 
 abstract type AbstractSummaryType end
 struct LastSummary <: AbstractSummaryType end

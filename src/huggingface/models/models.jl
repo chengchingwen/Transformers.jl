@@ -5,6 +5,14 @@ using Pickle.Torch: StridedView
 
 using LinearAlgebra
 
+"""
+  get_state_dict(layer)
+
+Collect model parameters into one `OrderedDict` which also 
+known as `state_dict` in PyTorch.
+
+model parameters are get from `Functors.functor`.
+"""
 function get_state_dict(layer)
   state = OrderedDict{String, Any}()
   get_state_dict(state, nothing, layer)
@@ -24,10 +32,18 @@ function get_state_dict(state, prefix, x::AbstractArray)
   state[prefix] = x
 end
 
+"""
+  load_state(layer, state)
+
+Load the model parameter from `state` into the `layer`. 
+give warning if something appear in `state` but not `layer`.
+"""
 function load_state(layer, state)
   for k in keys(state)
     if hasfield(typeof(layer), k)
       load_state(getfield(layer, k),  getfield(state, k))
+    else
+      @warn "$layer doesn't have field $k."
     end
   end
 end
@@ -48,4 +64,3 @@ include("./base.jl")
 include("./bert.jl")
 include("./gpt2.jl")
 include("./roberta.jl")
-

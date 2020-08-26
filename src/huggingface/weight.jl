@@ -1,12 +1,34 @@
 using Pickle
 using Pickle: TableBlock, HierarchicalTable
 
-function load_state_dict(model_name)
-  state_dict = Pickle.Torch.THload(get_registered_weight_path(model_name))
+"""
+  load_state(model_name)
+
+load the state from the given model name as NamedTuple.
+"""
+function load_state(model_name)
+  state_dict = load_state_dict(model_name)
   state = state_dict_to_namedtuple(state_dict)
   return state
 end
 
+"""
+  load_state_dict(model_name)
+
+load the state_dict from the given model name.
+
+See also: [`state_dict_to_namedtuple`](@ref)
+"""
+function load_state_dict(model_name)
+  state_dict = Pickle.Torch.THload(get_registered_weight_path(model_name))
+  return state_dict
+end
+
+"""
+  state_dict_to_namedtuple(state_dict)
+
+convert state_dict into NamedTuple.
+"""
 function state_dict_to_namedtuple(state_dict)
   ht = Pickle.HierarchicalTable()
   foreach(((k, v),)->setindex!(ht, v, k), pairs(state_dict))

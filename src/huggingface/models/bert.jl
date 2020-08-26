@@ -357,7 +357,7 @@ end
 HGFBertLayer(cfg::AbstractHGFConfig, args...; kwargs...) = HGFBertLayer(typeof(cfg), cfg, args...; kwargs...)
 function HGFBertLayer(T::Type{HGFBertConfig}, config)
   attention = HGFBertAttention(T, config)
-  crossattention = config.is_decode ?
+  crossattention = config.is_decoder ?
     HGFBertAttention(T, config) :
     nothing
   intermediate = HGFBertIntermediate(T, config)
