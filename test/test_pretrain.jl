@@ -48,8 +48,8 @@ end
   for (model_str, type, name) ∈ model_list
     @testset_nokeep_data "$model_str" begin
       GC.gc()
-      @test Transformers.Pretrain.parse_model(model_str)[1] == type
-      @test Transformers.Pretrain.parse_model(model_str)[2] == name
+      @test lowercase(Transformers.Pretrain.parse_model(model_str)[1]) == lowercase(type)
+      @test lowercase(Transformers.Pretrain.parse_model(model_str)[2]) == lowercase(name)
 
       if lowercase(type) == "gpt"
         @test_nowarn Transformers.Pretrain.@datadep_str "$(uppercase(type))-$name/$(name).npbson"

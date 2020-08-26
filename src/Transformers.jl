@@ -32,7 +32,7 @@ get the ϵ value in type T
 """
 epsilon(::Type{T}) where T = convert(T, ϵ[])
 
-using CuArrays
+using CUDA
 const has_cuda = Ref(false)
 const use_cuda = Ref(false)
 
@@ -41,7 +41,7 @@ const use_cuda = Ref(false)
 
 enable gpu for todevice, disable with `enable_gpu(false)`.
 """
-enable_gpu(t::Bool=true) = !has_cuda[] && t ? error("CuArrays not functional") : (use_cuda[] = t)
+enable_gpu(t::Bool=true) = !has_cuda[] && t ? error("CUDA not functional") : (use_cuda[] = t)
 
 """
   todevice(x)
@@ -52,7 +52,7 @@ todevice(args...) = use_cuda[] ? togpudevice(args...) : tocpudevice(args...)
 
 tocpudevice(x) = cpu(x)
 tocpudevice(x, xs...) = (x, map(cpu, xs)...)
-togpudevice(x...) = error("CuArrays not functional")
+togpudevice(x...) = error("CUDA not functional")
 
 #implement batchmul, batchtril for flux
 include("./fix/batchedmul.jl")
@@ -71,7 +71,7 @@ include("./pretrain/Pretrain.jl")
 include("./gpt/GenerativePreTrain.jl")
 include("./bert/BidirectionalEncoder.jl")
 
-
+include("./huggingface/HuggingFace.jl")
 
 using .Basic
 using .Stacks
@@ -80,6 +80,7 @@ using .Pretrain
 using .GenerativePreTrain
 using .BidirectionalEncoder
 
+using .HuggingFace
 
 function __init__()
   precompiling = ccall(:jl_generating_output, Cint, ()) != 0
@@ -88,8 +89,8 @@ function __init__()
   # or we could end up replacing it at run time (triggering a warning)
   precompiling && return
 
-  if !CuArrays.functional()
-    # nothing to do here, and either CuArrays or one of its dependencies will have warned
+  if !CUDA.functional()
+    # nothing to do here, and either CUDA or one of its dependencies will have warned
   else
     has_cuda[] = true
     include(joinpath(@__DIR__, "cuda/cuda.jl"))
