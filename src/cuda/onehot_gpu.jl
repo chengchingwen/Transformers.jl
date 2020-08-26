@@ -1,5 +1,5 @@
 import Flux: OneHotVector
-import CuArrays: cudaconvert
+import CUDA: cudaconvert
 import Base.Broadcast: BroadcastStyle, ArrayStyle
 
 import .Basic: indices2onehot, onehot2indices, tofloat, _labelindex

@@ -17,7 +17,7 @@ function Statistics.centralize_sumabs2!(R::CuArray{S}, A::CuArray, means::CuArra
             ia = CartesianIndices(indsAt)[li]
             ir = Tuple(Broadcast.newindex(ia, keep, Idefault))
             x = abs2(a[i, Tuple(ia)...] - m[i1, ir...])
-            CUDAnative.atomic_add!(
+            CUDA.atomic_add!(
                 pointer(r,
                         Base._to_linear_index(r,
                                               i1,
@@ -38,7 +38,7 @@ function Statistics.centralize_sumabs2!(R::CuArray{S}, A::CuArray, means::CuArra
             ia = CartesianIndices(indsAt)[li]
             ir = Tuple(Broadcast.newindex(ia, keep, Idefault))
             x = abs2(a[i, Tuple(ia)...] - m[i, ir...])
-            CUDAnative.atomic_add!(
+            CUDA.atomic_add!(
                 pointer(r,
                         Base._to_linear_index(r,
                                               i,
@@ -59,9 +59,9 @@ function Statistics.centralize_sumabs2!(R::CuArray{S}, A::CuArray, means::CuArra
 
     if Base.reducedim1(R, A)
         i1 = first(Base.axes1(R))
-        CuArrays.@cuda blocks=blocks threads=threads kernel1!(R, A, means, i1)
+        CUDA.@cuda blocks=blocks threads=threads kernel1!(R, A, means, i1)
     else
-        CuArrays.@cuda blocks=blocks threads=threads kernel!(R, A, means)
+        CUDA.@cuda blocks=blocks threads=threads kernel!(R, A, means)
     end
 
     return R
