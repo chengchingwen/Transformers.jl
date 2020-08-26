@@ -1,4 +1,4 @@
-Base.@kwdef struct HGFBertConfig <: AbstractHGFConfig
+@cfgdef struct HGFBertConfig <: HGFConfig
   vocab_size::Int = 30522
   hidden_size::Int = 768
   num_hidden_layers::Int = 12
@@ -12,8 +12,6 @@ Base.@kwdef struct HGFBertConfig <: AbstractHGFConfig
   initializer_range::Float32 = 0.02
   layer_norm_eps::Float32 = 1e-12
   pad_token_id::Int = 0
-  num_labels::Int = 2
-  is_decode::Bool = false
 end
 
 config_type(::Val{:bert}) = HGFBertConfig

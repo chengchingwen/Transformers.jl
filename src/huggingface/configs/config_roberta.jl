@@ -1,4 +1,4 @@
-Base.@kwdef struct HGFRobertaConfig <: AbstractHGFConfig
+@cfgdef struct HGFRobertaConfig <: HGFConfig
   vocab_size::Int = 30522
   hidden_size::Int = 768
   num_hidden_layers::Int = 12
@@ -11,8 +11,6 @@ Base.@kwdef struct HGFRobertaConfig <: AbstractHGFConfig
   type_vocab_size::Int = 2
   initializer_range::Float32 = 0.02
   layer_norm_eps::Float32 = 1e-12
-  num_labels::Int = 2
-  is_decode::Bool = false
   pad_token_id::Int = 1
   bos_token_id::Int = 0
   eos_token_id::Int = 2
