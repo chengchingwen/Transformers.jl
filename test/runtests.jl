@@ -27,8 +27,10 @@ end
 
 @testset "Transformers" begin
   if Flux.use_cuda[]
-      @info "Test CUDA"
+    @info "Test CUDA"
     include("test_cuda.jl")
+  else
+    @warn "CUDA unavailable, not testing GPU support"
   end
 
   for t in tests
