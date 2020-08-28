@@ -3,7 +3,7 @@ include:
 
 image: ubuntu:bionic
 
-cuda:11.0:
+.cuda:11.0:
   extends:
     - .test
   variables:
