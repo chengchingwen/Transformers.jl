@@ -17,12 +17,34 @@ include("./weight.jl")
 include("./configs/config.jl")
 include("./models/models.jl")
 
+"""
+  hgf"<model-name>:<item>"
+
+Get `item` from `model-name`. This will ensure the required 
+data are downloaded and registered. `item` can be "config", 
+"tokenizer", and model related like "model", or "formaskedlm", etc. Use [`get_model_type`](@ref) to see what 
+model/task are supported.
+"""
 macro hgf_str(name)
   :(load_hgf_pretrained($(esc(name))))
 end
 
+@doc raw"""
+  get\_model\_type(::Val{model})
+
+See the list of supported model type of given model. 
+For example, use `get_mdoel_type(Val(:bert))` to 
+see all model/task that `bert` support.
+"""
+get_model_type
+
 get_model_type(model, task) = error("Model $model doesn't support this kind of task: $task")
 
+"""
+  load_hgf_pretrained(name)
+
+The underlying function of [`@hgf_str`](@ref).
+"""
 function load_hgf_pretrained(name)
   model_name, item = rsplit(name, ':'; limit=2)
   get_or_download_hgf_config(model_name)
