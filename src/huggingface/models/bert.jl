@@ -110,7 +110,7 @@ struct HGFBertSelfAttention{
   value::V
 end
 
-@functor HGFBertSelfAttention
+Functors.functor(::Type{<:HGFBertSelfAttention}, sa) = (query=sa.query, key=sa.key, value=sa.value), y->HGFBertSelfAttention(sa.num_attention_heads, y...)
 
 function _split_tranpose_for_scores(x, num_head)
   head_size = div(size(x, 1), num_head)

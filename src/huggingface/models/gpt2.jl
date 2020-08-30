@@ -56,7 +56,7 @@ struct HGFGPT2Attention{P<:FakeHGFConv1D, O<:FakeHGFConv1D} <: THModule
   c_proj::O
 end
 
-@functor HGFGPT2Attention
+Functors.functor(::Type{<:HGFGPT2Attention}, a) = (c_attn=a.c_attn, c_proj=a.c_proj), y->HGFGPT2Attention(a.num_attention_heads, y...)
 
 function _split_qkv(x)
   h = size(x, 1)
