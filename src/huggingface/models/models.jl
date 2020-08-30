@@ -69,3 +69,42 @@ include("./base.jl")
 include("./bert.jl")
 include("./gpt2.jl")
 include("./roberta.jl")
+
+"""
+  load_model!(model::HGFPreTrainedModel, state)
+
+Similar to [`load_state!`](@ref) but only work for 
+huggingface pre-trained models, this is used for 
+handling loading state of different level.
+"""
+function load_model!(model::HGFPreTrainedModel, state)
+  basekey = basemodelkey(model)
+
+  load_to_base = isbasemodel(model)
+  load_from_base = !haskey(state, basekey)
+
+  if load_to_base ⊻ load_from_base # not same level
+    if load_to_base
+      basestate = state[basekey]
+      load_state!(model, basestate)
+    else # load_from_base
+      model_to_load = basemodel(model)
+      load_state!(model_to_load, state)
+    end
+  else
+    load_state!(model, state)
+  end
+end
+
+"""
+  load_model(model_type, model_name; config=load_config(model_name))
+
+build model with given `model_type` and load state from 
+`model_name`.
+"""
+function load_model(model_type, model_name; config=load_config(model_name))
+  model = model_type(config)
+  state = load_state(model_name)
+  load_model!(model, state)
+  return model
+end
