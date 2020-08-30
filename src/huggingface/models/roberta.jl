@@ -726,3 +726,21 @@ function HGFRobertaForQuestionAnswering(config::HGFRobertaConfig)
                             config.num_labels)
   return HGFRobertaForQuestionAnswering(roberta, qa_outputs)
 end
+
+# load model utils
+
+basemodelkey(::HGFRobertaPreTrainedModel) = :roberta
+basemodel(m::HGFRobertaPreTrainedModel) = getproperty(m, basemodelkey(m))
+basemodel(m::HGFRobertaModel) = m
+
+isbasemodel(m::HGFRobertaModel) = true
+isbasemodel(m::HGFRobertaPreTrainedModel) = false
+
+get_model_type(::Val{:roberta}, ::Val{:model}) = HGFRobertaModel
+get_model_type(::Val{:roberta}, ::Val{:forcausallm}) = HGFRobertaForCausalLM
+get_model_type(::Val{:roberta}, ::Val{:formaskedlm}) = HGFRobertaForMaskedLM
+get_model_type(::Val{:roberta}, ::Val{:forsequenceclassification}) = HGFRobertaForSequenceClassification
+get_model_type(::Val{:roberta}, ::Val{:formultiplechoice}) = HGFRobertaForMultipleChoice
+get_model_type(::Val{:roberta}, ::Val{:fortokenclassification}) = HGFRobertaForTokenClassification
+get_model_type(::Val{:roberta}, ::Val{:forquestionanswering}) = HGFRobertaForQuestionAnswering
+

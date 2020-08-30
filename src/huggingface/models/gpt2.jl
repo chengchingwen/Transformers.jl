@@ -645,3 +645,16 @@ function HGFGPT2DoubleHeadsModel(config::HGFGPT2Config)
   multiple_choice_head = FakeHGFSequenceSummary(config)
   return HGFGPT2DoubleHeadsModel(transformer, lm_head, multiple_choice_head)
 end
+
+# load model utils
+
+basemodelkey(::HGFGPT2PreTrainedModel) = :gpt2
+basemodel(m::HGFGPT2PreTrainedModel) = getproperty(m, basemodelkey(m))
+basemodel(m::HGFGPT2Model) = m
+
+isbasemodel(m::HGFGPT2Model) = true
+isbasemodel(m::HGFGPT2PreTrainedModel) = false
+
+get_model_type(::Val{:gpt2}, ::Val{:model}) = HGFGPT2Model
+get_model_type(::Val{:gpt2}, ::Val{:lmheadmodel}) = HGFGPT2LMHeadModel
+get_model_type(::Val{:gpt2}, ::Val{:doubleheadsmodel}) = HGFGPT2DoubleHeadsModel
