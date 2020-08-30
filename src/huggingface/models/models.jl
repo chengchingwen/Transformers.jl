@@ -43,8 +43,13 @@ function load_state!(layer, state)
     if hasfield(typeof(layer), k)
       load_state!(getfield(layer, k),  getfield(state, k))
     else
-      @warn "$layer doesn't have field $k."
+      @warn "$(Base.typename(typeof(layer))) doesn't have field $k."
     end
+  end
+  pf = Functors.functor(layer) |> first |> keys
+  rem = setdiff(pf, keys(state))
+  if (!iszero ∘ length)(rem)
+    @warn "Some fields of $(Base.typename(typeof(layer))) aren't initialized with loaded state: $(rem...)"
   end
 end
 
