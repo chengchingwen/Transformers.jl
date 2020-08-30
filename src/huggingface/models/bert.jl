@@ -1418,12 +1418,14 @@ basemodel(m::HGFBertModel) = m
 isbasemodel(m::HGFBertModel) = true
 isbasemodel(m::HGFBertPreTrainedModel) = false
 
-get_model_type(::Val{:bert}, ::Val{:model}) = HGFBertModel
-get_model_type(::Val{:bert}, ::Val{:forpretraining}) = HGFBertForPreTraining
-get_model_type(::Val{:bert}, ::Val{:lmheadmodel}) = HGFBertLMHeadModel
-get_model_type(::Val{:bert}, ::Val{:formaskedlm}) = HGFBertForMaskedLM
-get_model_type(::Val{:bert}, ::Val{:fornextsentenceprediction}) = HGFBertForNextSentencePrediction
-get_model_type(::Val{:bert}, ::Val{:forsequenceclassification}) = HGFBertForSequenceClassification
-get_model_type(::Val{:bert}, ::Val{:formultiplechoice}) = HGFBertForMultipleChoice
-get_model_type(::Val{:bert}, ::Val{:fortokenclassification}) = HGFBertForTokenClassification
-get_model_type(::Val{:bert}, ::Val{:forquestionanswering}) = HGFBertForQuestionAnswering
+get_model_type(::Val{:bert}) = (
+  :model => HGFBertModel,
+  :forpretraining => HGFBertForPreTraining,
+  :lmheadmodel => HGFBertLMHeadModel,
+  :formaskedlm => HGFBertForMaskedLM,
+  :fornextsentenceprediction => HGFBertForNextSentencePrediction,
+  :forsequenceclassification => HGFBertForSequenceClassification,
+  :formultiplechoice => HGFBertForMultipleChoice,
+  :fortokenclassification => HGFBertForTokenClassification,
+  :forquestionanswering => HGFBertForQuestionAnswering,
+)

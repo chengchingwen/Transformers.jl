@@ -655,6 +655,8 @@ basemodel(m::HGFGPT2Model) = m
 isbasemodel(m::HGFGPT2Model) = true
 isbasemodel(m::HGFGPT2PreTrainedModel) = false
 
-get_model_type(::Val{:gpt2}, ::Val{:model}) = HGFGPT2Model
-get_model_type(::Val{:gpt2}, ::Val{:lmheadmodel}) = HGFGPT2LMHeadModel
-get_model_type(::Val{:gpt2}, ::Val{:doubleheadsmodel}) = HGFGPT2DoubleHeadsModel
+get_model_type(::Val{:gpt2}) = (
+  :model => HGFGPT2Model,
+  :lmheadmodel => HGFGPT2LMHeadModel,
+  :doubleheadsmodel => HGFGPT2DoubleHeadsModel,
+)

@@ -70,6 +70,16 @@ include("./bert.jl")
 include("./gpt2.jl")
 include("./roberta.jl")
 
+for model in :[
+  bert,
+  gpt2,
+  roberta,
+].args
+  for (name, type) in get_model_type(Val(model))
+    @eval get_model_type(::Val{$(Meta.quot(model))}, ::Val{$(Meta.quot(name))}) = $type
+  end
+end
+
 """
   load_model!(model::HGFPreTrainedModel, state)
 
