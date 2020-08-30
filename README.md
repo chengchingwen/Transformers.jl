@@ -14,11 +14,11 @@ In the Julia REPL:
     
 For using GPU, install & build:
 
-    ]add CuArrays
+    ]add CUDA
     
     ]build 
     
-    julia> using CuArrays
+    julia> using CUDA
     
     julia> using Transformers
     
@@ -29,6 +29,7 @@ For using GPU, install & build:
 
 
 # Example
+
 Using pretrained Bert with `Transformers.jl`.
 
 ```julia
@@ -61,45 +62,47 @@ feature_tensors = bert_embedding |> bert_model.transformers
 
 See `example` folder for the complete example.
 
+
+# Huggingface
+
+We have some support for the models from [`huggingface/transformers`](https://github.com/huggingface/transformers).
+
+```julia
+using Transformers.HuggingFace
+
+# loading a model from huggingface model hub
+julia> model = hgf"bert-base-cased:forquestionanswering";
+┌ Warning: Transformers.HuggingFace.HGFBertForQuestionAnswering doesn't have field cls.
+└ @ Transformers.HuggingFace ~/peter/repo/gsoc2020/src/huggingface/models/models.jl:46
+┌ Warning: Some fields of Transformers.HuggingFace.HGFBertForQuestionAnswering aren't initialized with loaded state: qa_outputs
+└ @ Transformers.HuggingFace ~/peter/repo/gsoc2020/src/huggingface/models/models.jl:52
+
+```
+
+Current we only support a few model and the tokenizer part is not finished yet.
+
+
+# For more information
+
+If you want to know more about this package, see the [document](https://chengchingwen.github.io/Transformers.jl/dev/) 
+and the series of [blog posts](https://nextjournal.com/chengchingwen) I wrote for JSoC and GSoC. You can also 
+tag me (@chengchingwen) on Julia's slack or discourse if you have any questions, or just create a new Issue on GitHub.
+
+
 # Roadmap
 
-## What we have in v0.1.0
+## What we have before v0.2
 
 -   `Transformer` and `TransformerDecoder` support for both 2d & 3d data.
 -   `PositionEmbedding` implementation.
 -   `Positionwise` for handling 2d & 3d input.
 -   docstring for most of the functions.
 -   runable examples (see `example` folder)
-
+-   `Transformers.HuggingFace` for handling pretrains from `huggingface/transformers`
 
 ## What we will have in v0.2.0
 
--   The BERT model ([JSoC 2019](https://nextjournal.com/chengchingwen))
+-   Complete tokenizer APIs
 -   tutorials
--   complete GPT APIs
--   GPT-2 model
--   docs site for this project
 -   benchmarks
 -   more examples
-
-
-## What we might have in v0.2.0 (If we are lucky)
--   TPU support with XLA.jl
--   complete docs for datasets
--   more datasets support
-
-
-## Messy checklist
-
--   [ ] refactor code
--   [ ] optimize performance
--   [ ] better dataset API
--   [ ] more datasets
--   [X] openai gpt model
--   [X] google bert model
--   [ ] openai gpt-2 model
--   [ ] TPU support
--   [ ] openai sparse transformer
--   [ ] benchmarks
-
-

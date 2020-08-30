@@ -52,16 +52,16 @@ To best illustrate the usage of Transformers.jl, we will start with building a t
 
 ```julia
 using Pkg
-Pkg.add("CuArrays")
+Pkg.add("CUDA")
 Pkg.add("Flux")
 Pkg.add("Transformers")
 ```
 
-We use[ CuArrays.jl](https://github.com/JuliaGPU/CuArrays.jl) for the GPU support. 
+We use [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) for the GPU support. 
 
 ```julia
 using Flux
-using CuArrays
+using CUDA
 using Transformers
 using Transformers.Basic #for loading the positional embedding
 

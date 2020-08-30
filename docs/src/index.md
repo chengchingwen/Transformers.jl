@@ -13,10 +13,10 @@ In the Julia REPL:
 julia> ]add Transformers
 ```
 
-For using GPU, make sure `CuArrays` is runable on your computer:
+For using GPU, make sure `CUDA.jl` is runable on your computer:
 
 ```jl
-julia> ]add CuArrays; build
+julia> ]add CUDA; build
 ```
 
 
