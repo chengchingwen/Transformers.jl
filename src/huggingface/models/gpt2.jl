@@ -648,7 +648,7 @@ end
 
 # load model utils
 
-basemodelkey(::HGFGPT2PreTrainedModel) = :gpt2
+basemodelkey(::HGFGPT2PreTrainedModel) = :transformer
 basemodel(m::HGFGPT2PreTrainedModel) = getproperty(m, basemodelkey(m))
 basemodel(m::HGFGPT2Model) = m
 
