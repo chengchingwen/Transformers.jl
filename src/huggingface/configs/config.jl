@@ -24,6 +24,21 @@ function load_config(model_type::Val, cfg)
   return cfg_type(; cfg...)
 end
 
+"""
+  save_config(model_name, config; path=pwd(), config_name=DEFAULT_CONFIG_NAME)
+
+save the `config` at `<path>/<model_name>/<config_name>`.
+"""
+function save_config(model_name, config; path=pwd(), config_name=DEFAULT_CONFIG_NAME)
+  model_path = joinpath(path, model_name)
+  !isdir(model_path) && error("$model_path is not a dir.")
+  config_file = joinpath(model_path, config_name)
+  open(config_file, "w+") do io
+    JSON.print(io, config)
+  end
+  return config_file
+end
+
 struct HGFPretrainedConfigBase <: HGFPretrainedConfig
   # encoder-decoder
   is_encoder_decoder::Bool
