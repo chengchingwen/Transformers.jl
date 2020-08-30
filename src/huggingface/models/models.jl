@@ -1,6 +1,7 @@
 using Flux
 using Functors
 using DataStructures
+using Pickle.Torch
 using Pickle.Torch: StridedView
 
 using LinearAlgebra
@@ -117,4 +118,18 @@ function load_model(model_type, model_name; config=load_config(model_name))
   state = load_state(model_name)
   load_model!(model, state)
   return model
+end
+
+"""
+  save_model(model_name, model; path=pwd(), weight_name=DEFAULT_WEIGHT_NAME)
+
+save the `model` at `<path>/<model_name>/<weight_name>`.
+"""
+function save_model(model_name, model; path=pwd(), weight_name=DEFAULT_WEIGHT_NAME)
+  model_path = joinpath(path, model_name)
+  !isdir(model_path) && error("$model_path is not a dir.")
+  model_file = joinpath(model_path, weight_name)
+  state = get_state_dict(model)
+  Torch.THsave(model_file, state)
+  return model_file
 end

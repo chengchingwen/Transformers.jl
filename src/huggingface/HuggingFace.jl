@@ -10,7 +10,9 @@ export get_or_download_hgf_file,
   load_model,
   load_model!,
   load_state_dict,
-  load_state
+  load_state,
+  save_config,
+  save_model
 
 include("./download.jl")
 include("./weight.jl")
