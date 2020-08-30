@@ -33,26 +33,26 @@ function get_state_dict(state, prefix, x::AbstractArray)
 end
 
 """
-  load_state(layer, state)
+  load_state!(layer, state)
 
 Load the model parameter from `state` into the `layer`. 
 give warning if something appear in `state` but not `layer`.
 """
-function load_state(layer, state)
+function load_state!(layer, state)
   for k in keys(state)
     if hasfield(typeof(layer), k)
-      load_state(getfield(layer, k),  getfield(state, k))
+      load_state!(getfield(layer, k),  getfield(state, k))
     else
       @warn "$layer doesn't have field $k."
     end
   end
 end
 
-function load_state(weight::A1, state::A2) where {A1<:AbstractArray, A2<:AbstractArray}
+function load_state!(weight::A1, state::A2) where {A1<:AbstractArray, A2<:AbstractArray}
     weight .= state
 end
 
-function load_state(weight::T, state::S) where {T<:Transpose, S<:StridedView}
+function load_state!(weight::T, state::S) where {T<:Transpose, S<:StridedView}
   # weight is probably share weighted
   if weight != state
     weight .= state

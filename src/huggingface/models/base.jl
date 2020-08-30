@@ -23,7 +23,7 @@ Functors.functor(::Type{<:FakeTHLayerNorm}, layernorm) = (weight = layernorm.wei
 
 (ln::FakeTHLayerNorm)(x) = ln.weight .* Flux.normalise(x, dims=1, ϵ=ln.eps) .+ ln.bias
 
-function load_state(layer::FakeTHLayerNorm, state)
+function load_state!(layer::FakeTHLayerNorm, state)
   for k in keys(state)
     if k == :gamma
       nk = :weight
@@ -32,7 +32,7 @@ function load_state(layer::FakeTHLayerNorm, state)
     else
       nk = k
     end
-    load_state(getfield(layer, nk), getfield(state, k))
+    load_state!(getfield(layer, nk), getfield(state, k))
   end
 end
 
@@ -96,8 +96,8 @@ end
 
 (e::FakeTHEmbedding)(x) = _padded_gather(e.weight, x, e.pad_idx)
 
-function load_state(layer::FakeTHEmbedding, state)
-  load_state(layer.weight, state.weight')
+function load_state!(layer::FakeTHEmbedding, state)
+  load_state!(layer.weight, state.weight')
 end
 
 function get_state_dict(state, prefix, embedding::FakeTHEmbedding)
@@ -132,9 +132,9 @@ function get_state_dict(state, prefix, modulelist::FakeTHModuleList)
   end
 end
 
-function load_state(layer::FakeTHModuleList, state)
+function load_state!(layer::FakeTHModuleList, state)
   for (layerᵢ, stateᵢ) in zip(layer, state)
-    load_state(layerᵢ, stateᵢ)
+    load_state!(layerᵢ, stateᵢ)
   end
 end
 
