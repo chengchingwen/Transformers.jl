@@ -1408,3 +1408,22 @@ function HGFBertForQuestionAnswering(config::HGFBertConfig)
   classifier = FakeTHLinear(config, config.hidden_size, config.num_labels)
   HGFBertForQuestionAnswering(bert, classifier)
 end
+
+# load model utils
+
+basemodelkey(::HGFBertPreTrainedModel) = :bert
+basemodel(m::HGFBertPreTrainedModel) = getproperty(m, basemodelkey(m))
+basemodel(m::HGFBertModel) = m
+
+isbasemodel(m::HGFBertModel) = true
+isbasemodel(m::HGFBertPreTrainedModel) = false
+
+get_model_type(::Val{:bert}, ::Val{:model}) = HGFBertModel
+get_model_type(::Val{:bert}, ::Val{:forpretraining}) = HGFBertForPreTraining
+get_model_type(::Val{:bert}, ::Val{:lmheadmodel}) = HGFBertLMHeadModel
+get_model_type(::Val{:bert}, ::Val{:formaskedlm}) = HGFBertForMaskedLM
+get_model_type(::Val{:bert}, ::Val{:fornextsentenceprediction}) = HGFBertForNextSentencePrediction
+get_model_type(::Val{:bert}, ::Val{:forsequenceclassification}) = HGFBertForSequenceClassification
+get_model_type(::Val{:bert}, ::Val{:formultiplechoice}) = HGFBertForMultipleChoice
+get_model_type(::Val{:bert}, ::Val{:fortokenclassification}) = HGFBertForTokenClassification
+get_model_type(::Val{:bert}, ::Val{:forquestionanswering}) = HGFBertForQuestionAnswering
