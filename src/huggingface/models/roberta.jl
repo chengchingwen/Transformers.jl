@@ -736,11 +736,12 @@ basemodel(m::HGFRobertaModel) = m
 isbasemodel(m::HGFRobertaModel) = true
 isbasemodel(m::HGFRobertaPreTrainedModel) = false
 
-get_model_type(::Val{:roberta}, ::Val{:model}) = HGFRobertaModel
-get_model_type(::Val{:roberta}, ::Val{:forcausallm}) = HGFRobertaForCausalLM
-get_model_type(::Val{:roberta}, ::Val{:formaskedlm}) = HGFRobertaForMaskedLM
-get_model_type(::Val{:roberta}, ::Val{:forsequenceclassification}) = HGFRobertaForSequenceClassification
-get_model_type(::Val{:roberta}, ::Val{:formultiplechoice}) = HGFRobertaForMultipleChoice
-get_model_type(::Val{:roberta}, ::Val{:fortokenclassification}) = HGFRobertaForTokenClassification
-get_model_type(::Val{:roberta}, ::Val{:forquestionanswering}) = HGFRobertaForQuestionAnswering
-
+get_model_type(::Val{:roberta}) = (
+  :model => HGFRobertaModel,
+  :forcausallm => HGFRobertaForCausalLM,
+  :formaskedlm => HGFRobertaForMaskedLM,
+  :forsequenceclassification => HGFRobertaForSequenceClassification,
+  :formultiplechoice => HGFRobertaForMultipleChoice,
+  :fortokenclassification => HGFRobertaForTokenClassification,
+  :forquestionanswering => HGFRobertaForQuestionAnswering,
+)
