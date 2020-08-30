@@ -81,11 +81,13 @@ end
 
 # roberta model without prediction
 
+abstract type HGFRobertaPreTrainedModel <: HGFBertPreTrainedModel end
+
 struct HGFRobertaModel{
   E<:HGFRobertaEmbeddings,
   T<:HGFBertEncoder,
   P<:HGFBertPooler
-} <: HGFBertPreTrainedModel
+} <: HGFRobertaPreTrainedModel
   embeddings::E
   encoder::T
   pooler::P
@@ -242,7 +244,7 @@ end
 struct HGFRobertaForCausalLM{
   B<:HGFRobertaModel,
   L<:HGFRobertaLMHead
-} <: HGFBertPreTrainedModel
+} <: HGFRobertaPreTrainedModel
   roberta::B
   lm_head::L
 end
@@ -322,7 +324,7 @@ end
 struct HGFRobertaForMaskedLM{
   B<:HGFRobertaModel,
   L<:HGFRobertaLMHead
-} <: HGFBertPreTrainedModel
+} <: HGFRobertaPreTrainedModel
   roberta::B
   lm_head::L
 end
@@ -399,7 +401,7 @@ end
 struct HGFRobertaForSequenceClassification{
   B<:HGFRobertaModel,
   C<:HGFRobertaClassificationHead
-} <: HGFBertPreTrainedModel
+} <: HGFRobertaPreTrainedModel
   roberta::B
   classifier::C
 end
@@ -479,7 +481,7 @@ end
 struct HGFRobertaForMultipleChoice{
   B<:HGFRobertaModel,
   C<:FakeTHLinear
-} <: HGFBertPreTrainedModel
+} <: HGFRobertaPreTrainedModel
   roberta::B
   classifier::C
 end
@@ -567,7 +569,7 @@ end
 struct HGFRobertaForTokenClassification{
   B<:HGFRobertaModel,
   C<:FakeTHLinear
-} <: HGFBertPreTrainedModel
+} <: HGFRobertaPreTrainedModel
   roberta::B
   classifier::C
 end
@@ -645,7 +647,7 @@ end
 struct HGFRobertaForQuestionAnswering{
   B<:HGFRobertaModel,
   C<:FakeTHLinear
-} <: HGFBertPreTrainedModel
+} <: HGFRobertaPreTrainedModel
   roberta::B
   qa_outputs::C
 end
