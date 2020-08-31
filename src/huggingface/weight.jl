@@ -2,7 +2,7 @@ using Pickle
 using Pickle: TableBlock, HierarchicalTable
 
 """
-  load_state(model_name)
+  `load_state(model_name)`
 
 load the state from the given model name as NamedTuple.
 """
@@ -13,7 +13,7 @@ function load_state(model_name)
 end
 
 """
-  load_state_dict(model_name)
+  `load_state_dict(model_name)`
 
 load the state_dict from the given model name.
 
@@ -25,7 +25,7 @@ function load_state_dict(model_name)
 end
 
 """
-  state_dict_to_namedtuple(state_dict)
+  `state_dict_to_namedtuple(state_dict)`
 
 convert state_dict into NamedTuple.
 """

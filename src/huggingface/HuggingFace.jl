@@ -20,7 +20,7 @@ include("./configs/config.jl")
 include("./models/models.jl")
 
 """
-  hgf"<model-name>:<item>"
+  `hgf"<model-name>:<item>"`
 
 Get `item` from `model-name`. This will ensure the required 
 data are downloaded and registered. `item` can be "config", 
@@ -31,8 +31,8 @@ macro hgf_str(name)
   :(load_hgf_pretrained($(esc(name))))
 end
 
-@doc raw"""
-  get\_model\_type(::Val{model})
+"""
+  `get_model_type(::Val{model})`
 
 See the list of supported model type of given model. 
 For example, use `get_mdoel_type(Val(:bert))` to 
@@ -43,7 +43,7 @@ get_model_type
 get_model_type(model, task) = error("Model $model doesn't support this kind of task: $task")
 
 """
-  load_hgf_pretrained(name)
+  `load_hgf_pretrained(name)`
 
 The underlying function of [`@hgf_str`](@ref).
 """

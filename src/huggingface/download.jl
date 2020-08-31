@@ -29,23 +29,23 @@ Artifacts system. Once the file is registered, you can find the entry appear on 
 """
 
 """
-  get_registered_config_path(model_name; config=DEFAULT_CONFIG_NAME)
+  `get_registered_config_path(model_name; config=DEFAULT_CONFIG_NAME)`
 
-Get the config path of a given model_name which should be already registered on Artifacts.toml.
+Get the config path of a given `model_name` which should be already registered on `Artifacts.toml`.
 """
 get_registered_config_path(model_name; config=DEFAULT_CONFIG_NAME) = joinpath(get_registered_file_dir(joinpath(model_name, config)), config)
 
 """
-  get_registered_weight_path(model_name; weight=DEFAULT_WEIGHT_NAME)
+  `get_registered_weight_path(model_name; weight=DEFAULT_WEIGHT_NAME)`
 
-Get the weight path of a given model_name which should be already registered on Artifacts.toml.
+Get the weight path of a given `model_name` which should be already registered on `Artifacts.toml`.
 """
 get_registered_weight_path(model_name; weight=DEFAULT_WEIGHT_NAME) = joinpath(get_registered_file_dir(joinpath(model_name, weight)), weight)
 
 """
-  get_registered_file_dir(name)
+  `get_registered_file_dir(name)`
 
-Get the dir path of a given name which should be already registered on Artifacts.toml.
+Get the dir path of a given `name` which should be already registered on `Artifacts.toml`.
 
 See also: [`get_registered_config_path`](@ref), [`get_registered_weight_path`](@ref)
 """
@@ -57,7 +57,7 @@ function get_registered_file_dir(name)
 end
 
 """
-  get_or_download_hgf_config(model_name; config=DEFAULT_CONFIG_NAME)
+  `get_or_download_hgf_config(model_name; config=DEFAULT_CONFIG_NAME)`
 
 get the config file path of the given `model_name` and `file_name`
 
@@ -66,7 +66,7 @@ See also: [`get_or_download_hgf_file`](@ref)
 get_or_download_hgf_config(model_name; config=DEFAULT_CONFIG_NAME) = get_or_download_hgf_file(model_name, config)
 
 """
-  get_or_download_hgf_weight(model_name; weight=DEFAULT_WEIGHT_NAME)
+  `get_or_download_hgf_weight(model_name; weight=DEFAULT_WEIGHT_NAME)`
 
 get the weight file path of the given `model_name` and `file_name`
 
@@ -75,10 +75,10 @@ See also: [`get_or_download_hgf_file`](@ref)
 get_or_download_hgf_weight(model_name; weight=DEFAULT_WEIGHT_NAME) = get_or_download_hgf_file(model_name, weight)
 
 """
-  get_or_download_hgf_file(model_name, file_name)
+  `get_or_download_hgf_file(model_name, file_name)`
 
 get the file path of the given `model_name` and `file_name`. Automatically download and register from 
-huggingface server if file not found on Artifacts.toml. To use with a local file, register with 
+huggingface server if file not found on `Artifacts.toml`. To use with a local file, register with 
 [`find_or_register_hgf_file_hash`](@ref) first.
 """
 function get_or_download_hgf_file(model_name, file_name)
@@ -92,7 +92,7 @@ isregistered(name) = (global ARTIFACTS_TOML; !isnothing(artifact_hash(name, ARTI
 isurl(path::AbstractString) = startswith(path, "http://") || startswith(path, "https://")
 
 """
-  find_or_register_hgf_config_hash(path, model_name; config=DEFAULT_CONFIG_NAME)
+  `find_or_register_hgf_config_hash(path, model_name; config=DEFAULT_CONFIG_NAME)`
 
 Get the artifacts hash of config of the give model.
 
@@ -101,7 +101,7 @@ See also: [`find_or_register_hgf_file_hash`](@ref)
 find_or_register_hgf_config_hash(path, model_name; config=DEFAULT_CONFIG_NAME) = find_or_register_hgf_file_hash(path, model_name, config)
 
 """
-  find_or_register_hgf_weight_hash(path, model_name; weight=DEFAULT_WEIGHT_NAME)
+  `find_or_register_hgf_weight_hash(path, model_name; weight=DEFAULT_WEIGHT_NAME)`
 
 Get the artifacts hash of weight of the give model.
 
@@ -110,7 +110,7 @@ See also: [`find_or_register_hgf_file_hash`](@ref)
 find_or_register_hgf_weight_hash(path, model_name; weight=DEFAULT_WEIGHT_NAME) = find_or_register_hgf_file_hash(path, model_name, weight)
 
 """
-  find_or_register_hgf_file_hash(path, model_name, file_name)
+  `find_or_register_hgf_file_hash(path, model_name, file_name)`
 
 Get the artifacts hash of the give `<model_name>/<file_name>`. If not found in Artifacts.toml, get the file from `path` 
 and register on Artifacts.toml. `path` can be either a url or a local path.
