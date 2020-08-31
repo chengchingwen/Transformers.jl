@@ -25,7 +25,7 @@ function load_config(model_type::Val, cfg)
 end
 
 """
-  save_config(model_name, config; path=pwd(), config_name=DEFAULT_CONFIG_NAME)
+  `save_config(model_name, config; path=pwd(), config_name=DEFAULT_CONFIG_NAME)`
 
 save the `config` at `<path>/<model_name>/<config_name>`.
 """

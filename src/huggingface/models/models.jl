@@ -7,7 +7,7 @@ using Pickle.Torch: StridedView
 using LinearAlgebra
 
 """
-  get_state_dict(layer)
+  `get_state_dict(layer)`
 
 Collect model parameters into one `OrderedDict` which also 
 known as `state_dict` in PyTorch.
@@ -34,7 +34,7 @@ function get_state_dict(state, prefix, x::AbstractArray)
 end
 
 """
-  load_state!(layer, state)
+  `load_state!(layer, state)`
 
 Load the model parameter from `state` into the `layer`. 
 give warning if something appear in `state` but not `layer`.
@@ -82,7 +82,7 @@ for model in :[
 end
 
 """
-  load_model!(model::HGFPreTrainedModel, state)
+  `load_model!(model::HGFPreTrainedModel, state)`
 
 Similar to [`load_state!`](@ref) but only work for 
 huggingface pre-trained models, this is used for 
@@ -108,7 +108,7 @@ function load_model!(model::HGFPreTrainedModel, state)
 end
 
 """
-  load_model(model_type, model_name; config=load_config(model_name))
+  `load_model(model_type, model_name; config=load_config(model_name))`
 
 build model with given `model_type` and load state from 
 `model_name`.
@@ -121,7 +121,7 @@ function load_model(model_type, model_name; config=load_config(model_name))
 end
 
 """
-  save_model(model_name, model; path=pwd(), weight_name=DEFAULT_WEIGHT_NAME)
+  `save_model(model_name, model; path=pwd(), weight_name=DEFAULT_WEIGHT_NAME)`
 
 save the `model` at `<path>/<model_name>/<weight_name>`.
 """
