@@ -146,6 +146,26 @@ end
 
 # cat
 
+Base.vcat(xss::OneHot{K}...) where K = cat(xss...; dims=Val(1))
+Base.hcat(xss::OneHot{K}...) where K = cat(xss...; dims=Val(2))
+
+function Base.cat(xss::OneHot{K}...; dims) where K
+  isone(::Val{V}) where V = isone(V)
+  isone(v) = Base.isone(v)
+  if isone(dims)
+    @warn "concat OneHot{$K} along dimension 1."
+    Base._cat(Val(1), xss...)
+  else
+    predecessor(::Val{V}) where V = Val(V-1)
+    predecessor(v) = Val(v - 1)
+    yss = reshape(collect(xss), reverse(Base.rdims(predecessor(dims), axes(xss))))
+    OneHotArray(yss)
+  end
+end
+
+Base.vcat(xss::OneHotArray{K}...) where K = cat(xss...; dims=Val(1))
+Base.hcat(xss::OneHotArray{K}...) where K = cat(xss...; dims=Val(2))
+
 function Base.cat(xss::OneHotArray{K}...; dims) where K
   isone(::Val{V}) where V = isone(V)
   isone(v) = Base.isone(v)
