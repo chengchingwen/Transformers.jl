@@ -24,7 +24,7 @@ primitive type OneHot{K} <: AbstractVector{Bool} 32 end
 
 OneHot(k) = OneHot{UInt32(k)}
 OneHot{K}(x) where K = convert(OneHot(K), x)
-OneHot(k, x) = OneHot{K}(x)
+OneHot(k, x) = OneHot{k}(x)
 
 onehotsize(::OneHot{K}) where K = Int(K)
 
