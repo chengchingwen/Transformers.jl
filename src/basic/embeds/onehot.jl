@@ -182,6 +182,29 @@ function Base.cat(xss::OneHotArray{K}...; dims) where K
   end
 end
 
+# reshape
+
+"reshape the onehots"
+function ohreshape(parent::OneHotArray{K}, dims) where K
+  onehots = parent.onehots
+  OneHotArray(reshape(onehots, dims))
+end
+
+function Base.reshape(parent::OneHotArray{K}, dims::Dims) where K
+  isequal(prod(dims), length(parent)) || throw(DimensionMismatch("new dimensions $(dims) must be consistent with array size $(length(parent))"))
+  return isequal(K, first(dims)) ?
+    ohreshape(parent, Base.tail(dims)) :
+    Base._reshape(parent, dims)
+end
+
+function Base.reshape(parent::OneHotArray{K}, dims::Tuple{Vararg{Union{Colon, Int64}}}) where K
+  rdims = Base._reshape_uncolon(parent, dims)
+  return isequal(K, first(rdims)) ?
+    ohreshape(parent, Base.tail(rdims)) :
+    Base._reshape(parent,
+                  rdims)
+end
+
 # old utility
 
 onehot2indices(xs::OneHotArray) = convert(AbstractArray{Int}, xs.onehots)
