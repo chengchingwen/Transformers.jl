@@ -80,7 +80,7 @@ end
 
 Base.show(io::IO, v::Vocabulary) = print(io, "Vocabulary($(v.siz), unk=$(v.unk))")
 
-Flux.onehot(v::Vocabulary{T}, x::Container{<:Union{T, Container{T}}}) where T = onehot(v, v(x))
+Flux.onehot(v::Vocabulary{T}, x::Container{<:Union{T, Container{T}}}) where T = Flux.onehot(v, v(x))
 Flux.onehot(v::Vocabulary, x::AbstractArray{Int}) = OneHotArray(length(v), x)
 
 Flux.onecold(v::Vocabulary{T}, p) where T = decode(v, _onecold(p))
