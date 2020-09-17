@@ -80,21 +80,14 @@ end
 
 Base.show(io::IO, v::Vocabulary) = print(io, "Vocabulary($(v.siz), unk=$(v.unk))")
 
-Flux.onehot(v::Vocabulary{T}, x::Container{<:Union{T, Container{T}}}) where T = onehot(v, v(x))
-Flux.onehot(v::Vocabulary, x::AbstractArray{Int}) = onehotarray(length(v), x)
+Flux.onehot(v::Vocabulary{T}, x::Container{<:Union{T, Container{T}}}) where T = Flux.onehot(v, v(x))
+Flux.onehot(v::Vocabulary, x::AbstractArray{Int}) = OneHotArray(length(v), x)
 
 Flux.onecold(v::Vocabulary{T}, p) where T = decode(v, _onecold(p))
-function _onecold(p)
-    p = collect(p)
-    y = Array{Int}(undef, Base.tail(size(p)))
-    for i = 1:length(y)
-        ind = Tuple(CartesianIndices(y)[i])
-        y[i] = argmax(@view(p[:, ind...]))
-    end
-    y
-end
 
-Flux.@nograd Flux.onehot
+_onecold(p) = (map(argmax(p; dims=1)) do pi
+  first(Tuple(pi))
+end) |> Base.Fix2(reshape, Base.tail(size(p))) |> collect
 
 """
     getmask(ls::Container{<:Container})

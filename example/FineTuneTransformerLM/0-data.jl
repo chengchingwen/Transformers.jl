@@ -27,9 +27,7 @@ end
 
 const args = parse_commandline()
 
-if args["gpu"]
-    @eval using CuArrays
-end
+enable_gpu(args["gpu"])
 
 function transform(s1, s2, s3, s4, c1, c2, y)
     x = [startsym;
