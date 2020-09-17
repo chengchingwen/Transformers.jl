@@ -8,7 +8,6 @@ using Flux
 using Flux: onehotbatch, gradient
 import Flux.Optimise: update!
 using WordTokenizers
-using CuArrays
 
 include("./model.jl")
 

@@ -3,7 +3,7 @@ Reference: The Annotated Transformer (http://nlp.seas.harvard.edu/2018/04/03/att
 """
 
 using Flux
-using Flux: onecold, gradient
+using Flux: onecold, gradient, onehot
 import Flux.Optimise: update!
 
 using WordTokenizers
