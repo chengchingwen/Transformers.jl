@@ -18,6 +18,4 @@ end
 
 const args = parse_commandline()
 
-if args["gpu"]
-    @eval using CuArrays
-end
+enable_gpu(args["gpu"])

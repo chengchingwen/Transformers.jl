@@ -1,53 +1,12 @@
 using Statistics
 import Flux
 
-using ..Transformers.Basic: gather
+using ..Transformers.Basic: gather, OneHot, OneHotArray
 
 import Flux.Losses
 
-primitive type OneHot{K} <: AbstractVector{Bool} 32 end
-OneHot(k) = OneHot{k}
-OneHot{K}(x) where K = x <= K ? Core.Intrinsics.bitcast(OneHot{K}, UInt32(x)) : error("can't encode $x with OneHot{$K}.")
-
-Base.UInt32(o::OneHot) = Core.Intrinsics.bitcast(UInt32, o)
-Base.Int(o::OneHot) = Int(UInt32(o))
-Base.convert(::Type{UInt32}, o::OneHot) = UInt32(o)
-Base.convert(::Type{T}, o::OneHot) where {T<:Integer} = T(UInt32(o))
-
-Base.iszero(o::OneHot{K}) where K = iszero(UInt32(o))
-
-Base.size(::OneHot{K}) where K = (K,)
-function Base.getindex(o::OneHot{K}, i::I) where {K, I<:Integer}
-  @boundscheck checkbounds(o, i)
-  return convert(I, o) == i
-end
-
 Base.getindex(a::AbstractVector, o::OneHot{K}) where K = a[Int(o)]
 Base.getindex(a::AbstractArray, o::OneHot{K}, i...) where K = a[Int(o), i...]
-
-struct OneHotArray{K, N, N2, A<:AbstractArray{OneHot{K}, N2}} <: AbstractArray{Bool, N}
-  data::A
-end
-OneHotArray(data::A) where {K, N2, A<:AbstractArray{OneHot{K}, N2}}= OneHotArray{K, N2+1, N2, A}(data)
-OneHotArray{K}(data::A) where {K, N2, A<:AbstractArray{<:Integer, N2}} = OneHotArray(OneHot{K}.(data))
-
-Flux.@nograd OneHotArray
-
-Base.size(oa::OneHotArray{K}) where K = (K, size(oa.data)...)
-function Base.getindex(oa::OneHotArray{K, N, N2}, i, is::Vararg{Int, N2}) where {K, N, N2}
-  @boundscheck checkbounds(oa, i, is...)
-  oa.data[is...][i]
-end
-
-function Base.getindex(oa::OneHotArray{K, N, N2}, i::Colon, is::Vararg{Int, N2}) where {K, N, N2}
-  @boundscheck checkbounds(oa, i, is...)
-  oa.data[is...]
-end
-
-function Base.getindex(oa::OneHotArray{K}, i::Colon, is...) where {K}
-  @boundscheck checkbounds(oa, i, is...)
-  OneHotArray(oa.data[is...])
-end
 
 function Base.getindex(xs::AbstractArray{T}, onehots::OneHotArray{K}) where {T, K}
   @assert size(xs, 1) == K
@@ -258,7 +217,6 @@ end
 Flux.@nograd MaskFillArray
 
 import Adapt: adapt, adapt_structure
-adapt_structure(T, oa::OneHotArray{K}) where K = OneHotArray(adapt(T, oa.data))
 adapt_structure(T, ma::MaskFillArray) = MaskFillArray(ma.size, ma.masked_val, adapt(T, ma.values), adapt(T, ma.positions))
 
 num_effective_entry(y::OneHotArray) = sum(map(!iszero, y.data))

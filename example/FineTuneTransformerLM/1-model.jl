@@ -3,7 +3,7 @@ Reference: The origin code of GPT paper from openai (https://github.com/openai/f
 """
 
 using Flux
-using Flux: onehotbatch, onecold, gradient, logitcrossentropy
+using Flux: onehotbatch, onecold, gradient, logitcrossentropy, onehot
 import Flux.Optimise: update!
 
 using BytePairEncoding

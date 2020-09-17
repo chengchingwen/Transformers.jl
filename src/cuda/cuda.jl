@@ -1,5 +1,7 @@
 using CUDA
 
+import CUDA: CuArray
+
 togpudevice(x) = gpu(x)
 togpudevice(x, xs...) = (todevice(x), map(todevice, xs)...)
 togpudevice(x::Union{Tuple, NamedTuple}) = map(todevice, x)

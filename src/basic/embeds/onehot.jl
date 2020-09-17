@@ -1,58 +1,225 @@
-using Flux: OneHotVector, onehot
+using Base: @_noinline_meta, @_inline_meta
+using Core: is_top_bit_set
+using Core.Intrinsics: bitcast, trunc_int, sext_int, zext_int, sle_int, eq_int, and_int
 
-import Base
-
-struct OneHotArray{N, A<: AbstractArray{OneHotVector}} <: AbstractArray{Bool, N}
-    dims::Int
-    data::A
-    OneHotArray(dims, data::A) where A = new{ndims(A)+1, A}(dims, data)
+# onehot erorr
+struct OneHotEncodeError <: Exception
+  K
+  val
+  OneHotEncodeError(@nospecialize(K), @nospecialize(val)) = (@_noinline_meta; new(K, val))
 end
 
-Base.size(xs::OneHotArray) = (Int64(xs.dims), size(xs.data)...)
+function Base.showerror(io::IO, e::OneHotEncodeError)
+  print(io, "OneHotEncodeError: cannot encode ")
+  print(io, e.val)
+  print(io, " with OneHot{")
+  print(io, e.K)
+  print(io, '}')
+end
 
-Base.getindex(o::OneHotArray, i::Integer) = o[CartesianIndices(o)[i]]
-Base.getindex(o::OneHotArray, i::Integer, j::Integer) = o.data[j][i]
-Base.getindex(o::OneHotArray, i::Integer, j::Integer, I::Vararg{Int, N}) where N = o.data[j, I...][i]
-Base.getindex(o::OneHotArray, ::Colon, i::Integer) = o.data[i]
-Base.getindex(o::OneHotArray, ::Colon, i::AbstractArray) = OneHotArray(o.dims, o.data[i])
+throw_onehotencode_error(K, val) = (@_noinline_meta; throw(OneHotEncodeError(K, val)))
 
+# onehot encode
+primitive type OneHot{K} <: AbstractVector{Bool} 32 end
 
-OneHotArray(xs::A) where A = OneHotArray{ndims(A)+1, A}(Int(xs[1].of), xs)
-OneHotArray(nums::Int, xs::AbstractArray{Int}) = OneHotArray(nums, map(i->onehot(i, 1:nums), xs))
+OneHot(k) = OneHot{UInt32(k)}
+OneHot{K}(x) where K = convert(OneHot(K), x)
+OneHot(k, x) = OneHot{k}(x)
 
-onehotarray(num::Int, xs::AbstractArray{Int}) = OneHotArray(num, indices2onehot(num, xs))
+onehotsize(::OneHot{K}) where K = Int(K)
 
-import Adapt: adapt, adapt_structure
+# array interface
 
-adapt_structure(T, xs::OneHotArray) = OneHotArray(xs.dims, adapt(T, xs.data))
+Base.size(o::OneHot) = (onehotsize(o),)
+function Base.getindex(o::OneHot{K}, i::I) where {K, I<:Integer}
+  @boundscheck checkbounds(o, i)
+  return convert(I, o) == i
+end
+
+# printing
+
+function Base.showarg(io::IO, x::OneHot{K}, toplevel) where K
+  toplevel || print(io, "::")
+  join(io, ["OneHot{", Int(K), '}'])
+end
+
+# convert
+
+Base.UInt32(o::OneHot) = bitcast(UInt32, o)
+Base.UInt64(o::OneHot) = zext_int(UInt64, o)
+Base.Int32(o::OneHot) = bitcast(Int32, o)
+Base.Int64(o::OneHot) = zext_int(Int64, o)
+
+Base.convert(::Type{Any}, o::OneHot) = o
+Base.convert(::Type{OneHot{K}}, o::OneHot{K}) where {K} = o
+Base.convert(::Type{UInt32},  o::OneHot) = UInt32(o)
+Base.convert(::Type{To}, o::OneHot) where {To} = convert(To, convert(UInt32, o))
+
+Base.convert(ot::Type{OneHot{K}}, x::Core.BuiltinInts) where {K} = toOneHot(ot, x)
+
+# zero
+
+Base.zero(o::O) where {O<:OneHot} = toOneHot(O, 0x00000000)
+Base.iszero(o::O) where {O<:OneHot} = iszero(convert(UInt32, o))
+
+# bit-op
+
+function check_onehot_top_bit(::Type{OneHot{K}}, x) where {K}
+  @_inline_meta
+  is_top_bit_set(x) && throw_onehotencode_error(K, x)
+  x
+end
+
+function check_onehot_encode(ot::Type{OneHot{K}}, x) where {K}
+  @_inline_meta
+  sle_int(x, K) || throw_onehotencode_error(K, x)
+  bitcast(ot, x)
+end
+
+function checked_onehot_trunc_sint(ot::Type{OneHot{K}}, x::From) where {K, From}
+  @_inline_meta
+  y = trunc_int(UInt32, x)
+  back = sext_int(From, y)
+  eq_int(x, back) || throw_onehotencode_error(K, x)
+  check_onehot_encode(ot, y)
+end
+
+function checked_onehot_trunc_uint(ot::Type{OneHot{K}}, x::From) where {K, From}
+  @_inline_meta
+  y = trunc_int(UInt32, x)
+  back = zext_int(From, y)
+  eq_int(x, back) || throw_onehotencode_error(K, x)
+  check_onehot_encode(ot, y)
+end
+
+toOneHot(ot::Type{OneHot{K}}, x::Int8) where {K} = check_onehot_encode(ot, sext_int(UInt32, check_onehot_top_bit(ot, x)))
+toOneHot(ot::Type{OneHot{K}}, x::Int16) where {K} = check_onehot_encode(ot, sext_int(UInt32, check_onehot_top_bit(ot, x)))
+toOneHot(ot::Type{OneHot{K}}, x::Int32) where {K} = check_onehot_encode(ot, bitcast(UInt32, check_onehot_top_bit(ot, x)))
+toOneHot(ot::Type{OneHot{K}}, x::Int64) where {K} = checked_onehot_trunc_sint(ot, check_onehot_top_bit(ot, x))
+toOneHot(ot::Type{OneHot{K}}, x::Int128) where {K} = checked_onehot_trunc_sint(ot, check_onehot_top_bit(ot, x))
+toOneHot(ot::Type{OneHot{K}}, x::UInt8) where {K} = check_onehot_encode(ot, zext_int(UInt32, x))
+toOneHot(ot::Type{OneHot{K}}, x::UInt16) where {K} = check_onehot_encode(ot, zext_int(UInt32, x))
+toOneHot(ot::Type{OneHot{K}}, x::UInt32) where {K} = check_onehot_encode(ot, x)
+toOneHot(ot::Type{OneHot{K}}, x::UInt64) where {K} = checked_onehot_trunc_uint(ot, x)
+toOneHot(ot::Type{OneHot{K}}, x::UInt128) where {K} = checked_onehot_trunc_uint(ot, x)
+toOneHot(ot::Type{OneHot{K}}, x::Bool) where {K} = and_int(zext_int(ot, x), toOneHot(ot, 0x1))
+
+# onehot array
+struct OneHotArray{K, N, var"N+1", A<:AbstractArray{OneHot{K}, N}} <: AbstractArray{Bool, var"N+1"}
+  onehots::A
+end
+
+OneHotArray(onehots::A) where {K, A<:AbstractArray{OneHot{K}}} = OneHotArray{K, ndims(onehots), ndims(onehots)+1, A}(onehots)
+OneHotArray{K}(indices::A) where {K, A<:AbstractArray{<:Integer}} = OneHotArray(K, indices)
+OneHotArray(k, xs) = OneHotArray(OneHot{k}.(xs))
+
+onehotsize(::OneHotArray{K}) where K = Int(K)
+
+# array interface
+Base.size(oa::OneHotArray{K}) where K = (onehotsize(oa), size(oa.onehots)...)
+
+function Base.getindex(oa::OneHotArray{K, N}, i, is::Vararg{Int, N}) where {K, N}
+  @boundscheck checkbounds(oa, i, is...)
+  oa.onehots[is...][i]
+end
+
+function Base.getindex(oa::OneHotArray{K, N}, i::Colon, is::Vararg{Int, N}) where {K, N}
+  @boundscheck checkbounds(oa, i, is...)
+  oa.onehots[is...]
+end
+
+function Base.getindex(oa::OneHotArray{K}, i::Colon, is...) where {K}
+  @boundscheck checkbounds(oa, i, is...)
+  OneHotArray(oa.onehots[is...])
+end
+
+Base.similar(o::OneHotArray, ::Type{T}, dims::Dims{N}) where {T, N} = similar(o.onehots, T, dims)
+
+# printing
+
+function Base.summary(io::IO, oa::OneHotArray)
+  join(io, size(oa), 'x')
+  join(io, [" OneHotArray{", onehotsize(oa), ", ", ndims(oa), ", "])
+  Base.showarg(io, oa.onehots, true)
+  print(io, "}")
+end
+
+# cat
+
+Base.vcat(xss::OneHot{K}...) where K = cat(xss...; dims=Val(1))
+Base.hcat(xss::OneHot{K}...) where K = cat(xss...; dims=Val(2))
+
+function Base.cat(xss::OneHot{K}...; dims) where K
+  isone(::Val{V}) where V = isone(V)
+  isone(v) = Base.isone(v)
+  if isone(dims)
+    @warn "concat OneHot{$K} along dimension 1."
+    Base._cat(Val(1), xss...)
+  else
+    predecessor(::Val{V}) where V = Val(V-1)
+    predecessor(v) = Val(v - 1)
+    yss = reshape(collect(xss), reverse(Base.rdims(predecessor(dims), axes(xss))))
+    OneHotArray(yss)
+  end
+end
+
+Base.vcat(xss::OneHotArray{K}...) where K = cat(xss...; dims=Val(1))
+Base.hcat(xss::OneHotArray{K}...) where K = cat(xss...; dims=Val(2))
+
+function Base.cat(xss::OneHotArray{K}...; dims) where K
+  isone(::Val{V}) where V = isone(V)
+  isone(v) = Base.isone(v)
+  if isone(dims)
+    @warn "concat OneHotArray{$K} along dimension 1."
+    Base._cat(Val(1), xss...)
+  else
+    predecessor(::Val{V}) where V = Val(V-1)
+    predecessor(v) = v - 1
+    sdims = predecessor(dims)
+    xidss = map(xs->xs.onehots, xss)
+    ret = cat(xidss...; dims=sdims)
+    OneHotArray(ret)
+  end
+end
+
+# reshape
+
+"reshape the onehots"
+function ohreshape(parent::OneHotArray{K}, dims) where K
+  onehots = parent.onehots
+  OneHotArray(reshape(onehots, dims))
+end
+
+function Base.reshape(parent::OneHotArray{K}, dims::Dims) where K
+  isequal(prod(dims), length(parent)) || throw(DimensionMismatch("new dimensions $(dims) must be consistent with array size $(length(parent))"))
+  return isequal(K, first(dims)) ?
+    ohreshape(parent, Base.tail(dims)) :
+    Base._reshape(parent, dims)
+end
+
+function Base.reshape(parent::OneHotArray{K}, dims::Tuple{Vararg{Union{Colon, Int64}}}) where K
+  rdims = Base._reshape_uncolon(parent, dims)
+  return isequal(K, first(rdims)) ?
+    ohreshape(parent, Base.tail(rdims)) :
+    Base._reshape(parent,
+                  rdims)
+end
+
+# old utility
+
+onehot2indices(xs::OneHotArray) = convert(AbstractArray{Int}, xs.onehots)
+
+indices2onehot(nums::Int, xs::AbstractArray{Int}) = OneHotArray(nums, xs)
 
 tofloat(::Type{F}, o::OneHotArray{N, <:AbstractArray}) where {F<:AbstractFloat,N} = Array{F}(o)
 
-Base.convert(::Type{OneHotVector}, x::Int) = OneHotVector(x & 0xffffffff, x >> 32)
-Base.convert(::Type{Int}, x::OneHotVector) = Int(x.ix)
+# gpu
+import Adapt: adapt, adapt_structure
+adapt_structure(T, oa::OneHotArray) = OneHotArray(adapt(T, oa.onehots))
 
-Base.hcat(x::OneHotArray, xs::OneHotArray...) = begin
-    !all(isequal(x.dims), map(o->o.dims, xs)) && throw(DimensionMismatch("OneHot dimension are not all the same"))
-    OneHotArray(x.dims, vcat(x.data, map(o->o.data, xs)...))
-end
-
-Base.cat(x::OneHotArray, xs::OneHotArray...; dims::Int) = begin
-    !all(isequal(x.dims), map(o->o.dims, xs)) && throw(DimensionMismatch("OneHot dimension are not all the same"))
-    dims < 2 && error("OneHotArray concatenation at dimension $dims is not allow")
-    OneHotArray(x.dims, cat(x.data, map(o->o.data, xs)...; dims=dims-1))
-end
-
-
-"turn one hot encoding to indices"
-onehot2indices(xs::OneHotArray) = onehot2indices(xs.data)
-
-#cpu onehot to indices
-onehot2indices(x::AbstractArray{OneHotVector}) = map(i->Int(i.ix), x)
-
-#cpu indices to onehot
-indices2onehot(nums::Int, xs::AbstractArray{Int}) = map(i->onehot(i, 1:nums), xs)
-
-_labelindex(num::Int, x::AbstractArray) = x .+ (num << 32)
+# AD
+using Flux
+Flux.@nograd OneHotArray
 
 using ZygoteRules: @adjoint, AContext, pullback
 import ZygoteRules: _pullback

@@ -2,7 +2,7 @@ using Flux: @functor
 using MacroTools: @forward
 
 using ..Basic
-using ..Basic: onehot, AbstractTransformer
+using ..Basic: AbstractTransformer
 using ..Stacks
 
 struct Gpt <: AbstractTransformer
