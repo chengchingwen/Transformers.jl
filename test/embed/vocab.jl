@@ -27,10 +27,10 @@
     @test decode(v, multi_after_enc) == multi(before_unk_enc, 5)
     @test decode(v, multi(after_enc, 5)) == multi(before_unk_enc, 5)
 
-    @test onehot(v, before_enc) == onehotarray(length(v), v(before_unk_enc))
-    @test onehot(v, after_enc) == onehotarray(length(v), after_enc)
-    @test onehot(v, multi(before_enc,5)) == onehotarray(length(v), v(multi(before_unk_enc,5)))
-    @test onehot(v, multi_after_enc) == onehotarray(length(v), multi_after_enc)
+    @test onehot(v, before_enc) == OneHotArray(length(v), v(before_unk_enc))
+    @test onehot(v, after_enc) == OneHotArray(length(v), after_enc)
+    @test onehot(v, multi(before_enc,5)) == OneHotArray(length(v), v(multi(before_unk_enc,5)))
+    @test onehot(v, multi_after_enc) == OneHotArray(length(v), multi_after_enc)
 
     @test onecold(v, onehot(v, multi(before_enc,5))) == multi(before_unk_enc,5)
     @test onecold(v, onehot(v, multi_after_enc)) == multi(before_unk_enc,5)
