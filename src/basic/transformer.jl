@@ -65,12 +65,13 @@ Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true, act = r
 )
 
 function (t::Transformer)(x::A, mask=nothing) where {T, N, A<:AbstractArray{T, N}}
+    dropout = t.drop
     a = t.mh(x, x, x; mask=mask)
-    a = t.drop(a)
+    a = dropout(a)
     res_a = x + a
     res_a = t.mhn(res_a)
     pwffn = t.pw(res_a)
-    pwffn = t.drop(pwffn)
+    pwffn = dropout(pwffn)
     res_pwffn = res_a + pwffn
     res_pwffn = t.pwn(res_pwffn)
     res_pwffn
@@ -132,19 +133,20 @@ TransformerDecoder(size::Int, head::Int, hs::Int, ps::Int; act = relu, pdrop = 0
 )
 
 function (td::TransformerDecoder)(x::AbstractArray{T,N}, m, mask=nothing) where {T,N}
+    dropout = td.drop
     a = td.mh(x,x,x)
-    a = td.drop(a)
+    a = dropout(a)
     res_a = x + a
     res_a = td.mhn(res_a)
 
     ia = td.imh(res_a, m, m, mask=mask)
-    ia = td.drop(ia)
-    res_ia = res_a .+ ia
+    ia = dropout(ia)
+    res_ia = res_a + ia
     res_ia = td.imhn(res_ia)
 
     pwffn = td.pw(res_ia)
-    pwffn = td.drop(pwffn)
-    res_pwffn = res_ia .+ pwffn
+    pwffn = dropout(pwffn)
+    res_pwffn = res_ia + pwffn
     res_pwffn = td.pwn(res_pwffn)
     res_pwffn
 end
