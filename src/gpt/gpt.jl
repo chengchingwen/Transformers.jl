@@ -5,9 +5,9 @@ using ..Basic
 using ..Basic: AbstractTransformer
 using ..Stacks
 
-struct Gpt <: AbstractTransformer
-    ts::Stack
-    drop::Dropout
+struct Gpt{T<:Stack, DP<:Dropout} <: AbstractTransformer
+    ts::T
+    drop::DP
 end
 
 @functor Gpt

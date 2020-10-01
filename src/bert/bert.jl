@@ -5,9 +5,9 @@ using ..Basic
 using ..Basic: AbstractTransformer
 using ..Stacks
 
-struct Bert <: AbstractTransformer
-  ts::Stack
-  drop::Dropout
+struct Bert{T<:Stack, DP<:Dropout} <: AbstractTransformer
+  ts::T
+  drop::DP
 end
 
 @functor Bert
