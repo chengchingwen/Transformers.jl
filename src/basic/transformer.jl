@@ -3,9 +3,9 @@ using Flux: @functor
 
 abstract type AbstractTransformer end
 
-struct PwFFN
-    din::Dense
-    dout::Dense
+struct PwFFN{Di<:Dense, Do<:Dense}
+    din::Di
+    dout::Do
 end
 
 @functor PwFFN
@@ -17,17 +17,23 @@ PwFFN(size::Int, h::Int, act = relu) = PwFFN(
     Dense(h, size)
 )
 
-function (pw::PwFFN)(x)::AbstractMatrix
-    # size(x) == (dims, seq_len)
-    pw.dout(pw.din(x))
+function (pw::PwFFN)(x::AbstractMatrix)
+  # size(x) == (dims, seq_len)
+  pw.dout(pw.din(x))
 end
 
-struct Transformer <: AbstractTransformer
-    mh::MultiheadAttention
-    mhn::LayerNorm
-    pw::PwFFN
-    pwn::LayerNorm
-    drop::Dropout
+function (pw::PwFFN)(x::A) where {T, N, A<:AbstractArray{T, N}}
+  new_x = reshape(x, size(x, 1), :)
+  y = pw(new_x)
+  return reshape(y, Base.setindex(size(x), size(y, 1), 1))
+end
+
+struct Transformer{MA<:MultiheadAttention, LA<:LayerNorm, P<:PwFFN, LP<:LayerNorm, DP<:Dropout} <: AbstractTransformer
+    mh::MA
+    mhn::LA
+    pw::P
+    pwn::LP
+    drop::DP
 end
 
 @functor Transformer
@@ -58,22 +64,15 @@ Transformer(size::Int, head::Int, hs::Int, ps::Int; future::Bool = true, act = r
     Dropout(pdrop),
 )
 
-function (t::Transformer)(x::AbstractArray{T, N}, mask=nothing) where {T, N}
+function (t::Transformer)(x::A, mask=nothing) where {T, N, A<:AbstractArray{T, N}}
     a = t.mh(x, x, x; mask=mask)
     a = t.drop(a)
-    res_a = x .+ a
-    if N == 3
-        insize = size(res_a)
-        res_a = reshape(res_a, insize[1], :)
-    end
+    res_a = x + a
     res_a = t.mhn(res_a)
     pwffn = t.pw(res_a)
     pwffn = t.drop(pwffn)
-    res_pwffn = res_a .+ pwffn
+    res_pwffn = res_a + pwffn
     res_pwffn = t.pwn(res_pwffn)
-    if N == 3
-        res_pwffn = reshape(res_pwffn, :, Base.tail(insize)...)
-    end
     res_pwffn
 end
 
@@ -93,14 +92,16 @@ function Base.show(io::IO, t::Transformer)
     end
 end
 
-struct TransformerDecoder <: AbstractTransformer
-    mh::MultiheadAttention
-    mhn::LayerNorm
-    imh::MultiheadAttention
-    imhn::LayerNorm
-    pw::PwFFN
-    pwn::LayerNorm
-    drop::Dropout
+struct TransformerDecoder{MA<:MultiheadAttention, LA<:LayerNorm,
+                          IMA<:MultiheadAttention, ILA<:LayerNorm,
+                          P<:PwFFN, LP<:LayerNorm, DP<:Dropout} <: AbstractTransformer
+    mh::MA
+    mhn::LA
+    imh::IMA
+    imhn::ILA
+    pw::P
+    pwn::LP
+    drop::DP
 end
 
 @functor TransformerDecoder
@@ -133,25 +134,18 @@ TransformerDecoder(size::Int, head::Int, hs::Int, ps::Int; act = relu, pdrop = 0
 function (td::TransformerDecoder)(x::AbstractArray{T,N}, m, mask=nothing) where {T,N}
     a = td.mh(x,x,x)
     a = td.drop(a)
-    res_a = x .+ a
-    res_a = N == 3 ? @toNd(td.mhn(res_a)) : td.mhn(res_a)
+    res_a = x + a
+    res_a = td.mhn(res_a)
 
     ia = td.imh(res_a, m, m, mask=mask)
     ia = td.drop(ia)
     res_ia = res_a .+ ia
-    if N == 3
-        insize = size(res_ia)
-        res_ia = reshape(res_ia, insize[1], :)
-    end
     res_ia = td.imhn(res_ia)
+
     pwffn = td.pw(res_ia)
     pwffn = td.drop(pwffn)
     res_pwffn = res_ia .+ pwffn
     res_pwffn = td.pwn(res_pwffn)
-    if N == 3
-        res_pwffn = reshape(res_pwffn, :, Base.tail(insize)...)
-    end
-
     res_pwffn
 end
 

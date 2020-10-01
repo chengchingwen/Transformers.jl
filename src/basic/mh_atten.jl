@@ -18,14 +18,14 @@ end
 
 Flux.@nograd create_atten_mask
 
-struct MultiheadAttention <: AbstractAttention
+struct MultiheadAttention{Q<:Dense, K<:Dense, V<:Dense, O<:Dense, DP<:Dropout} <: AbstractAttention
     head::Int
     future::Bool
-    iqproj::Dense
-    ikproj::Dense
-    ivproj::Dense
-    oproj::Dense
-    drop::Dropout
+    iqproj::Q
+    ikproj::K
+    ivproj::V
+    oproj::O
+    drop::DP
 end
 
 Flux.functor(mh::MultiheadAttention) = (mh.iqproj, mh.ikproj, mh.ivproj, mh.oproj), m -> MultiheadAttention(mh.head, mh.future, m..., mh.drop)
