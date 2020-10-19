@@ -154,6 +154,6 @@ function print_topo(io::IO, nt::NNTopo; models=nothing)
   end
   out = replace(string(body[end]), r"##%#\d+" => s->sname[s])
   println(io, "\t$out")
-  println("end")
+  println(io, "end")
 end
 
