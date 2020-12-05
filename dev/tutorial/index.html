@@ -60,12 +60,14 @@ function decoder_forward(x, m)
   p = linear(t2)
   return p
 end</code></pre><p>Then run the model on the sample</p><pre><code class="language-julia">enc = encoder_forward(encoded_sample)
-probs = decoder_forward(encoded_sample, enc)</code></pre><p>We can also use the<code>Transformers.Stack</code> to define the encoder and decoder so you can define multiple layer and the <code>xx_forwawrd</code> at once. See the <a href="../stacks/">docs</a> for more information about the API.</p><h3 id="define-the-loss-and-training-loop"><a class="docs-heading-anchor" href="#define-the-loss-and-training-loop">define the loss and training loop</a><a id="define-the-loss-and-training-loop-1"></a><a class="docs-heading-anchor-permalink" href="#define-the-loss-and-training-loop" title="Permalink"></a></h3><p>For the last step, we need to define the loss function and training loop. We use the kl divergence for the output probability.</p><pre><code class="language-julia">function smooth(et)
+probs = decoder_forward(encoded_sample, enc)</code></pre><p>We can also use the<code>Transformers.Stack</code> to define the encoder and decoder so you can define multiple layer and the <code>xx_forwawrd</code> at once. See the <a href="../stacks/">docs</a> for more information about the API.</p><h3 id="define-the-loss-and-training-loop"><a class="docs-heading-anchor" href="#define-the-loss-and-training-loop">define the loss and training loop</a><a id="define-the-loss-and-training-loop-1"></a><a class="docs-heading-anchor-permalink" href="#define-the-loss-and-training-loop" title="Permalink"></a></h3><p>For the last step, we need to define the loss function and training loop. We use the kl divergence for the output probability.</p><pre><code class="language-julia">using Flux: onehot
+function smooth(et)
     sm = fill!(similar(et, Float32), 1e-6/size(embed, 2))
     p = sm .* (1 .+ -et)
     label = p .+ et .* (1 - convert(Float32, 1e-6))
     label
 end
+Flux.@nograd smooth
 
 #define loss function
 function loss(x, y)
@@ -94,11 +96,11 @@ function train!()
   for i = 1:2000
     data = batched([sample_data() for i = 1:32]) #create 32 random sample and batched
 	x, y = preprocess.(data[1]), preprocess.(data[2])
-    x, y = vocab(x), vocab(y)#encode the data
+    x, y = vocab(x), vocab(y) #encode the data
     x, y = todevice(x, y) #move to gpu
-    l = loss(x, y)
-    grad = gradient(()-&gt;l, ps)
+    grad = gradient(()-&gt;loss(x, y), ps)
     if i % 8 == 0
+        l = loss(x, y)
     	println(&quot;loss = $l&quot;)
     end
     update!(opt, ps, grad)
@@ -130,4 +132,4 @@ end</code></pre><pre><code class="language-julia">translate([5,5,6,6,1,2,3,4,7, 
   3
   4
   7
- 10</code></pre><p>The result looks good!</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../basic/">Basic »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 24 November 2020 13:18">Tuesday 24 November 2020</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+ 10</code></pre><p>The result looks good!</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../basic/">Basic »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 5 December 2020 19:03">Saturday 5 December 2020</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
