@@ -155,12 +155,14 @@ We can also use the`Transformers.Stack` to define the encoder and decoder so you
 For the last step, we need to define the loss function and training loop. We use the kl divergence for the output probability.
 
 ```julia
+using Flux: onehot
 function smooth(et)
     sm = fill!(similar(et, Float32), 1e-6/size(embed, 2))
     p = sm .* (1 .+ -et)
     label = p .+ et .* (1 - convert(Float32, 1e-6))
     label
 end
+Flux.@nograd smooth
 
 #define loss function
 function loss(x, y)
@@ -189,11 +191,11 @@ function train!()
   for i = 1:2000
     data = batched([sample_data() for i = 1:32]) #create 32 random sample and batched
 	x, y = preprocess.(data[1]), preprocess.(data[2])
-    x, y = vocab(x), vocab(y)#encode the data
+    x, y = vocab(x), vocab(y) #encode the data
     x, y = todevice(x, y) #move to gpu
-    l = loss(x, y)
-    grad = gradient(()->l, ps)
+    grad = gradient(()->loss(x, y), ps)
     if i % 8 == 0
+        l = loss(x, y)
     	println("loss = $l")
     end
     update!(opt, ps, grad)
