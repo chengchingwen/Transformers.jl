@@ -35,7 +35,7 @@ ZygoteRules = "700de1a5-db45-46bc-99cf-38207098b444"
 
 [compat]
 AbstractTrees = "0.3"
-Adapt = "1, 2.0"
+Adapt = "1, 2.0, 3.0"
 BSON = "0.2"
 BytePairEncoding = "0.1"
 CUDA = "1"
