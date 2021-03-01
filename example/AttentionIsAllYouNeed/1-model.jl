@@ -14,9 +14,10 @@ using Transformers.Basic
 using Random
 Random.seed!(0)
 
+
 include("./0-data.jl")
 
-const vocab = Vocabulary(labels, unksym)
+vocab = Vocabulary(labels, unksym)
 const embed = todevice(Embed(512, length(vocab); scale=inv(sqrt(512))))
 
 const encoder = todevice(Stack(
