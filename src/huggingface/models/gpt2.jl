@@ -381,7 +381,7 @@ end
 
     return (
       last_hidden_state = $current,
-      past_key_value = presents,
+      past_key_values = presents,
       hidden_states = all_hidden_states,
       attentions = all_attentions
     )
@@ -432,7 +432,7 @@ function (self::HGFGPT2LMHeadModel)(input, position_ids, token_type_ids, attenti
               _use_cache)
 end
 
-function (self::HGFGPT2LMHeadModel)(input, position_ids, token_type_ids, past::Tuple, attention_mask,
+function (self::HGFGPT2LMHeadModel)(input, position_ids, token_type_ids, past::Union{Tuple, Nothing}, attention_mask,
                                     _output_attentions::Val,
                                     _output_hidden_states::Val,
                                     _use_cache::Val
@@ -480,7 +480,7 @@ function (self::HGFGPT2LMHeadModel)(input, labels, position_ids, token_type_ids,
 end
 
 function (self::HGFGPT2LMHeadModel)(input, labels, position_ids, token_type_ids,
-                                    past::Tuple, attention_mask,
+                                    past::Union{Tuple, Nothing}, attention_mask,
                                     _output_attentions::Val,
                                     _output_hidden_states::Val,
                                     _use_cache::Val
