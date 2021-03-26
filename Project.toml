@@ -1,7 +1,7 @@
 name = "Transformers"
 uuid = "21ca0261-441d-5938-ace7-c90938fde4d4"
 authors = ["chengchingwen <adgjl5645@hotmail.com>"]
-version = "0.1.7"
+version = "0.1.8"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
@@ -38,7 +38,7 @@ AbstractTrees = "0.3"
 Adapt = "3.2"
 BSON = "0.3"
 BytePairEncoding = "0.1"
-CUDA = "1, 2.6.2"
+CUDA = "2.4, 2.6.2"
 DataDeps = "0.6.5, 0.7"
 DataStructures = "0.17, 0.18"
 Flux = "0.11"
