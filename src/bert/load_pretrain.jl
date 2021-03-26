@@ -11,16 +11,16 @@ function load_bert_pretrain(path::AbstractString, sym = :all)
 
     bson = BSON.parse(path)
 
-    config = BSON.raise_recursive(bson[:config])
+    config = BSON.raise_recursive(bson[:config], Main)
     tokenizer = named2tokenizer(config["filename"])
 
     sym == :tokenizer && return tokenizer
 
-    wordpiece = WordPiece(convert(Vector{String}, BSON.raise_recursive(bson[:vocab])))
+    wordpiece = WordPiece(convert(Vector{String}, BSON.raise_recursive(bson[:vocab], Main)))
 
     sym == :wordpiece && return wordpiece
 
-    weights = BSON.raise_recursive(bson[:weights])
+    weights = BSON.raise_recursive(bson[:weights], Main)
     bert_model = load_bert_from_tfbson(config, weights)
 
     sym == :bert_model && return bert_model
@@ -28,11 +28,11 @@ function load_bert_pretrain(path::AbstractString, sym = :all)
     return bert_model, wordpiece, tokenizer
   elseif isbson(path)
     bson = BSON.parse(path)
-    tokenizer = BSON.raise_recursive(bson[:tokenizer])
+    tokenizer = BSON.raise_recursive(bson[:tokenizer], Main)
     sym == :tokenizer && return tokenizer
-    wordpiece = BSON.raise_recursive(bson[:wordpiece])
+    wordpiece = BSON.raise_recursive(bson[:wordpiece], Main)
     sym == :wordpiece && return wordpiece
-    bert_model = BSON.raise_recursive(bson[:bert_model])
+    bert_model = BSON.raise_recursive(bson[:bert_model], Main)
     sym == :bert_model && return bert_model
     return bert_model, wordpiece, tokenizer
   else

@@ -18,18 +18,18 @@ function load_gpt_pretrain(path::AbstractString, sym = :all; kw...)
     bson = BSON.parse(path)
 
     if sym ∈ (:all, :bpe)
-      bpe = BSON.raise_recursive(bson[:bpe])
+      bpe = BSON.raise_recursive(bson[:bpe], Main)
       sym == :bpe && return bpe
     end
 
-    tokenizer = BSON.raise_recursive(bson[:tokenizer])
+    tokenizer = BSON.raise_recursive(bson[:tokenizer], Main)
     sym == :tokenizer && return tokenizer
 
-    raw_vocab = BSON.raise_recursive(bson[:raw_vocab])
+    raw_vocab = BSON.raise_recursive(bson[:raw_vocab], Main)
     vocab = build_vocab(raw_vocab; kw...)
     sym == :vocab && return vocab
 
-    weights = BSON.raise_recursive(bson[:weights])
+    weights = BSON.raise_recursive(bson[:weights], Main)
     gpt_model = load_gpt_from_npbson(weights, length(vocab))
     sym == :gpt_model && return gpt_model
 
@@ -37,14 +37,14 @@ function load_gpt_pretrain(path::AbstractString, sym = :all; kw...)
   elseif isbson(path)
     bson = BSON.parse(path)
     if sym ∈ (:all, :bpe)
-      bpe = BSON.raise_recursive(bson[:bpe])
+      bpe = BSON.raise_recursive(bson[:bpe], Main)
       sym == :bpe && return bpe
     end
-    tokenizer = BSON.raise_recursive(bson[:tokenizer])
+    tokenizer = BSON.raise_recursive(bson[:tokenizer], Main)
     sym == :tokenizer && return tokenizer
-    vocab = BSON.raise_recursive(bson[:vocab])
+    vocab = BSON.raise_recursive(bson[:vocab], Main)
     sym == :vocab && return vocab
-    gpt_model = BSON.raise_recursive(bson[:gpt_model])
+    gpt_model = BSON.raise_recursive(bson[:gpt_model], Main)
     sym == :gpt_model && return gpt_model
     return gpt_model, bpe, vocab, tokenizer
   else
