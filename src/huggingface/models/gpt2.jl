@@ -97,6 +97,29 @@ function (self::HGFGPT2Attention)(x, past, attention_mask,
   self(query, key, value, attention_mask, _output_attentions, _use_cache)
 end
 
+
+struct ShiftAttentionMask{T}
+  mask::T
+  past_length::Int
+end
+
+function apply_shift_mask(scores, mask)
+    @show size(scores), size(mask.mask), mask.past_length
+    out = copy(scores)
+    @view(out[1:mask.past_length, :, :, :]) .+= mask.mask
+    return out
+end
+
+@adjoint function apply_shift_mask(scores, mask)
+    out = apply_shift_mask
+    return out, Δ -> (Δ, nothing)
+end
+
+function _compute_attention_scores(query, key, attention_mask::ShiftAttentionMask)
+  w_wo_mask = _compute_attention_scores(query, key, nothing)
+  return apply_shift_mask(w_wo_mask, attention_mask)
+end
+
 function _attn(query, key, value, attention_mask)
   w = _compute_attention_scores(query, key, attention_mask)
   w = softmax(w; dims=1)
@@ -112,7 +135,7 @@ function (self::HGFGPT2Attention)(query, key, value, attention_mask,
   if use_cache
     present = (key, value)
   end
-
+    
   a, w = _attn(query, key, value, attention_mask)
   a = _merge_transpose_for_output(a, self.num_attention_heads)
   a = self.c_proj(a)
@@ -252,20 +275,26 @@ end
 
 @functor HGFGPT2Model
 
+@inline get_past_length(past_key_values) = size(past_key_values[1][1], 2)
+@inline get_past_length(::Nothing) = 0
+
 @inline get_word_emb(word_embeddings::FakeTHEmbedding, input_ids::AbstractArray{<:Integer}) = word_embeddings(input_ids)
 @inline get_word_emb(word_embeddings::FakeTHEmbedding, input_embed::AbstractArray{T}) where T = input_embed
 
-@inline get_position_emb(position_embeddings::FakeTHEmbedding, inputs_embeds, ::Nothing) = get_position_emb(position_embeddings, inputs_embeds, _arange(inputs_embeds, size(inputs_embeds)[end-1]))
-@inline get_position_emb(position_embeddings::FakeTHEmbedding, inputs_embeds, position_ids) = position_embeddings(position_ids)
+@inline maybe_past_arange(inputs_embeds, ::Nothing) = _arange(inputs_embeds, size(inputs_embeds)[end-1])
+@inline maybe_past_arange(inputs_embeds, past_key_values) = _arange(inputs_embeds, get_past_length(past_key_values), size(inputs_embeds)[end-1])
+
+@inline get_position_emb(position_embeddings::FakeTHEmbedding, inputs_embeds, ::Nothing, past_key_values) = get_position_emb(position_embeddings, inputs_embeds, maybe_past_arange(inputs_embeds, past_key_values), past_key_values)
+@inline get_position_emb(position_embeddings::FakeTHEmbedding, inputs_embeds, position_ids, past_key_values) = position_embeddings(position_ids)
 
 @inline get_token_type_emb(token_type_embeddings::FakeTHEmbedding, token_type_ids) = token_type_embeddings(token_type_ids)
 
 @inline apply_token_type_emb(token_type_embeddings::FakeTHEmbedding, embeddings, ::Nothing) = embeddings
 @inline apply_token_type_emb(token_type_embeddings::FakeTHEmbedding, embeddings, token_type_ids) = embeddings + get_token_type_emb(token_type_embeddings, token_type_ids)
 
-function (self::HGFGPT2Model)(input, position_ids, token_type_ids)
+function (self::HGFGPT2Model)(input, position_ids, token_type_ids, past_key_values)
   inputs_embeds = get_word_emb(self.wte, input)
-  position_embeds = get_position_emb(self.wpe, inputs_embeds, position_ids)
+  position_embeds = get_position_emb(self.wpe, inputs_embeds, position_ids, past_key_values)
   embeddings = inputs_embeds .+ position_embeds
   embeddings = apply_token_type_emb(self.wte, embeddings, token_type_ids)
   return embeddings
@@ -373,10 +402,15 @@ end
   else
     push!(body, :(presents = nothing))
   end
-
+    
+  mask_expr = [:(attention_mask = create_causal_attention_mask(hidden_state, attention_mask))]
+  if !(past <: Nothing)
+    push!(mask_expr, :(attention_mask = ShiftAttentionMask(attention_mask, get_past_length(past))))
+  end
+    
   return quote
-    hidden_state = self(input, position_ids, token_type_ids)
-    attention_mask = create_causal_attention_mask(hidden_state, attention_mask)
+    hidden_state = self(input, position_ids, token_type_ids, past)
+    $(mask_expr...)
     $(body...)
 
     return (

@@ -65,6 +65,7 @@ function HGFBertEmbeddings(T::Type{HGFBertConfig}, config)
 end
 
 _arange(x, len) = cumsum(fill!(similar(x, Int, len), one(Int)))
+_arange(x, shift, len) = _arange(x, len) .+ Int(shift)
 
 Flux.@nograd _arange
 
