@@ -104,9 +104,8 @@ struct ShiftAttentionMask{T}
 end
 
 function apply_shift_mask(scores, mask)
-    @show size(scores), size(mask.mask), mask.past_length
     out = copy(scores)
-    @view(out[1:mask.past_length, :, :, :]) .+= mask.mask
+    @view(out[1:(end-mask.past_length), :, :, :]) .+= mask.mask
     return out
 end
 
