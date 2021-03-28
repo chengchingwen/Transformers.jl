@@ -105,7 +105,7 @@ end
 
 function apply_shift_mask(scores, mask)
     out = copy(scores)
-    @view(out[1:(end-mask.past_length), :, :, :]) .+= mask.mask
+    @view(out[(mask.past_length+1):end, :, :, :]) .+= mask.mask
     return out
 end
 
