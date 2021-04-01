@@ -99,6 +99,7 @@ function load_model!(model::HGFPreTrainedModel, state)
       basestate = state[basekey]
       load_state!(model, basestate)
     else # load_from_base
+      @warn "load from base: prediction layer not found in state: initialized."
       model_to_load = basemodel(model)
       load_state!(model_to_load, state)
     end

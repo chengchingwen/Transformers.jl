@@ -537,7 +537,7 @@ end
 
 function HGFGPT2LMHeadModel(config::HGFGPT2Config)
   transformer = HGFGPT2Model(config)
-  lm_head = FakeTHLinear(config, config.n_embd, config.vocab_size; bias=false)
+  lm_head = FakeTHLinear(Transpose(transformer.wte.weight), nothing)
   return HGFGPT2LMHeadModel(transformer, lm_head)
 end
 
@@ -674,7 +674,7 @@ end
 
 function HGFGPT2DoubleHeadsModel(config::HGFGPT2Config)
   transformer = HGFGPT2Model(config)
-  lm_head = FakeTHLinear(config, config.n_embd, config.vocab_size; bias=false)
+  lm_head = FakeTHLinear(Transpose(transformer.wte.weight), nothing
   multiple_choice_head = FakeHGFSequenceSummary(config)
   return HGFGPT2DoubleHeadsModel(transformer, lm_head, multiple_choice_head)
 end
