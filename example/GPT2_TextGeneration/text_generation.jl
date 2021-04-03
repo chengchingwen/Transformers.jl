@@ -68,11 +68,11 @@ function decode_text(text_token_ids)
   return text
 end
 
-function generate()
-  text_token_ids = generate_text(context = "Fruits are very good for "; max_length=100)
+function generate(prompt, max_length)
+  text_token_ids = generate_text(context = prompt; max_length=max_length)
   gen_text = decode_text(text_token_ids)
   print("\n\nGenerated Text: ")
-  print(gen_text)
+  println(gen_text)
 end
 
-generate()
+generate( "Fruits are very good for ", 100)
