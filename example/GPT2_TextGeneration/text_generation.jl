@@ -9,12 +9,12 @@ using Transformers.HuggingFace
 isdir("model_vocab")||mkdir("model_vocab")
 
 # This is a temporary fix, will be updated once Tokenizer API is ready
-HTTP.download("https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-merges.txt", "./model_vocab/bpe.out")
-HTTP.download("https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-vocab.json", "./model_vocab/vocab.json")
+isfile("model_vocab/bpe.out") || HTTP.download("https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-merges.txt", "./model_vocab/bpe.out")
+isfile("model_vocab/vocab.json") || HTTP.download("https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-vocab.json", "./model_vocab/vocab.json")
 
 encoder = JSON.parsefile("./model_vocab/vocab.json")
 decoder = map(first, sort!(collect(encoder), by=(x)->x.second))
-bpe = Bpe("./model_vocab/bpe.out";sepsym="", endsym="")
+bpe = Bpe("./model_vocab/bpe.out"; sepsym="", endsym="")
 
 model = hgf"gpt2:lmheadmodel"
 
@@ -40,7 +40,7 @@ function top_k_sample(probs; k=10)
   return index
 end
 
-function generate_text(;context="", max_length = 50)
+function generate_text(;context="", max_length=50)
   input_= encode_text(context)
   out_tokens = input_
   for i in 1:max_length
@@ -68,7 +68,11 @@ function decode_text(text_token_ids)
   return text
 end
 
-text_token_ids = generate_text(context = "Fruits are very good for "; max_length = 100)
-gen_text = decode_text(text_token_ids)
-print("\n\nGenerated Text: ")
-print(gen_text)
+function generate()
+  text_token_ids = generate_text(context = "Fruits are very good for "; max_length=100)
+  gen_text = decode_text(text_token_ids)
+  print("\n\nGenerated Text: ")
+  print(gen_text)
+end
+
+generate()
