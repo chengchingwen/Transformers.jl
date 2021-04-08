@@ -1,4 +1,5 @@
 using BytePairEncoding, JSON, HTTP
+using Flux
 using StatsBase
 using Transformers
 using Transformers.Basic
@@ -12,25 +13,19 @@ isdir("model_vocab")||mkdir("model_vocab")
 isfile("model_vocab/bpe.out") || HTTP.download("https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-merges.txt", "./model_vocab/bpe.out")
 isfile("model_vocab/vocab.json") || HTTP.download("https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-vocab.json", "./model_vocab/vocab.json")
 
-encoder = JSON.parsefile("./model_vocab/vocab.json")
-decoder = map(first, sort!(collect(encoder), by=(x)->x.second))
-bpe = Bpe("./model_vocab/bpe.out"; sepsym="", endsym="")
+labels = map(x->x[1], sort!(collect(pairs(JSON.parsefile("./model_vocab/vocab.json"))), by=x->x[2]))
+encoder = Vocabulary(labels, "<|endoftext|>")
+bpe = ByteLevelBPE("./model_vocab/bpe.out")
 
 model = hgf"gpt2:lmheadmodel"
 
 function encode_text(text)
-  text_ = replace(text, " "=>"Ġ")
-  xs = [bpe(text_)...]
-  xs[end] = replace(xs[end], "</w>"=>"")
-  tokens = []
-  for i in 1:length(xs)
-    push!(tokens, encoder[xs[i]])
-  end
-  return tokens .+ 1
+  xs = ["<|endoftext|>"; bpe(text)]
+  return encoder(xs)
 end
 
 function temp_softmax(logits; temperature=1.2)
-  return (exp.(logits ./temperature)) / sum(exp.(logits./temperature))
+  return softmax(logits ./ temperature)
 end
 
 function top_k_sample(probs; k=10)
@@ -41,30 +36,23 @@ function top_k_sample(probs; k=10)
 end
 
 function generate_text(;context="", max_length=50)
-  input_= encode_text(context)
-  out_tokens = input_
+  input_ = encode_text(context)
   for i in 1:max_length
-    input_ids = reshape(Array{Int64}(out_tokens), (:, 1))
-    attention_mask = reshape(Array{Int64}(ones(length(input_ids))), (:,1))
-    outputs = model(input_ids; attention_mask=attention_mask,
-                              output_attentions=false,
-                              output_hidden_states=false,
-                              use_cache=false);
-    logits = outputs.logits[:, end, 1]
+    input_ids = reshape(@view(input_[:]), :, 1)
+    outputs = model(input_ids; output_attentions=false,
+                    output_hidden_states=false,
+                    use_cache=false)
+    logits = @view outputs.logits[:, end, 1]
     probs = temp_softmax(logits)
     new_token = top_k_sample(probs)[1]
-    push!(out_tokens, new_token)
+    push!(input_, new_token)
   end
-  return out_tokens
+  return input_
 end
 
 function decode_text(text_token_ids)
-  tokens = text_token_ids  # ignore the first start token_indices
-  text_list = []
-  for i in 1:length(tokens)
-    push!(text_list, decoder[tokens[i]])
-  end
-  text = replace(join(text_list), "Ġ"=> " ")
+  text_list = decode(encoder, text_token_ids)
+  text = BytePairEncoding.UnMap(bpe.codemap)(join(text_list))
   return text
 end
 
