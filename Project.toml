@@ -1,7 +1,7 @@
 name = "Transformers"
 uuid = "21ca0261-441d-5938-ace7-c90938fde4d4"
 authors = ["chengchingwen <adgjl5645@hotmail.com>"]
-version = "0.1.11"
+version = "0.1.12"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
