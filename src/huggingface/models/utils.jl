@@ -40,8 +40,8 @@ function ∇getindex!(xs, ys, onehots::OneHotArray{K}) where K
   return xs
 end
 
-using CUDA
-import CUDA: CuArray, CuDeviceArray, @cuda
+import CUDA
+import CUDA: CuVector, CuArray, CuDeviceArray, @cuda
 
 function Base.getindex(xs::CuArray{T}, onehots::OneHotArray{K, N, N2, <:CuArray{OneHot{K}}}) where {T, K, N, N2}
   @assert size(xs, 1) == K
