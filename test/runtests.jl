@@ -12,6 +12,7 @@ const tests = [
     "embed",
     "basic",
     "gpt",
+    "gpt2",
     "bert",
 ]
 
