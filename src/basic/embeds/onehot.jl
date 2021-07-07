@@ -112,6 +112,7 @@ end
 OneHotArray(onehots::A) where {K, A<:AbstractArray{OneHot{K}}} = OneHotArray{K, ndims(onehots), ndims(onehots)+1, A}(onehots)
 OneHotArray{K}(indices::A) where {K, A<:AbstractArray{<:Integer}} = OneHotArray(K, indices)
 OneHotArray(k, xs) = OneHotArray(OneHot{k}.(xs))
+OneHotArray(k, o::OneHot) = OneHotArray([o])
 
 onehotsize(::OneHotArray{K}) where K = Int(K)
 

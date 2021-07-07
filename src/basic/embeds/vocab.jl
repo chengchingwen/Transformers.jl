@@ -78,10 +78,23 @@ function decode(vocab::Vocabulary{T}, is::AbstractMatrix{Int}) where T
     tokens
 end
 
-Base.show(io::IO, v::Vocabulary) = print(io, "Vocabulary($(v.siz), unk=$(v.unk))")
+Base.eltype(v::Vocabulary{T}) where T = T
+Base.show(io::IO, v::Vocabulary) = print(io, "Vocabulary{$(eltype(v))}($(v.siz), unk=$(v.unk))")
 
-Flux.onehot(v::Vocabulary{T}, x::Container{<:Union{T, Container{T}}}) where T = Flux.onehot(v, v(x))
-Flux.onehot(v::Vocabulary, x::AbstractArray{Int}) = OneHotArray(length(v), x)
+function Flux.onehot(v::Vocabulary, x)
+  vt = eltype(v)
+  xt = if typeof(x) <: Container || typeof(x) <: AbstractArray{Int}
+    eltype(x)
+  else
+    typeof(x)
+  end
+  vsize = length(v)
+  if xt === Int && vt !== Int
+    return OneHotArray(vsize, x)
+  else
+    return OneHotArray(vsize, v(x))
+  end
+end
 
 Flux.onecold(v::Vocabulary{T}, p) where T = decode(v, _onecold(p))
 

@@ -36,4 +36,8 @@
     @test onecold(v, onehot(v, multi_after_enc)) == multi(before_unk_enc,5)
     @test onecold(v, onehot(v, before_enc)) == before_unk_enc
     @test onecold(v, onehot(v, after_enc)) == before_unk_enc
+
+    # chengchingwen/Transformers.jl#64
+    va = Vocabulary(['a', 2, 'c'], 0)
+    @test Flux.onehot(va, ['a']).onehots[1] == OneHot{4}(2)
 end
