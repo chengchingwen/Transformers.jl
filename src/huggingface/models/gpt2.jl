@@ -110,7 +110,7 @@ function apply_shift_mask(scores, mask)
 end
 
 @adjoint function apply_shift_mask(scores, mask)
-    out = apply_shift_mask
+    out = apply_shift_mask(scores, mask)
     return out, Δ -> (Δ, nothing)
 end
 
