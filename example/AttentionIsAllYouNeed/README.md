@@ -1,6 +1,6 @@
 # Attention Is All You Need
 
-This is an implementation of the seminal paper [Attention is all you need [annotated]](https://nlp.seas.harvard.edu/2018/04/03/attention.html)
+This is an implementation of the seminal paper [Attention is all you need](https://arxiv.org/abs/1706.03762)
 that introduced the Transformer architecture.
 The architecture is explained [here](https://medium.com/data-science-in-your-pocket/attention-is-all-you-need-understanding-with-example-c8d074c37767).
 
