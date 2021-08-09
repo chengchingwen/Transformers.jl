@@ -5,7 +5,7 @@ cola_init() = register(DataDep(
     """
     The Corpus of Linguistic Acceptability (CoLA) task (GLUE version)
     """,
-    "https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FCoLA.zip?alt=media&token=46d5e637-3411-4188-bc44-5809b5bfb5f4",
+    "https://dl.fbaipublicfiles.com/glue/data/CoLA.zip",
     "f212fcd832b8f7b435fb991f101abf89f96b933ab400603bf198960dfc32cbff";
     post_fetch_method = fn -> begin
       mv(fn, "CoLA.zip")

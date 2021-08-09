@@ -5,7 +5,7 @@ sst_init() = register(DataDep(
     """
     The Stanford Sentiment Treebank (SST) task (GLUE version)
     """,
-    "https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FSST-2.zip?alt=media&token=aabc5f6b-e466-44a2-b9b4-cf6337f84ac8",
+    "https://dl.fbaipublicfiles.com/glue/data/SST-2.zip",
     "d67e16fb55739c1b32cdce9877596db1c127dc322d93c082281f64057c16deaa";
     post_fetch_method = fn -> begin
       mv(fn, "SST-2.zip")

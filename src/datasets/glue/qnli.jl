@@ -5,7 +5,7 @@ qnli_init() = register(DataDep(
     """
     Question NLI (SQuAD2.0 / QNLI) task (GLUE version)
     """,
-    "https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FQNLIv2.zip?alt=media&token=6fdcf570-0fc5-4631-8456-9505272d1601",
+    "https://dl.fbaipublicfiles.com/glue/data/QNLIv2.zip",
     "e634e78627a29adaecd4f955359b22bf5e70f2cbd93b493f2d624138a0c0e5f5";
     post_fetch_method = fn -> begin
       mv(fn, "QNLIv2.zip")

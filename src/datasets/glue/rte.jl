@@ -5,7 +5,7 @@ rte_init() = register(DataDep(
     """
     Recognizing Textual Entailment (RTE) task (GLUE version)
     """,
-    "https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FRTE.zip?alt=media&token=5efa7e85-a0bb-4f19-8ea2-9e1840f077fb",
+    "https://dl.fbaipublicfiles.com/glue/data/RTE.zip",
     "6bf86de103ecd335f3441bd43574d23fef87ecc695977a63b82d5efb206556ee";
     post_fetch_method = fn -> begin
       mv(fn, "RTE.zip")

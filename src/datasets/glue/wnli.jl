@@ -5,7 +5,7 @@ wnli_init() = register(DataDep(
     """
     Winograd NLI (WNLI) task (GLUE version)
     """,
-    "https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FWNLI.zip?alt=media&token=068ad0a0-ded7-4bd7-99a5-5e00222e0faf",
+    "https://dl.fbaipublicfiles.com/glue/data/WNLI.zip",
     "ae0e8e4d16f4d46d4a0a566ec7ecceccfd3fbfaa4a7a4b4e02848c0f2561ac46";
     post_fetch_method = fn -> begin
       mv(fn, "WNLI.zip")

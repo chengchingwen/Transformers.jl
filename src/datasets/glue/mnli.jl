@@ -5,7 +5,7 @@ mnli_init() = register(DataDep(
     """
      The Multi-Genre Natural Language Inference (MNLI) task (GLUE version)
     """,
-    "https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FMNLI.zip?alt=media&token=50329ea1-e339-40e2-809c-10c40afff3ce",
+    "https://dl.fbaipublicfiles.com/glue/data/MNLI.zip",
     "e7c1d896d26ed6caf700110645df426cc2d8ebf02a5ab743d5a5c68ac1c83633";
     post_fetch_method = fn -> begin
       mv(fn, "MNLI.zip")
