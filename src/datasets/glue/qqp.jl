@@ -5,11 +5,11 @@ qqp_init() = register(DataDep(
     """
     Quora Question Pairs (QQP) task (GLUE version)
     """,
-    "https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FQQP.zip?alt=media&token=700c6acf-160d-4d89-81d1-de4191d02cb5",
-    "67cb8f5fe66c90a0bc1bf5792e3924f63008b064ab7a473736c919d20bb140ad";
+    "https://dl.fbaipublicfiles.com/glue/data/QQP-clean.zip",
+    "40e7c862c04eb26ee04b67fd900e76c45c6ba8e6d8fab4f8f1f8072a1a3fbae0";
     post_fetch_method = fn -> begin
-      mv(fn, "QQP.zip")
-      DataDeps.unpack("QQP.zip")
+      mv(fn, "QQP-clean.zip")
+      DataDeps.unpack("QQP-clean.zip")
       innerdir = "QQP"
       innerfiles = readdir(innerdir)
       mv.(joinpath.(innerdir, innerfiles), innerfiles)

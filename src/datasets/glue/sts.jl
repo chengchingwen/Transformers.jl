@@ -5,7 +5,7 @@ sts_init() = register(DataDep(
     """
      The Semantic Textual Similarity Benchmark (STS) task (GLUE version)
     """,
-    "https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FSTS-B.zip?alt=media&token=bddb94a7-8706-4e0d-a694-1109e12273b5",
+    "https://dl.fbaipublicfiles.com/glue/data/STS-B.zip",
     "e60a6393de5a8b5b9bac5020a1554b54e3691f9d600b775bd131e613ac179c85";
     post_fetch_method = fn -> begin
       mv(fn, "STS-B.zip")
