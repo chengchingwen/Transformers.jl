@@ -21,7 +21,7 @@ function Base.getindex(xs::AbstractArray{T}, onehots::OneHotArray{K}) where {T, 
   return ys
 end
 
-using ZygoteRules: @adjoint
+using Flux: @adjoint
 
 @adjoint function Base.getindex(xs::AbstractArray, onehots::OneHotArray{K}) where K
   xs[onehots], Δ -> begin

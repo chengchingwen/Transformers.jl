@@ -1,6 +1,6 @@
 include("./batched_gemm.jl")
 
-using ZygoteRules: @adjoint
+using Flux: @adjoint
 
 function batchedmul(a::Abstract3DTensor{T}, b::Abstract3DTensor{T};
                     transA::Bool = false, transB::Bool = false) where {T}

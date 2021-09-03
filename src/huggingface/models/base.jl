@@ -1,7 +1,7 @@
 using Statistics
 using ..Transformers.Basic: gather
 
-using ZygoteRules: @adjoint, pullback
+using Flux: @adjoint, pullback
 
 using AbstractTrees
 import AbstractTrees: children

@@ -221,11 +221,17 @@ adapt_structure(T, oa::OneHotArray) = OneHotArray(adapt(T, oa.onehots))
 # AD
 using Flux
 Flux.@nograd OneHotArray
+Flux.@nograd onehot2indices
+Flux.@nograd indices2onehot
+Flux.@nograd tofloat
 
-using ZygoteRules: @adjoint, AContext, pullback
-import ZygoteRules: _pullback
+using ChainRulesCore
 
-import Base: *
-*(A::AbstractMatrix{T}, b::OneHotArray{N}) where {T,N} = gather(A, b)
+function ChainRulesCore.rrule(config::RuleConfig, ::typeof(*), A::AbstractMatrix{T}, b::OneHotArray{N}) where {T,N}
+    y, back = rrule_via_ad(config, gather, A, b)
+    return y, back
+end
 
-_pullback(cx::AContext, ::typeof(*), A::AbstractMatrix{T}, b::OneHotArray{N}) where {T, N} = _pullback(cx, gather, A, b)
+Base.:(*)(A::AbstractMatrix{T}, b::OneHotArray{N}) where {T,N} = gather(A, b)
+
+# _pullback(cx::AContext, ::typeof(*), A::AbstractMatrix{T}, b::OneHotArray{N}) where {T, N} = _pullback(cx, gather, A, b)
