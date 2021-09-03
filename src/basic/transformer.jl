@@ -78,8 +78,8 @@ function (t::Transformer)(x::A, mask=nothing) where {T, N, A<:AbstractArray{T, N
 end
 
 function Base.show(io::IO, t::Transformer)
-    hs = div(size(t.mh.iqproj.W)[1], t.mh.head)
-    h, ps = size(t.pw.dout.W)
+    hs = div(size(t.mh.iqproj.weight)[1], t.mh.head)
+    h, ps = size(t.pw.dout.weight)
 
     print(io, "Transformer(")
     print(io, "head=$(t.mh.head), ")
@@ -152,8 +152,8 @@ function (td::TransformerDecoder)(x::AbstractArray{T,N}, m, mask=nothing) where 
 end
 
 function Base.show(io::IO, td::TransformerDecoder)
-    hs = div(size(td.imh.iqproj.W)[1], td.imh.head)
-    h, ps = size(td.pw.dout.W)
+    hs = div(size(td.imh.iqproj.weight)[1], td.imh.head)
+    h, ps = size(td.pw.dout.weight)
 
     print(io, "TransformerDecoder(")
     print(io, "head=$(td.mh.head), ")

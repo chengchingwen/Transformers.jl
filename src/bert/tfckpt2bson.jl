@@ -223,33 +223,33 @@ function load_bert_from_tfbson(config, weights)
         for k ∈ li_weights
             if occursin("layer_$(i-1)/attention", k)
                 if occursin("self/key/kernel", k)
-                    loadparams!(bert[i].mh.ikproj.W, [weights[k]])
+                    loadparams!(bert[i].mh.ikproj.weight, [weights[k]])
                 elseif occursin("self/key/bias", k)
-                    loadparams!(bert[i].mh.ikproj.b, [weights[k]])
+                    loadparams!(bert[i].mh.ikproj.bias, [weights[k]])
                 elseif occursin("self/query/kernel", k)
-                    loadparams!(bert[i].mh.iqproj.W, [weights[k]])
+                    loadparams!(bert[i].mh.iqproj.weight, [weights[k]])
                 elseif occursin("self/query/bias", k)
-                    loadparams!(bert[i].mh.iqproj.b, [weights[k]])
+                    loadparams!(bert[i].mh.iqproj.bias, [weights[k]])
                 elseif occursin("self/value/kernel", k)
-                    loadparams!(bert[i].mh.ivproj.W, [weights[k]])
+                    loadparams!(bert[i].mh.ivproj.weight, [weights[k]])
                 elseif occursin("self/value/bias", k)
-                    loadparams!(bert[i].mh.ivproj.b, [weights[k]])
+                    loadparams!(bert[i].mh.ivproj.bias, [weights[k]])
                 elseif occursin("output/LayerNorm/gamma", k)
                     loadparams!(bert[i].mhn.diag.α, [weights[k]])
                 elseif occursin("output/LayerNorm/beta", k)
                     loadparams!(bert[i].mhn.diag.β, [weights[k]])
                 elseif occursin("output/dense/kernel", k)
-                    loadparams!(bert[i].mh.oproj.W, [weights[k]])
+                    loadparams!(bert[i].mh.oproj.weight, [weights[k]])
                 elseif occursin("output/dense/bias", k)
-                    loadparams!(bert[i].mh.oproj.b, [weights[k]])
+                    loadparams!(bert[i].mh.oproj.bias, [weights[k]])
                 else
                     @warn "unknown variable: $k"
                 end
             elseif occursin("layer_$(i-1)/intermediate", k)
                 if occursin("kernel", k)
-                    loadparams!(bert[i].pw.din.W, [weights[k]])
+                    loadparams!(bert[i].pw.din.weight, [weights[k]])
                 elseif occursin("bias", k)
-                    loadparams!(bert[i].pw.din.b, [weights[k]])
+                    loadparams!(bert[i].pw.din.bias, [weights[k]])
                 else
                     @warn "unknown variable: $k"
                 end
@@ -259,9 +259,9 @@ function load_bert_from_tfbson(config, weights)
                 elseif occursin("output/LayerNorm/beta", k)
                     loadparams!(bert[i].pwn.diag.β, [weights[k]])
                 elseif occursin("output/dense/kernel", k)
-                    loadparams!(bert[i].pw.dout.W, [weights[k]])
+                    loadparams!(bert[i].pw.dout.weight, [weights[k]])
                 elseif occursin("output/dense/bias", k)
-                    loadparams!(bert[i].pw.dout.b, [weights[k]])
+                    loadparams!(bert[i].pw.dout.bias, [weights[k]])
                 else
                     @warn "unknown variable: $k"
                 end
@@ -293,9 +293,9 @@ function load_bert_from_tfbson(config, weights)
 
     for k ∈ pooler_weights
         if occursin("dense/kernel", k)
-            loadparams!(pooler.W, [weights[k]])
+            loadparams!(pooler.weight, [weights[k]])
         elseif occursin("dense/bias", k)
-            loadparams!(pooler.b, [weights[k]])
+            loadparams!(pooler.bias, [weights[k]])
         else
             @warn "unknown variable: $k"
         end
@@ -310,9 +310,9 @@ function load_bert_from_tfbson(config, weights)
         if occursin("predictions/output_bias", k)
             loadparams!(masklm.output_bias, [weights[k]])
         elseif occursin("predictions/transform/dense/kernel", k)
-            loadparams!(masklm.transform[1].W, [weights[k]])
+            loadparams!(masklm.transform[1].weight, [weights[k]])
         elseif occursin("predictions/transform/dense/bias", k)
-            loadparams!(masklm.transform[1].b, [weights[k]])
+            loadparams!(masklm.transform[1].bias, [weights[k]])
         elseif occursin("predictions/transform/LayerNorm/gamma", k)
             loadparams!(masklm.transform[2].diag.α, [weights[k]])
         elseif occursin("predictions/transform/LayerNorm/beta", k)
@@ -328,9 +328,9 @@ function load_bert_from_tfbson(config, weights)
 
     for k ∈ nextsent_weights
         if occursin("seq_relationship/output_weights", k)
-            loadparams!(nextsentence[1].W, [weights[k]])
+            loadparams!(nextsentence[1].weight, [weights[k]])
         elseif occursin("seq_relationship/output_bias", k)
-            loadparams!(nextsentence[1].b, [weights[k]])
+            loadparams!(nextsentence[1].bias, [weights[k]])
         else
             @warn "unknown variable: $k"
         end

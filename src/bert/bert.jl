@@ -92,8 +92,8 @@ end
 
 
 function Base.show(io::IO, bert::Bert)
-  hs = div(size(bert.ts[1].mh.iqproj.W)[1], bert.ts[1].mh.head)
-  h, ps = size(bert.ts[1].pw.dout.W)
+  hs = div(size(bert.ts[1].mh.iqproj.weight)[1], bert.ts[1].mh.head)
+  h, ps = size(bert.ts[1].pw.dout.weight)
 
   print(io, "Bert(")
   print(io, "layers=$(length(bert.ts)), ")

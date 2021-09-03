@@ -54,9 +54,9 @@ MultiheadAttention(head::Int,
 
 
 function Base.show(io::IO, mh::MultiheadAttention)
-    hs = div(size(mh.iqproj.W)[1], mh.head)
-    is = size(mh.iqproj.W)[end]
-    os = size(mh.oproj.W)[1]
+    hs = div(size(mh.iqproj.weight)[1], mh.head)
+    is = size(mh.iqproj.weight)[end]
+    os = size(mh.oproj.weight)[1]
 
     print(io, "MultiheadAttention(")
     print(io, "head=$(mh.head), ")

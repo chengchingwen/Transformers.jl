@@ -126,12 +126,12 @@ function load_gpt_from_npbson(weights, vocab_size; n_special = 3)
 
 
     # pm_name = (:pe, :embed, (
-    #     (:mh.iqproj.W, :mh.ikproj.W, :mh.ivproj.W),
-    #     (:mh.iqproj.b, :mh.ikproj.b, :mh.ivproj.b),
-    #     :mh.oproj.W, :mh.oproj.b,
+    #     (:mh.iqproj.weight, :mh.ikproj.weight, :mh.ivproj.weight),
+    #     (:mh.iqproj.bias, :mh.ikproj.bias, :mh.ivproj.b),
+    #     :mh.oproj.weight, :mh.oproj.bias,
     #     :LN1.α, :LN1.β,
-    #     :pw.din.W, :pw.din.b,
-    #     :pw.dout.W, :pw.dout.b,
+    #     :pw.din.weight, :pw.din.bias,
+    #     :pw.dout.weight, :pw.dout.bias,
     #     :LN2.α, :LN2.β),
     #            :xN,
     #            )

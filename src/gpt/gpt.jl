@@ -82,8 +82,8 @@ function lmloss(embed::Embed{T}, et, t::AbstractArray{T, N}, mask) where {T,N}
 end
 
 function Base.show(io::IO, gpt::Gpt)
-    hs = div(size(gpt.ts[1].mh.iqproj.W)[1], gpt.ts[1].mh.head)
-    h, ps = size(gpt.ts[1].pw.dout.W)
+    hs = div(size(gpt.ts[1].mh.iqproj.weight)[1], gpt.ts[1].mh.head)
+    h, ps = size(gpt.ts[1].pw.dout.weight)
 
     print(io, "Gpt(")
     print(io, "layers=$(length(gpt.ts)), ")
