@@ -1,5 +1,6 @@
 @testset "Vocabulary" begin
     using Flux: onehot, onecold
+    using Transformers.Basic: OneHot
     multi(x, n) = collect(Iterators.repeated(x, n))
 
     v = Vocabulary(["a", "b", "c", "d", "e"], "?")

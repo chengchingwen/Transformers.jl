@@ -10,4 +10,3 @@ togpudevice(x::AbstractArray{<:Union{Int, <: NTuple{N, Int} where N}}) = CUDA.Cu
 include("./statistic.jl")
 include("./batch_gemm_gpu.jl")
 include("./batch_tril_gpu.jl")
-include("./onehot_gpu.jl")
