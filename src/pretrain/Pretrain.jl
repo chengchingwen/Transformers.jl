@@ -6,10 +6,10 @@ using Flux
 using BSON
 using DataDeps
 using ZipFile
+using Fetch
 
 import ..Transformers
 using ..Basic
-using ..Datasets: download_gdrive
 
 export @pretrain_str, load_pretrain, pretrains
 

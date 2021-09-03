@@ -17,7 +17,7 @@ subword = "bpe"
 name = "OpenAIftlm"
 items = ["gpt_model", "bpe", "vocab", "tokenizer"]
 url = "https://docs.google.com/uc?export=download&id=1jZ4wSrR7rGXprKz1a3O8PpEQ2o-nnMEA"
-checksum = "e372ab1f42fff84efc6e97d30d0aadd823706e9b6d4084a8c474ba68c494e22c"
+checksum = "6fadd9231a4032615120eb9f726bce3f1656bd489f476af6f9292a399dbd85b2"
 
 #=================== BERT
 [bert]

@@ -37,6 +37,7 @@ end
   using Transformers.Pretrain
   using DataDeps
   using BytePairEncoding
+  using WordTokenizers
   ENV["DATADEPS_ALWAYS_ACCEPT"] = true
   ENV["DATADEPS_NO_STANDARD_LOAD_PATH"] = true
   ENV["DATADEPS_PROGRESS_UPDATE_PERIOD"] = "Inf"

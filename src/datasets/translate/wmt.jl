@@ -1,9 +1,10 @@
 module WMT
+using Fetch
 using DataDeps
 using InternedStrings
 using BytePairEncoding
 
-using ..Datasets: download_gdrive, Dataset
+using ..Datasets: Dataset
 import ..Datasets: testfile, trainfile, get_vocab
 
 export GoogleWMT

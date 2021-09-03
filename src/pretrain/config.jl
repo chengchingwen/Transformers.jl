@@ -58,7 +58,7 @@ function register_config(configs)
         depdesc = join([mt_desc, summary, model_desc], "\n\n")
         url = model_detail["url"]
         checksum = model_detail["checksum"]
-        dep = DataDep(depname, depdesc, url, checksum; fetch_method=download_gdrive)
+        dep = DataDep(depname, depdesc, url, checksum; fetch_method=gdownload)
         DataDeps.register(dep)
       end
     end
