@@ -58,10 +58,6 @@ togpudevice(x...) = error("CUDA not functional")
 include("./fix/batchedmul.jl")
 include("./fix/batched_tril.jl")
 
-#scatter/gather with atomic ops
-include("./fix/atomic.jl")
-include("./fix/scatter.jl")
-
 include("./basic/Basic.jl")
 include("./stacks/Stacks.jl")
 include("./datasets/Datasets.jl")
