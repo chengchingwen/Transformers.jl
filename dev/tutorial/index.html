@@ -6,41 +6,41 @@ cos(\frac{pos}{10^{4k/d_k}}), &amp; \text{if }k \text{ is odd}
 \end{cases}\]</p><p>where <span>$pos$</span> is the locational information that tells you the given word is the <span>$pos$</span>-th word, and <span>$k$</span> is the <span>$k$</span>-th dimension of the input vector. <span>$d\_k$</span> is the total length of the word/positional embedding. So the new embedding will be computed as:</p><p class="math-container">\[Embedding_k(word) = WordEmbedding_k(word) + PE(pos\_of\_word, k)\]</p><h2 id="Transformers.jl"><a class="docs-heading-anchor" href="#Transformers.jl">Transformers.jl</a><a id="Transformers.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Transformers.jl" title="Permalink"></a></h2><p>Now we know how the transformer model looks like, let&#39;s take a look at the Transformers.jl. The package is build on top of a famous deep learning framework in Julia, <a href="https://github.com/FluxML/Flux.jl/">Flux.jl</a>.</p><h3 id="Example"><a class="docs-heading-anchor" href="#Example">Example</a><a id="Example-1"></a><a class="docs-heading-anchor-permalink" href="#Example" title="Permalink"></a></h3><p>To best illustrate the usage of Transformers.jl, we will start with building a two layer Transformer model on a sequence copy task. Before we start, we need to install all the package we need:</p><pre><code class="language-julia hljs">using Pkg
 Pkg.add(&quot;CUDA&quot;)
 Pkg.add(&quot;Flux&quot;)
-Pkg.add(&quot;Transformers&quot;)</code></pre><p>We use <a href="https://github.com/JuliaGPU/CUDA.jl">CUDA.jl</a> for the GPU support. </p><pre><code class="language-julia hljs">using Flux
+Pkg.add(&quot;Transformers&quot;)</code></pre><p>We use <a href="https://github.com/JuliaGPU/CUDA.jl">CUDA.jl</a> for the GPU support.</p><pre><code class="language-julia hljs">using Flux
 using CUDA
 using Transformers
 using Transformers.Basic #for loading the positional embedding
 
-enable_gpu(true) # make `todevice` work on gpu</code></pre><h3 id="Copy-task"><a class="docs-heading-anchor" href="#Copy-task">Copy task</a><a id="Copy-task-1"></a><a class="docs-heading-anchor-permalink" href="#Copy-task" title="Permalink"></a></h3><p>The copy task is a toy test case of a sequence transduction problem that simply return the same sequence as the output. Here we define the input as a random sequence with number from 1~10 and length 10. we will also need a start and end symbol to indicate where is the begin and end of the sequence. We can use <code>Transformers.Basic.Vocabulary</code> to turn the input to corresponding index.</p><pre><code class="language-julia hljs">labels = collect(1:10)
-startsym = 11
-endsym = 12
-unksym = 0
+enable_gpu(true) # make `todevice` work on gpu</code></pre><h3 id="Copy-task"><a class="docs-heading-anchor" href="#Copy-task">Copy task</a><a id="Copy-task-1"></a><a class="docs-heading-anchor-permalink" href="#Copy-task" title="Permalink"></a></h3><p>The copy task is a toy test case of a sequence transduction problem that simply return the same sequence as the output. Here we define the input as a random sequence with number from 1~10 and length 10. we will also need a start and end symbol to indicate where is the begin and end of the sequence. We can use <code>Transformers.Basic.Vocabulary</code> to turn the input to corresponding index.</p><pre><code class="language-julia hljs">labels = map(string, 1:10)
+startsym = &quot;11&quot;
+endsym = &quot;12&quot;
+unksym = &quot;0&quot;
 labels = [unksym, startsym, endsym, labels...]
 vocab = Vocabulary(labels, unksym)</code></pre><pre><code class="language-julia hljs">#function for generate training datas
-sample_data() = (d = rand(1:10, 10); (d,d))
+sample_data() = (d = map(string, rand(1:10, 10)); (d,d))
 #function for adding start &amp; end symbol
 preprocess(x) = [startsym, x..., endsym]
 
 @show sample = preprocess.(sample_data())
-@show encoded_sample = vocab(sample[1]) #use Vocabulary to encode the training data</code></pre><pre><code class="nohighlight hljs">sample = preprocess.(sample_data()) = ([11, 5, 4, 2, 5, 2, 5, 5, 5, 7, 8, 12], [11, 5, 4, 2, 5, 2, 5, 5, 5, 7, 8, 12])
-encoded_sample = vocab(sample[1]) = [2, 8, 7, 5, 8, 5, 8, 8, 8, 10, 11, 3]</code></pre><h3 id="Defining-the-model"><a class="docs-heading-anchor" href="#Defining-the-model">Defining the model</a><a id="Defining-the-model-1"></a><a class="docs-heading-anchor-permalink" href="#Defining-the-model" title="Permalink"></a></h3><p>With the Transformers.jl and Flux.jl, we can define the model easily. We use a Transformer with 512 hidden size and 8 head.</p><pre><code class="language-julia hljs">#define a Word embedding layer which turn word index to word vector
+@show encoded_sample = vocab(sample[1]) #use Vocabulary to encode the training data</code></pre><pre><code class="nohighlight hljs">sample = preprocess.(sample_data()) = ([&quot;11&quot;, &quot;10&quot;, &quot;8&quot;, &quot;1&quot;, &quot;10&quot;, &quot;7&quot;, &quot;10&quot;, &quot;4&quot;, &quot;2&quot;, &quot;3&quot;, &quot;3&quot;, &quot;12&quot;], [&quot;11&quot;, &quot;10&quot;, &quot;8&quot;, &quot;1&quot;, &quot;10&quot;, &quot;7&quot;, &quot;10&quot;, &quot;4&quot;, &quot;2&quot;, &quot;3&quot;, &quot;3&quot;, &quot;12&quot;])
+encoded_sample = vocab(sample[1]) = [2, 13, 11, 4, 13, 10, 13, 7, 5, 6, 6, 3]</code></pre><h3 id="Defining-the-model"><a class="docs-heading-anchor" href="#Defining-the-model">Defining the model</a><a id="Defining-the-model-1"></a><a class="docs-heading-anchor-permalink" href="#Defining-the-model" title="Permalink"></a></h3><p>With the Transformers.jl and Flux.jl, we can define the model easily. We use a Transformer with 512 hidden size and 8 head.</p><pre><code class="language-julia hljs">#define a Word embedding layer which turn word index to word vector
 embed = Embed(512, length(vocab)) |&gt; gpu
 #define a position embedding layer metioned above
 pe = PositionEmbedding(512) |&gt; gpu
 
 #wrapper for get embedding
 function embedding(x)
-  we = embed(x, inv(sqrt(512))) 
+  we = embed(x, inv(sqrt(512)))
   e = we .+ pe(we)
   return e
 end
 
 #define 2 layer of transformer
-encode_t1 = Transformer(512, 8, 64, 2048) |&gt; gpu  
+encode_t1 = Transformer(512, 8, 64, 2048) |&gt; gpu
 encode_t2 = Transformer(512, 8, 64, 2048) |&gt; gpu
 
 #define 2 layer of transformer decoder
-decode_t1 = TransformerDecoder(512, 8, 64, 2048) |&gt; gpu  
+decode_t1 = TransformerDecoder(512, 8, 64, 2048) |&gt; gpu
 decode_t2 = TransformerDecoder(512, 8, 64, 2048) |&gt; gpu
 
 #define the layer to get the final output probabilities
@@ -93,7 +93,7 @@ using Flux.Optimise: update!
 #define training loop
 function train!()
   @info &quot;start training&quot;
-  for i = 1:2000
+  for i = 1:1000
     data = batched([sample_data() for i = 1:32]) #create 32 random sample and batched
 	x, y = preprocess.(data[1]), preprocess.(data[2])
     x, y = vocab(x), vocab(y) #encode the data
@@ -122,14 +122,15 @@ function translate(x)
         ntok[end] == endsym &amp;&amp; break
     end
   seq[2:end-1]
-end</code></pre><pre><code class="language-julia hljs">translate([5,5,6,6,1,2,3,4,7, 10])</code></pre><pre><code class="nohighlight hljs">10-element Array{Int64,1}:
-  5
-  5
-  6
-  6
-  1
-  2
-  3
-  4
-  7
- 10</code></pre><p>The result looks good!</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../basic/">Basic »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.5 on <span class="colophon-date" title="Saturday 4 September 2021 06:26">Saturday 4 September 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><pre><code class="language-julia hljs">translate(map(string, [5,5,6,6,1,2,3,4,7, 10]))</code></pre><pre><code class="nohighlight hljs">10-element Vector{String}:
+ &quot;5&quot;
+ &quot;5&quot;
+ &quot;6&quot;
+ &quot;6&quot;
+ &quot;1&quot;
+ &quot;2&quot;
+ &quot;3&quot;
+ &quot;4&quot;
+ &quot;7&quot;
+ &quot;10&quot;
+</code></pre><p>The result looks good!</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../basic/">Basic »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.10 on <span class="colophon-date" title="Saturday 13 November 2021 14:00">Saturday 13 November 2021</span>. Using Julia version 1.6.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
