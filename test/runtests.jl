@@ -26,7 +26,7 @@ if haskey(ENV, "TEST_TRANSFORMERS_PRETRAIN")
 end
 
 @testset "Transformers" begin
-  if Flux.use_cuda[]
+  if something(Flux.use_cuda[], false)
     @info "Test CUDA"
     include("test_cuda.jl")
   else
