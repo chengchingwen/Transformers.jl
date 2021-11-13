@@ -34,14 +34,14 @@ if args["task"] == "copy"
   const Batch = 32
   const lr = 1e-4
 
-  startsym = 11
-  endsym = 12
-  unksym = 0
-  labels = [unksym, startsym, endsym, collect(1:V)...]
+  startsym = "11"
+  endsym = "12"
+  unksym = "0"
+  labels = [unksym, startsym, endsym, collect(map(string, 1:V))...]
 
   function gen_data()
     global V
-    d = rand(1:V, 10)
+    d = map(string, rand(1:V, 10))
     (d,d)
   end
 

@@ -57,7 +57,7 @@ Pkg.add("Flux")
 Pkg.add("Transformers")
 ```
 
-We use [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) for the GPU support. 
+We use [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) for the GPU support.
 
 ```julia
 using Flux
@@ -73,17 +73,17 @@ enable_gpu(true) # make `todevice` work on gpu
 The copy task is a toy test case of a sequence transduction problem that simply return the same sequence as the output. Here we define the input as a random sequence with number from 1~10 and length 10. we will also need a start and end symbol to indicate where is the begin and end of the sequence. We can use `Transformers.Basic.Vocabulary` to turn the input to corresponding index.
 
 ```julia
-labels = collect(1:10)
-startsym = 11
-endsym = 12
-unksym = 0
+labels = map(string, 1:10)
+startsym = "11"
+endsym = "12"
+unksym = "0"
 labels = [unksym, startsym, endsym, labels...]
 vocab = Vocabulary(labels, unksym)
 ```
 
 ```julia
 #function for generate training datas
-sample_data() = (d = rand(1:10, 10); (d,d))
+sample_data() = (d = map(string, rand(1:10, 10)); (d,d))
 #function for adding start & end symbol
 preprocess(x) = [startsym, x..., endsym]
 
@@ -92,8 +92,8 @@ preprocess(x) = [startsym, x..., endsym]
 ```
 
 ```
-sample = preprocess.(sample_data()) = ([11, 5, 4, 2, 5, 2, 5, 5, 5, 7, 8, 12], [11, 5, 4, 2, 5, 2, 5, 5, 5, 7, 8, 12])
-encoded_sample = vocab(sample[1]) = [2, 8, 7, 5, 8, 5, 8, 8, 8, 10, 11, 3]
+sample = preprocess.(sample_data()) = (["11", "10", "8", "1", "10", "7", "10", "4", "2", "3", "3", "12"], ["11", "10", "8", "1", "10", "7", "10", "4", "2", "3", "3", "12"])
+encoded_sample = vocab(sample[1]) = [2, 13, 11, 4, 13, 10, 13, 7, 5, 6, 6, 3]
 ```
 
 
@@ -109,17 +109,17 @@ pe = PositionEmbedding(512) |> gpu
 
 #wrapper for get embedding
 function embedding(x)
-  we = embed(x, inv(sqrt(512))) 
+  we = embed(x, inv(sqrt(512)))
   e = we .+ pe(we)
   return e
 end
 
 #define 2 layer of transformer
-encode_t1 = Transformer(512, 8, 64, 2048) |> gpu  
+encode_t1 = Transformer(512, 8, 64, 2048) |> gpu
 encode_t2 = Transformer(512, 8, 64, 2048) |> gpu
 
 #define 2 layer of transformer decoder
-decode_t1 = TransformerDecoder(512, 8, 64, 2048) |> gpu  
+decode_t1 = TransformerDecoder(512, 8, 64, 2048) |> gpu
 decode_t2 = TransformerDecoder(512, 8, 64, 2048) |> gpu
 
 #define the layer to get the final output probabilities
@@ -188,7 +188,7 @@ using Flux.Optimise: update!
 #define training loop
 function train!()
   @info "start training"
-  for i = 1:2000
+  for i = 1:1000
     data = batched([sample_data() for i = 1:32]) #create 32 random sample and batched
 	x, y = preprocess.(data[1]), preprocess.(data[2])
     x, y = vocab(x), vocab(y) #encode the data
@@ -233,22 +233,22 @@ end
 ```
 
 ```julia
-translate([5,5,6,6,1,2,3,4,7, 10])
+translate(map(string, [5,5,6,6,1,2,3,4,7, 10]))
 ```
 
 ```
-10-element Array{Int64,1}:
-  5
-  5
-  6
-  6
-  1
-  2
-  3
-  4
-  7
- 10
+10-element Vector{String}:
+ "5"
+ "5"
+ "6"
+ "6"
+ "1"
+ "2"
+ "3"
+ "4"
+ "7"
+ "10"
+
 ```
 
 The result looks good!
-
