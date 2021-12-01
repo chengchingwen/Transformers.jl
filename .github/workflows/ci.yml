@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - master
-      - staging
-      - trying
     tags: '*'
   pull_request:
 
@@ -28,8 +26,6 @@ jobs:
           # - 'nightly'
         os:
           - ubuntu-latest
-          # - macOS-latest
-          # - windows-latest
         arch:
           - x64
         julia-threads:
