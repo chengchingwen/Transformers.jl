@@ -6,6 +6,8 @@ using Random
 import Flux
 using Flux: gradient
 
+using CUDA
+
 const tests = [
     "transformer",
     "nntopo",
@@ -26,9 +28,8 @@ if haskey(ENV, "TEST_TRANSFORMERS_PRETRAIN")
 end
 
 @testset "Transformers" begin
-  if something(Flux.use_cuda[], false)
-    @info "Test CUDA"
-    include("test_cuda.jl")
+  if CUDA.functional()
+    push!(tests, "cuda")
   else
     @warn "CUDA unavailable, not testing GPU support"
   end

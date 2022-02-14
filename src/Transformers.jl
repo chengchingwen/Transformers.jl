@@ -33,7 +33,6 @@ get the ϵ value in type T
 epsilon(::Type{T}) where T = convert(T, ϵ[])
 
 using CUDA
-const has_cuda = Ref(false)
 const use_cuda = Ref(false)
 
 """
@@ -41,7 +40,7 @@ const use_cuda = Ref(false)
 
 enable gpu for todevice, disable with `enable_gpu(false)`.
 """
-enable_gpu(t::Bool=true) = !has_cuda[] && t ? error("CUDA not functional") : (use_cuda[] = t)
+enable_gpu(t::Bool=true) = !CUDA.functional() && t ? error("CUDA not functional") : (use_cuda[] = t)
 
 """
   todevice(x)
@@ -52,7 +51,6 @@ todevice(args...) = use_cuda[] ? togpudevice(args...) : tocpudevice(args...)
 
 tocpudevice(x) = cpu(x)
 tocpudevice(x, xs...) = (x, map(cpu, xs)...)
-togpudevice(x...) = error("CUDA not functional")
 
 #implement batchmul, batchtril for flux
 include("./fix/batchedmul.jl")
@@ -69,6 +67,8 @@ include("./bert/BidirectionalEncoder.jl")
 
 include("./huggingface/HuggingFace.jl")
 
+include("cuda/cuda.jl")
+
 using .Basic
 using .Stacks
 using .Datasets
@@ -77,21 +77,6 @@ using .GenerativePreTrain
 using .BidirectionalEncoder
 
 using .HuggingFace
-
-function __init__()
-  precompiling = ccall(:jl_generating_output, Cint, ()) != 0
-
-  # we don't want to include the CUDA module when precompiling,
-  # or we could end up replacing it at run time (triggering a warning)
-  precompiling && return
-
-  if !CUDA.functional()
-    # nothing to do here, and either CUDA or one of its dependencies will have warned
-  else
-    has_cuda[] = true
-    include(joinpath(@__DIR__, "cuda/cuda.jl"))
-  end
-end
 
 
 end # module
