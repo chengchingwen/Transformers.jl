@@ -7,7 +7,7 @@ import TextEncodeBase: encode, decode
 
 struct for holding the vocabulary list to encode/decode input tokens.
 """
-struct Vocabulary{T, V<:Vocab{T}} <: TextEncodeBase.AbstractVocabulary
+struct Vocabulary{T, V<:Vocab{T}} <: AbstractVocabulary{T}
     vocab::V
 end
 
@@ -27,11 +27,11 @@ Base.getindex(vocab::Vocabulary, i, is...) = (decode(vocab, i), map(i->decode(vo
 
 encode the given data to the index encoding.
 """
-encode(vocab::Vocabulary, i) = lookup(vocab.vocab, i)
+encode(vocab::Vocabulary, i) = lookup(Int, vocab.vocab, i)
 encode(vocab::Vocabulary, i, is...) = (encode(vocab, i), map(Base.Fix1(encode, vocab), is)...)
 
 function encode(vocab::Vocabulary{T}, xs::Container{<:Container{<:Union{T,W}}}) where {T,W}
-    nested2batch(trunc_and_pad(lookup(vocab.vocab, xs), nothing, vocab.vocab.unki))
+    nested2batch(trunc_and_pad(lookup(Int, vocab.vocab, xs), nothing, vocab.vocab.unki))
 end
 
 """
@@ -41,13 +41,13 @@ encode the given data to the index encoding.
 """
 (vocab::Vocabulary)(xs...) = encode(vocab, xs...)
 
-decode(vocab::Vocabulary, i) = lookup(vocab.vocab, i)
+decode(vocab::Vocabulary, i) = lookup(String, vocab.vocab, i)
 
 function decode(vocab::Vocabulary, is::AbstractMatrix{Int})
     olen = size(is, 2)
     tokens = Vector{Vector{eltype(vocab)}}(undef, olen)
     for idx ∈ 1:olen
-        tokens[idx] = lookup(vocab.vocab, @view is[begin:end, idx])
+        tokens[idx] = lookup(String, vocab.vocab, @view is[begin:end, idx])
     end
     tokens
 end
