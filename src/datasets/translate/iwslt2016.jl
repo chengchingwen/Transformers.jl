@@ -1,74 +1,61 @@
 using LightXML
 
 function iwslt2016_init()
-    for (lang, checksum) ∈ zip(("ar", "cs", "fr", "de"), (("0e7dd1c836f66f0e68c45c3dea6312dd6a1f2e8c93bcf03982f842644319ff4c",
-                                                           "bf10a15077b4d25cc3e8272e61429d6e85f75a0a55f180a10d01abfcdb3debc9"),
-                                                          ("d6d5a4767f6afc96c59630583d0cfe2b23ba24a48a33c16b7fdb76017ee62ab3",
-                                                           "f38dcf1407afa224324dbed02424fa2c30042d10a5cc387d02df1369eec3f68e"),
-                                                          ("132bc5524c1f7500aadb84a4e05a0c3dd15cc5b527d4d4af402fd98582299231",
-                                                           "b70aca9675966fcbdfb8349086848638f6711e47c669f5654971859d10266398"),
-                                                          ("7e21dd345e9192180f36d7816f84a77eafd6b85e45432d90d0970f06e8c772ea",
-                                                           "13c037b8a5dce7fb6199eeedc6b0460c0c75082db8eeda21902acb373ba9ba14")))
+
+    # Helper function for extracting nested archives
+    function extract_lang_archive(src, dst, fn)
+        # Unpack outer archive and construct path to the archive for the language pair
+        unpack(fn)
+        archivename = "2016-01"
+        innerdir = "$(src)-$(dst)"
+        langarchive = joinpath(archivename, "texts", "$(src)", "$(dst)", innerdir * ".tgz")
+
+        # Unpack language pair archive
+        unpack(langarchive)
+        innerfiles = readdir(innerdir)
+        mv.(joinpath.(innerdir, innerfiles), innerfiles)
+
+        for f ∈ innerfiles
+             if occursin(".xml", f)
+                 clean_xml(f)
+             elseif occursin(".tags", f)
+                 clean_tag(f)
+             end
+        end
+        rm(innerdir)
+        rm(archivename; recursive=true)
+    end
+
+    archivehash = "425a3688e0faff00ed4d6d04f1664d1edbd9932e5b17a73680aa81a70f03e2d6"
+
+    message = (src, dst) -> """
+    The IWSLT 2016 TED talk translation task
+
+    These are the data sets for the MT tasks of the evaluation campaigns of IWSLT. They are parallel data sets used for building and testing MT systems. They are publicly available through the WIT3 website wit3.fbk.eu, see release: 2016-01.
+
+    Data are crawled from the TED website and carry the respective licensing conditions (for training, tuning and testing MT systems).
+    Approximately, for each language pair, training sets include 2,000 talks, 200K sentences and 4M tokens per side, while each dev and test sets 10-15 talks, 1.0K-1.5K sentences and 20K-30K tokens per side. In each edition, the training sets of previous editions are re-used and updated with new talks added to the TED repository in the meanwhile.
+
+    from $(src) to $(dst)
+    """
+
+    for lang ∈ ("ar", "cs", "fr", "de")
         register(DataDep(
             "IWSLT2016 $(lang)-en",
-            """
-            The IWSLT 2016 TED talk translation task
-
-            These are the data sets for the MT tasks of the evaluation campaigns of IWSLT. They are parallel data sets used for building and testing MT systems. They are publicly available through the WIT3 website wit3.fbk.eu, see release: 2016-01.
-
-            Data are crawled from the TED website and carry the respective licensing conditions (for training, tuning and testing MT systems).
-            Approximately, for each language pair, training sets include 2,000 talks, 200K sentences and 4M tokens per side, while each dev and test sets 10-15 talks, 1.0K-1.5K sentences and 20K-30K tokens per side. In each edition, the training sets of previous editions are re-used and updated with new talks added to the TED repository in the meanwhile.
-
-            from $(lang) to en
-            """,
-            "https://wit3.fbk.eu/archive/2016-01//texts/$lang/en/$(lang)-en.tgz",
-            checksum[1];
-            post_fetch_method = fn -> begin
-                unpack(fn)
-                innerdir = "$(lang)-en"
-                innerfiles = readdir(innerdir)
-                mv.(joinpath.(innerdir, innerfiles), innerfiles)
-
-                for f ∈ innerfiles
-                     if occursin(".xml", f)
-                         clean_xml(f)
-                     elseif occursin(".tags", f)
-                         clean_tag(f)
-                     end
-                end
-                rm(innerdir)
-            end
+            message(lang, "en"),
+            "https://drive.google.com/file/d/1l5y6Giag9aRPwGtuZHswh3w5v3qEz8D8/",
+            archivehash;
+            fetch_method=gdownload,
+            post_fetch_method = fn -> extract_lang_archive(lang, "en", fn)
         ))
 
         register(DataDep(
             "IWSLT2016 en-$(lang)",
-            """
-            The IWSLT 2016 TED talk translation task
-
-            These are the data sets for the MT tasks of the evaluation campaigns of IWSLT. They are parallel data sets used for building and testing MT systems. They are publicly available through the WIT3 website wit3.fbk.eu, see release: 2016-01.
-
-            Data are crawled from the TED website and carry the respective licensing conditions (for training, tuning and testing MT systems).
-            Approximately, for each language pair, training sets include 2,000 talks, 200K sentences and 4M tokens per side, while each dev and test sets 10-15 talks, 1.0K-1.5K sentences and 20K-30K tokens per side. In each edition, the training sets of previous editions are re-used and updated with new talks added to the TED repository in the meanwhile.
-
-            from en to $(lang)
-            """,
-            "https://wit3.fbk.eu/archive/2016-01//texts/en/$lang/en-$(lang).tgz",
-            checksum[2];
-            post_fetch_method = fn -> begin
-                unpack(fn)
-                innerdir = "en-$(lang)"
-                innerfiles = readdir(innerdir)
-                mv.(joinpath.(innerdir, innerfiles), innerfiles)
-
-                for f ∈ innerfiles
-                     if occursin(".xml", f)
-                         clean_xml(f)
-                     elseif occursin(".tag", f)
-                         clean_tag(f)
-                     end
-                end
-                rm(innerdir)
-            end
+            message("en", lang),
+            "https://drive.google.com/file/d/1l5y6Giag9aRPwGtuZHswh3w5v3qEz8D8/",
+            archivehash;
+            fetch_method=gdownload,
+            post_fetch_method = fn -> extract_lang_archive("en", lang, fn)
         ))
     end
 end
