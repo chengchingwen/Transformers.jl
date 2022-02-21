@@ -1,4 +1,5 @@
 module IWSLT
+using Fetch
 using DataDeps
 
 using ..Datasets: Dataset
