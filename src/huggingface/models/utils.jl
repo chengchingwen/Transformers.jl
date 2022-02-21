@@ -66,7 +66,9 @@ function Base.getindex(xs::CuArray{T}, onehots::OneHotArray{K, N, N2, <:CuArray{
     return (threads=threads, blocks=blocks)
   end
 
-  @cuda name="onehot_getindex" config=configurator kernel(ys, xs, onehots.data)
+  kernel = @cuda name="onehot_getindex" launch=false kernel(ys, xs, onehots.data)
+  config = configurator(kernel)
+  kernel(ys, xs, onehots.data; config...)
   return ys
 end
 
@@ -90,7 +92,9 @@ function ∇getindex!(xs::CuArray{T}, ys::CuArray{T}, onehots::OneHotArray{K, N,
     return (threads=threads, blocks=blocks)
   end
 
-  @cuda name="onehot_getindex_grad" config=configurator kernel(xs, ys, onehots.data)
+  kernel = @cuda name="onehot_getindex_grad" launch=false kernel(xs, ys, onehots.data)
+  config = configurator(kernel)
+  kernel(xs, ys, onehots.data; config...)
   return xs
 end
 
@@ -139,7 +143,9 @@ function Base.getindex(xs::CuArray{T}, indices::CuVector{<:Integer}) where T
     return (threads=threads, blocks=blocks)
   end
 
-  @cuda name="linear_getindex" config=configurator kernel(ys, xs, indices)
+  kernel = @cuda name="linear_getindex" launch=false kernel(ys, xs, indices)
+  config = configurator(kernel)
+  kernel(ys, xs, indices; config...)
   return ys
 end
 
