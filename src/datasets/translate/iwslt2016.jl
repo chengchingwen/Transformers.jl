@@ -116,7 +116,7 @@ function tunefile(iw::IWSLT2016, dev, year; tedx = false)
 
     !(srcf ∈ readdir(@datadep_str "IWSLT2016 $p")) && error("""no such file: $srcf,
                                                              only have the following:
-                                                             $(join(filter(x->occursin(".en.txt", x), readdir(datadep"IWSLT2016 fr-en/")), "\n"))""")
+                                                             $(join(filter(x->occursin(".$(iw.src).txt", x), readdir(datadep"IWSLT2016 $p/")), "\n"))""")
 
     src = @datadep_str "IWSLT2016 $p/$srcf"
     ref = @datadep_str "IWSLT2016 $p/$reff"
