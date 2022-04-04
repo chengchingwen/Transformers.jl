@@ -1,27 +1,4 @@
-using TextEncodeBase: trunc_and_pad, nested2batch, with_head_tail, nestedcall, getvalue
-using TextEncodeBase: BaseTokenization, Splittable, NestedTokenizer
-
-struct BatchSentence{A<:AbstractVector, M} <: TextEncodeBase.DocumentStage
-    x::A
-    meta::M
-end
-
-BatchSentence(x) = BatchSentence(x, nothing)
-TextEncodeBase.setmeta(x::BatchSentence, meta) = BatchSentence(x.x, meta)
-TextEncodeBase.setvalue(x::BatchSentence, y) = BatchSentence(y, x.meta)
-
-TextEncodeBase.splitting(::BaseTokenization, s::BatchSentence) = s.x
-
-# struct SplittedSentence{A<:AbstractVector, M} <: TextEncodeBase.SentenceStage
-#     x::A
-#     meta::M
-# end
-
-# SplittedSentence(x) = SplittedSentence(x, nothing)
-# TextEncodeBase.setmeta(x::SplittedSentence, meta) = SplittedSentence(x.x, meta)
-# TextEncodeBase.setvalue(x::SplittedSentence, y) = SplittedSentence(y, x.meta)
-
-# TextEncodeBase.splitting(::BaseTokenization, s::SplittedSentence) = s.x
+using TextEncodeBase: trunc_and_pad, nested2batch, with_head_tail, nestedcall, getvalue, NestedTokenizer
 
 struct TransformerTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P, N<:Union{Nothing, Int}} <: AbstractTextEncoder
     tokenizer::T
@@ -34,18 +11,15 @@ struct TransformerTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String
 end
 
 string_getvalue(x::TextEncodeBase.TokenStage) = getvalue(x)::String
+_get_tok(y) = y.tok
 
 TransformerTextEncoder(words::AbstractVector; kws...) = TransformerTextEncoder(NestedTokenizer(), words; kws...)
 function TransformerTextEncoder(tkr::AbstractTokenizer, words::AbstractVector; kws...)
     enc = TransformerTextEncoder(tkr, words, TextEncodeBase.process(AbstractTextEncoder); kws...)
     return TransformerTextEncoder(enc) do e
         Pipeline{:tok}(with_head_tail(e.startsym, e.endsym) ∘ nestedcall(string_getvalue), 1) |>
-            Pipeline{(:tok, :mask)}(2) do y
-                tok = y.tok
-                mask = getmask(tok)
-                tok = nested2batch(trunc_and_pad(tok, e.trunc, e.padsym))
-                return tok, mask
-            end
+            Pipeline{:mask}(getmask∘_get_tok, 2) |>
+            Pipeline{:tok}(nested2batch∘trunc_and_pad(e.trunc, e.padsym)∘_get_tok, 2)
     end
 end
 
@@ -91,7 +65,8 @@ TransformerTextEncoder(builder, e::TransformerTextEncoder) = TransformerTextEnco
 
 
 TextEncodeBase.tokenize(e::TransformerTextEncoder, x::AbstractString) = e.tokenizer(TextEncodeBase.Document(x))
-TextEncodeBase.tokenize(e::TransformerTextEncoder, x::Vector{<:AbstractString}) = e.tokenizer(BatchSentence(x))
+TextEncodeBase.tokenize(e::TransformerTextEncoder, x::Vector{<:AbstractString}) =
+    e.tokenizer(TextEncodeBase.Batch{TextEncodeBase.Sentence}(x))
 
 function TextEncodeBase.encode(e::TransformerTextEncoder, x)
     y = TextEncodeBase.process(e, TextEncodeBase.tokenize(e, x))
