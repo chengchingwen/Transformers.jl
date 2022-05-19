@@ -91,6 +91,8 @@ function getmask(ls::Container{<:Container})
     reshape(m, (1, size(m)...))
 end
 
+getmask(v::Vector) = nothing
+
 """
     getmask(m1::A, m2::A) where A <: Abstract3DTensor
 

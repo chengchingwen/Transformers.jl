@@ -1,5 +1,5 @@
 using Flux
-using Flux: onecold, gradient, onehot
+using Flux: gradient, onehot
 import Flux.Optimise: update!
 
 using WordTokenizers
@@ -104,7 +104,7 @@ function loss(m, src, trg, src_mask, trg_mask)
     end
 end
 
-function translate(x)
+function translate(x::AbstractString)
     ix = todevice(encode(textenc, x).tok)
     seq = [startsym]
 
@@ -113,11 +113,11 @@ function translate(x)
 
     len = size(ix, 2)
     for i = 1:2len
-        trg = reshape(embed(todevice(lookup(textenc, seq))), Val(3))
+        trg = embed(todevice(lookup(textenc, seq)))
         dec = decoder(trg, enc, nothing)
-        ntok = onecold(dec, labels)
-        push!(seq, ntok[end])
-        ntok[end] == endsym && break
+        ntok = labels[argmax(@view(dec[:, end]))]
+        push!(seq, ntok)
+        ntok == endsym && break
     end
     seq
 end
