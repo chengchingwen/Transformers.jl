@@ -1,5 +1,5 @@
 using ..Transformers: Container
-using ..Basic: string_getvalue, TextTokenizer
+using ..Basic: string_getvalue, check_vocab, TextTokenizer
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, nested2batch, nestedcall
 using TextEncodeBase: BaseTokenization, WrappedTokenization, Splittable,
@@ -51,6 +51,8 @@ BertTextEncoder(t::AbstractTokenization, vocab::AbstractVocabulary, args...; kws
 
 function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process;
                          startsym = "[CLS]", endsym = "[SEP]", trunc = nothing)
+    check_vocab(vocab, startsym) || @warn "startsym $startsym not in vocabulary, this might cause problem."
+    check_vocab(vocab, endsym) || @warn "endsym $endsym not in vocabulary, this might cause problem."
     return BertTextEncoder(tkr, vocab, process, startsym, endsym, trunc)
 end
 

@@ -22,6 +22,9 @@ Base.length(vocab::Vocabulary) = length(vocab.vocab)
 Base.getindex(vocab::Vocabulary, is) = decode(vocab, is)
 Base.getindex(vocab::Vocabulary, i, is...) = (decode(vocab, i), map(i->decode(vocab, i), is)...)
 
+check_vocab(vocab::Vocabulary, word) = check_vocab(vocab.vocab, word)
+check_vocab(vocab::Vocab, word) = findfirst(==(word), vocab.list) !== nothing
+
 """
     encode(vocab::Vocabulary, x)
 
