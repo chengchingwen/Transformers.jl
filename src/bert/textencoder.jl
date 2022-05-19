@@ -1,15 +1,19 @@
 using ..Transformers: Container
-using ..Basic: string_getvalue, _get_tok, TextTokenizer
+using ..Basic: string_getvalue, TextTokenizer
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, nested2batch, nestedcall
 using TextEncodeBase: BaseTokenization, WrappedTokenization, Splittable,
     ParentStages, TokenStages, SentenceStage, WordStage, Batch, Sentence, getvalue, getmeta
+
+# bert tokenizer
 
 struct BertCasedPreTokenization   <: BaseTokenization end
 struct BertUnCasedPreTokenization <: BaseTokenization end
 
 TextEncodeBase.splitting(::BertCasedPreTokenization, s::SentenceStage) = bert_cased_tokenizer(getvalue(s))
 TextEncodeBase.splitting(::BertUnCasedPreTokenization, s::SentenceStage) = bert_uncased_tokenizer(getvalue(s))
+
+const BertTokenization = Union{BertCasedPreTokenization, BertUnCasedPreTokenization}
 
 struct WordPieceTokenization{T<:AbstractTokenization} <: WrappedTokenization{T}
     base::T
@@ -19,19 +23,40 @@ end
 TextEncodeBase.splittability(::ParentStages, ::WordPieceTokenization, ::WordStage) = Splittable()
 TextEncodeBase.splitting(::ParentStages, t::WordPieceTokenization, w::WordStage) = t.wordpiece(getvalue(w))
 
-struct BertTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P, N<:Union{Nothing, Int}} <: AbstractTextEncoder
+# encoder
+
+struct BertTextEncoder{T<:AbstractTokenizer,
+                       V<:AbstractVocabulary{String},
+                       P} <: AbstractTextEncoder
     tokenizer::T
     vocab::V
     process::P
     startsym::String
     endsym::String
-    trunc::N
+    trunc::Union{Nothing, Int}
 end
 
-BertTextEncoder(t::WordPieceTokenization; kws...) = BertTextEncoder(TextTokenizer(t), t.wordpiece; kws...)
-BertTextEncoder(tkr::AbstractTokenizer, wordpiece::WordPiece; kws...) = BertTextEncoder(tkr, Vocab(wordpiece); kws...)
+# encoder constructor
+
+BertTextEncoder(::typeof(bert_cased_tokenizer), args...; kws...) =
+    BertTextEncoder(BertCasedPreTokenization(), args...; kws...)
+BertTextEncoder(::typeof(bert_uncased_tokenizer), args...; kws...) =
+    BertTextEncoder(BertUnCasedPreTokenization(), args...; kws...)
+BertTextEncoder(bt::BertTokenization, wordpiece::WordPiece, args...; kws...) =
+    BertTextEncoder(WordPieceTokenization(bt, wordpiece), args...; kws...)
+BertTextEncoder(t::WordPieceTokenization, args...; kws...) =
+    BertTextEncoder(TextTokenizer(t), Vocab(t.wordpiece), args...; kws...)
+BertTextEncoder(t::AbstractTokenization, vocab::AbstractVocabulary, args...; kws...) =
+    BertTextEncoder(TextTokenizer(t), vocab, args...; kws...)
+
+function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process;
+                         startsym = "[CLS]", endsym = "[SEP]", trunc = nothing)
+    return BertTextEncoder(tkr, vocab, process, startsym, endsym, trunc)
+end
+
 function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary; kws...)
     enc = BertTextEncoder(tkr, vocab, TextEncodeBase.process(AbstractTextEncoder); kws...)
+    # default processing pipelines for bert encoder
     return BertTextEncoder(enc) do e
         Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
             Pipeline{:tok}(with_firsthead_tail(e.startsym, e.endsym), :tok) |>
@@ -44,24 +69,10 @@ function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary; kws.
     end
 end
 
-BertTextEncoder(::typeof(bert_cased_tokenizer), wordpiece::WordPiece, process; kws...) = BertTextEncoder(TextTokenizer(WordPieceTokenization(bert_cased_tokenizer, wordpiece)), wordpiece, process; kws...)
-BertTextEncoder(::typeof(bert_uncased_tokenizer), wordpiece::WordPiece, process; kws...) = BertTextEncoder(TextTokenizer(WordPieceTokenization(bert_uncased_tokenizer, wordpiece)), wordpiece, process; kws...)
+BertTextEncoder(builder, e::BertTextEncoder) =
+    BertTextEncoder(e.tokenizer, e.vocab, builder(e), e.startsym, e.endsym, e.trunc)
 
-BertTextEncoder(t::WordPieceTokenization, process; kws...) = BertTextEncoder(TextTokenizer(t), t.wordpiece, process; kws...)
-BertTextEncoder(tkr::AbstractTokenizer, wordpiece::WordPiece, process; kws...) = BertTextEncoder(tkr, Vocab(wordpiece), process; kws...)
-function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process; startsym = "[CLS]", endsym = "[SEP]", trunc = nothing)
-    return BertTextEncoder(tkr, vocab, process, startsym, endsym, trunc)
-end
-
-BertTextEncoder(builder, e::BertTextEncoder) = BertTextEncoder(
-    e.tokenizer,
-    e.vocab,
-    builder(e),
-    e.startsym,
-    e.endsym,
-    e.trunc
-)
-
+# encoder behavior
 
 TextEncodeBase.tokenize(e::BertTextEncoder, x::AbstractString) = e.tokenizer(Sentence(x))
 TextEncodeBase.tokenize(e::BertTextEncoder, x::Vector{<:AbstractString}) = e.tokenizer(Batch{Sentence}(x))
@@ -72,6 +83,8 @@ function TextEncodeBase.lookup(e::BertTextEncoder, x::NamedTuple)
     input = merge(x.input, (tok = onehot_tok,))
     return merge(x, (input = input,))
 end
+
+# pretty print
 
 function Base.show(io::IO, e::BertTextEncoder)
     print(io, "BertTextEncoder(\n├─ ")
