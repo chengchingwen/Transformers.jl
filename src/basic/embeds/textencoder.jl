@@ -1,30 +1,30 @@
 using TextEncodeBase: trunc_and_pad, nested2batch, with_head_tail, nestedcall, getvalue
+using TextEncodeBase: WordTokenization
 
-struct TransformerTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P, N<:Union{Nothing, Int}} <: AbstractTextEncoder
+string_getvalue(x::TextEncodeBase.TokenStage) = getvalue(x)::String
+
+# text encoder
+
+struct TransformerTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P} <: AbstractTextEncoder
     tokenizer::T
     vocab::V
     process::P
     startsym::String
     endsym::String
     padsym::String
-    trunc::N
+    trunc::Union{Nothing, Int}
 end
 
-string_getvalue(x::TextEncodeBase.TokenStage) = getvalue(x)::String
-_get_tok(y) = y.tok
+# encoder constructor
 
-TransformerTextEncoder(words::AbstractVector; kws...) = TransformerTextEncoder(TextTokenizer(), words; kws...)
-function TransformerTextEncoder(tkr::AbstractTokenizer, words::AbstractVector; kws...)
-    enc = TransformerTextEncoder(tkr, words, TextEncodeBase.process(AbstractTextEncoder); kws...)
-    return TransformerTextEncoder(enc) do e
-        Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
-            Pipeline{:tok}(with_head_tail(e.startsym, e.endsym), :tok) |>
-            Pipeline{:mask}(getmask, :tok) |>
-            Pipeline{:tok}(nested2batch∘trunc_and_pad(e.trunc, e.padsym), :tok)
-    end
-end
+const WList = Union{AbstractVector, AbstractVocabulary}
 
-TransformerTextEncoder(words::AbstractVector, process; kws...) = TransformerTextEncoder(TextTokenizer(), words, process; kws...)
+TransformerTextEncoder(tokenizef, v::WList, args...; kws...) =
+    TransformerTextEncoder(WordTokenization(tokenize=tokenizef), v, args...; kws...)
+TransformerTextEncoder(v::WList, args...; kws...) = TransformerTextEncoder(TextTokenizer(), v, args...; kws...)
+TransformerTextEncoder(t::AbstractTokenization, v::WList, args...; kws...) =
+    TransformerTextEncoder(TextTokenizer(t), v, args...; kws...)
+
 function TransformerTextEncoder(tkr::AbstractTokenizer, words::AbstractVector, process; trunc = nothing,
                                 startsym = "<s>", endsym = "</s>", unksym = "<unk>", padsym = "<pad>")
     vocab_list = String[]
@@ -38,31 +38,28 @@ end
 
 function TransformerTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process; trunc = nothing,
                                 startsym = "<s>", endsym = "</s>", unksym = "<unk>", padsym = "<pad>")
+    check_vocab(vocab, startsym) || @warn "startsym $startsym not in vocabulary, this might cause problem."
+    check_vocab(vocab, endsym) || @warn "endsym $endsym not in vocabulary, this might cause problem."
+    check_vocab(vocab, unksym) || @warn "unksym $unksym not in vocabulary, this might cause problem."
+    check_vocab(vocab, padsym) || @warn "padsym $padsym not in vocabulary, this might cause problem."
     return TransformerTextEncoder(tkr, vocab, process, startsym, endsym, padsym, trunc)
 end
 
-TransformerTextEncoder(builder::Base.Callable, args...; kwargs...) =
-    TransformerTextEncoder(builder, TransformerTextEncoder(args...; kwargs...))
-
-TransformerTextEncoder(builder::Base.Callable, e::TransformerTextEncoder) = TransformerTextEncoder(
-    e.tokenizer,
-    e.vocab,
-    builder(e),
-    e.startsym,
-    e.endsym,
-    e.padsym,
-    e.trunc
-)
+function TransformerTextEncoder(tkr::AbstractTokenizer, v::WList; kws...)
+    enc = TransformerTextEncoder(tkr, v, TextEncodeBase.process(AbstractTextEncoder); kws...)
+    # default processing pipeline
+    return TransformerTextEncoder(enc) do e
+        Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
+            Pipeline{:tok}(with_head_tail(e.startsym, e.endsym), :tok) |>
+            Pipeline{:mask}(getmask, :tok) |>
+            Pipeline{:tok}(nested2batch∘trunc_and_pad(e.trunc, e.padsym), :tok)
+    end
+end
 
 TransformerTextEncoder(builder, e::TransformerTextEncoder) = TransformerTextEncoder(
-    e.tokenizer,
-    e.vocab,
-    builder(e),
-    e.startsym,
-    e.endsym,
-    e.padsym,
-    e.trunc
-)
+    e.tokenizer, e.vocab, builder(e), e.startsym, e.endsym, e.padsym, e.trunc)
+
+# encoder behavior
 
 TextEncodeBase.tokenize(e::TransformerTextEncoder, x::AbstractString) = e.tokenizer(Sentence(x))
 TextEncodeBase.tokenize(e::TransformerTextEncoder, x::Vector{<:AbstractString}) =
@@ -74,6 +71,7 @@ function TextEncodeBase.lookup(e::TransformerTextEncoder, x::NamedTuple{name}) w
     return NamedTuple{name}((lookup(e, xt[1]), Base.tail(xt)...))
 end
 
+# pretty print
 
 function Base.show(io::IO, e::TransformerTextEncoder)
     print(io, "TransformerTextEncoder(\n├─ ")
