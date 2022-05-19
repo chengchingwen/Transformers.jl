@@ -33,6 +33,8 @@ WordPiece(vocab::Vector{String}, unk::String = "[UNK]"; max_char::Int=200) = Wor
 
 Basic.Vocabulary(wp::WordPiece) = Vocabulary(wp.vocab, wp.vocab[wp.unk_idx])
 
+TextEncodeBase.Vocab(wp::WordPiece) = Vocab(wp.vocab, wp.vocab[wp.unk_idx])
+
 struct _wp_equal{first} <: Function
   ss::String
   base::Int
