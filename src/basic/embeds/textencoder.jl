@@ -1,7 +1,8 @@
+using InternedStrings
 using TextEncodeBase: trunc_and_pad, nested2batch, with_head_tail, nestedcall, getvalue
 using TextEncodeBase: WordTokenization
 
-string_getvalue(x::TextEncodeBase.TokenStage) = getvalue(x)::String
+string_getvalue(x::TextEncodeBase.TokenStage) = intern(getvalue(x))::String
 
 # text encoder
 
