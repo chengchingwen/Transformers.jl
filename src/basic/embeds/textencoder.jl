@@ -6,6 +6,73 @@ string_getvalue(x::TextEncodeBase.TokenStage) = intern(getvalue(x))::String
 
 # text encoder
 
+"""
+    struct TransformerTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P} <: AbstractTextEncoder
+        tokenizer::T
+        vocab::V
+        process::P
+        startsym::String
+        endsym::String
+        padsym::String
+        trunc::Union{Nothing, Int}
+    end
+
+The text encoder for general transformers. Taking a tokenizer, vocabulary, and a processing function, configured with
+ a start symbol, an end symbol, a padding symbol, and a maximum length.
+
+    TransformerTextEncoder(tokenze, vocab, process; trunc = nothing,
+                           startsym = "<s>", endsym = "</s>", unksym = "<unk>", padsym = "<pad>")
+
+`tokenize` can be any tokenize function from `WordTokenizers`. `vocab` is either a list of word or a `Vocab`.
+ `process` can be omitted, then a predefined processing pipeline will be used.
+
+    TransformerTextEncoder(f, e::TransformerTextEncoder)
+
+Take a text encoder and create a new text encoder with same configuration except the processing function.
+ `f` is a function that take the encoder and return a new process function. This is useful for changing part of
+ the procssing function.
+
+# Example
+```julia-repl
+julia> textenc = TransformerTextEncoder(labels; startsym, endsym, unksym,
+                                        padsym = unksym, trunc = 100)
+TransformerTextEncoder(
+├─ TextTokenizer(default),
+├─ vocab = Vocab{String, SizedArray}(size = 37678, unk = </unk>, unki = 1),
+├─ startsym = <s>,
+├─ endsym = </s>,
+├─ padsym = </unk>,
+├─ trunc = 100,
+└─ process = Pipelines:
+  ╰─ target[tok] := nestedcall(string_getvalue, source)
+  ╰─ target[tok] := with_head_tail(<s>, </s>)(target.tok)
+  ╰─ target[trunc_tok] := trunc_and_pad(100, </unk>)(target.tok)
+  ╰─ target[trunc_len] := nestedmaxlength(target.trunc_tok)
+  ╰─ target[mask] := getmask(target.tok, target.trunc_len)
+  ╰─ target[tok] := nested2batch(target.trunc_tok)
+  ╰─ target := (target.tok, target.mask)
+)
+
+julia> Basic.TransformerTextEncoder(textenc) do enc
+           Pipelines(enc.process[1:4]) |> PipeGet{(:trunc_tok, :trunc_len)}()
+       end
+TransformerTextEncoder(
+├─ TextTokenizer(default),
+├─ vocab = Vocab{String, SizedArray}(size = 37678, unk = </unk>, unki = 1),
+├─ startsym = <s>,
+├─ endsym = </s>,
+├─ padsym = </unk>,
+├─ trunc = 100,
+└─ process = Pipelines:
+  ╰─ target[tok] := nestedcall(string_getvalue, source)
+  ╰─ target[tok] := with_head_tail(<s>, </s>)(target.tok)
+  ╰─ target[trunc_tok] := trunc_and_pad(100, </unk>)(target.tok)
+  ╰─ target[trunc_len] := nestedmaxlength(target.trunc_tok)
+  ╰─ target := (target.trunc_tok, target.trunc_len)
+)
+
+```
+"""
 struct TransformerTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P} <: AbstractTextEncoder
     tokenizer::T
     vocab::V
