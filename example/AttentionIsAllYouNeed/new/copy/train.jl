@@ -20,7 +20,7 @@ const endsym = "12"
 const unksym = "0"
 const labels = [unksym, startsym, endsym, collect(map(string, 1:V))...]
 
-const textenc = Basic.TransformerTextEncoder(labels; startsym, endsym, unksym, padsym = unksym)
+const textenc = Basic.TransformerTextEncoder(split, labels; startsym, endsym, unksym, padsym = unksym)
 
 function gen_data()
     global V
