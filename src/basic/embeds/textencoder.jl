@@ -47,13 +47,23 @@ function TransformerTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabular
 end
 
 function TransformerTextEncoder(tkr::AbstractTokenizer, v::WList; kws...)
-    enc = TransformerTextEncoder(tkr, v, TextEncodeBase.process(AbstractTextEncoder); kws...)
+    enc = TransformerTextEncoder(tkr, v, identity; kws...)
     # default processing pipeline
     return TransformerTextEncoder(enc) do e
+        # get token and convert to string
         Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
+            # add start & end symbol
             Pipeline{:tok}(with_head_tail(e.startsym, e.endsym), :tok) |>
-            Pipeline{:mask}(getmask, :tok) |>
-            Pipeline{:tok}(nested2batch∘trunc_and_pad(e.trunc, e.padsym), :tok)
+            # truncate input that exceed length limit and pad them to have equal length
+            Pipeline{:trunc_tok}(trunc_and_pad(e.trunc, e.padsym), :tok) |>
+            # get the truncated length
+            Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok) |>
+            # get mask with specific length
+            Pipeline{:mask}(getmask, (:tok, :trunc_len)) |>
+            # convert to dense array
+            Pipeline{:tok}(nested2batch, :trunc_tok) |>
+            # return token and mask
+            PipeGet{(:tok, :mask)}()
     end
 end
 

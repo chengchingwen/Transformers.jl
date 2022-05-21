@@ -84,17 +84,18 @@ end) |> Base.Fix2(reshape, Base.tail(size(p))) |> collect
 
 get the mask for batched data.
 """
-function getmask(ls::Container{<:Container})
-    lens = map(length, ls)
-    m = zeros(Float32, maximum(lens), length(lens))
+function getmask(ls::Container{<:Container}, n::Integer)
+    m = zeros(Float32, n, length(ls))
 
     for (i, l) ∈ enumerate(ls)
-        selectdim(selectdim(m, 2, i), 1, 1:length(l)) .= 1
+        selectdim(selectdim(m, 2, i), 1, 1:min(length(l), n)) .= 1
     end
     reshape(m, (1, size(m)...))
 end
 
+getmask(ls::Container{<:Container}) = getmask(ls, maximum(length, ls))
 getmask(v::Vector) = nothing
+getmask(v::Vector, n::Integer) = nothing
 
 """
     getmask(m1::A, m2::A) where A <: Abstract3DTensor
