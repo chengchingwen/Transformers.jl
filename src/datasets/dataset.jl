@@ -63,7 +63,8 @@ function get_batch(c::Channel, n=1)
 end
 
 function get_batch(cs::Container{C}, n=1) where C <: Channel
-    res = Vector(undef, n)
+    T = mapfoldr(eltype, Base.tuple_type_cons, cs; init=Tuple{})
+    res = Vector{T}(undef, n)
     for (i, xs) ∈ enumerate(zip(cs...))
         res[i] = xs
         i >= n && break
