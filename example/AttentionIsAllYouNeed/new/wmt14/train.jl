@@ -8,48 +8,51 @@ using TextEncodeBase
 using Transformers
 using Transformers.Basic
 using Transformers.Datasets
+using Transformers.Datasets: WMT
 
-const N = 2
-const V = 10
-const Smooth = 1e-6
-const Batch = 32
-const lr = 1e-4
+const N = 6
+const Smooth = 0.4
+const Epoch = 1
+const Batch = 8
+const lr = 1e-6
+const MaxLen = 100
 
-const startsym = "11"
-const endsym = "12"
-const unksym = "0"
-const labels = [unksym, startsym, endsym, collect(map(string, 1:V))...]
+const wmt14 = WMT.GoogleWMT()
+const word_counts = get_vocab(wmt14)
 
-const textenc = Basic.TransformerTextEncoder(split, labels; startsym, endsym, unksym, padsym = unksym)
+const startsym = "<s>"
+const endsym = "</s>"
+const unksym = "</unk>"
+const labels = [unksym; startsym; endsym; collect(keys(word_counts))]
 
-function gen_data()
-    global V
-    d = join(rand(1:V, 10), ' ')
-    (d,d)
-end
+const textenc = Basic.TransformerTextEncoder(split, labels; startsym, endsym, unksym,
+                                             padsym = unksym, trunc = MaxLen)
 
-function preprocess(data)
+function preprocess(batch)
     global textenc
-    x, t = data
-    x, x_mask = encode(textenc, x)
-    t, t_mask = encode(textenc, t)
+    x, x_mask = encode(textenc, batch[1])
+    t, t_mask = encode(textenc, batch[2])
     todevice(x,t,x_mask,t_mask)
 end
 
 function train!()
-    global Batch
+    global Epoch, Batch
     println("start training")
     model = (embed=embed, encoder=encoder, decoder=decoder)
-    for i = 1:320*7
-        data = batched([gen_data() for i = 1:Batch])
-        x, t, x_mask, t_mask = preprocess(data)
-        grad = gradient(ps) do
-            l = loss(model, x, t, x_mask, t_mask)
-            l
+    i = 1
+    for e = 1:Epoch
+        datas = dataset(Train, wmt14)
+        while (batch = get_batch(datas, Batch)) |> !isempty
+            x, t, x_mask, t_mask = preprocess(batch)
+            grad = gradient(ps) do
+                loss(model, x, t, x_mask, t_mask)
+            end
+            i+=1
+            i%8 == 0 && @show loss(model, x, t, x_mask, t_mask)
+            update!(opt, ps, grad)
         end
-        i%8 == 0 && @show loss(model, x, t, x_mask, t_mask)
-        update!(opt, ps, grad)
     end
+    return model
 end
 
 const embed = todevice(Embed(512, length(textenc.vocab); scale=inv(sqrt(512))))
@@ -57,7 +60,7 @@ const embed = todevice(Embed(512, length(textenc.vocab); scale=inv(sqrt(512))))
 const encoder = todevice(Stack(
     @nntopo(e → pe:(e, pe) → x → x → $N),
     PositionEmbedding(512),
-    (e, pe) -> e .+ pe,
+    .+,
     Dropout(0.1),
     [Transformer(512, 8, 64, 2048) for i = 1:N]...
 ))
@@ -65,7 +68,7 @@ const encoder = todevice(Stack(
 const decoder = todevice(Stack(
     @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
     PositionEmbedding(512),
-    (e, pe) -> e .+ pe,
+    .+,
     Dropout(0.1),
     [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
     Positionwise(Dense(512, length(textenc.vocab)), logsoftmax)
