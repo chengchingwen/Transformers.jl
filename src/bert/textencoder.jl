@@ -25,6 +25,77 @@ TextEncodeBase.splitting(::ParentStages, t::WordPieceTokenization, w::WordStage)
 
 # encoder
 
+"""
+    struct BertTextEncoder{T<:AbstractTokenizer,
+                           V<:AbstractVocabulary{String},
+                           P} <: AbstractTextEncoder
+      tokenizer::T
+      vocab::V
+      process::P
+      startsym::String
+      endsym::String
+      trunc::Union{Nothing, Int}
+    end
+
+The text encoder for Bert model. Taking a tokenizer, vocabulary, and a processing function, configured with
+ a start symbol, an end symbol, and a maximum length.
+
+    BertTextEncoder(bert_tokenizer, wordpiece, process;
+                    startsym = "[CLS]", endsym = "[SEP]", trunc = nothing)
+
+There are two tokenizer supported (`bert_cased_tokenizer` and `bert_uncased_tokenizer`).
+ `process` can be omitted, then a predefined processing pipeline will be used.
+
+
+    BertTextEncoder(f, bertenc::BertTextEncoder)
+
+Take a bert text encoder and create a new bert text encoder with same configuration except the processing function.
+ `f` is a function that take the encoder and return a new process function. This is useful for changing part of
+ the procssing function.
+
+# Example
+
+```julia-repl
+julia> wordpiece = pretrain"bert-cased_L-12_H-768_A-12:wordpiece"
+[ Info: loading pretrain bert model: cased_L-12_H-768_A-12.tfbson wordpiece
+WordPiece(vocab_size=28996, unk=[UNK], max_char=200)
+
+julia> bertenc = BertTextEncoder(BidirectionalEncoder.bert_cased_tokenizer, wordpiece; trunc=5)
+BertTextEncoder(
+├─ TextTokenizer(WordPieceTokenization(bert_cased_tokenizer, WordPiece(vocab_size=28996, unk=[UNK], max_char=200))),
+├─ vocab = Vocab{String, SizedArray}(size = 28996, unk = [UNK], unki = 101),
+├─ startsym = [CLS],
+├─ endsym = [SEP],
+├─ trunc = 5,
+└─ process = Pipelines:
+  ╰─ target[tok] := nestedcall(string_getvalue, source)
+  ╰─ target[tok] := with_firsthead_tail([CLS], [SEP])(target.tok)
+  ╰─ target[(tok, segment)] := segment_and_concat(target.tok)
+  ╰─ target[mask] := getmask(target.tok)
+  ╰─ target[tok] := (nested2batch ∘ trunc_and_pad(5, [UNK]))(target.tok)
+  ╰─ target[segment] := (nested2batch ∘ trunc_and_pad(5, 1))(target.segment)
+  ╰─ target[input] := build_input(source, target)
+  ╰─ target := (target.input, target.mask)
+)
+
+# take the first 3 pipeline and get the result
+julia> BertTextEncoder(bertenc) do enc
+           Pipelines(enc.process[1:3]) |> PipeGet{(:tok, :segment)}()
+       end
+BertTextEncoder(
+├─ TextTokenizer(WordPieceTokenization(bert_cased_tokenizer, WordPiece(vocab_size=28996, unk=[UNK], max_char=200))),
+├─ vocab = Vocab{String, SizedArray}(size = 28996, unk = [UNK], unki = 101),
+├─ startsym = [CLS],
+├─ endsym = [SEP],
+└─ process = Pipelines:
+  ╰─ target[tok] := nestedcall(string_getvalue, source)
+  ╰─ target[tok] := with_firsthead_tail([CLS], [SEP])(target.tok)
+  ╰─ target[(tok, segment)] := segment_and_concat(target.tok)
+  ╰─ target := (target.tok, target.segment)
+)
+
+```
+"""
 struct BertTextEncoder{T<:AbstractTokenizer,
                        V<:AbstractVocabulary{String},
                        P} <: AbstractTextEncoder
@@ -60,13 +131,25 @@ function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary; kws.
     enc = BertTextEncoder(tkr, vocab, TextEncodeBase.process(AbstractTextEncoder); kws...)
     # default processing pipelines for bert encoder
     return BertTextEncoder(enc) do e
+        # get token and convert to string
         Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
+            # add start & end symbol
             Pipeline{:tok}(with_firsthead_tail(e.startsym, e.endsym), :tok) |>
+            # compute segment and merge sentences
             Pipeline{(:tok, :segment)}(segment_and_concat, :tok) |>
-            Pipeline{:mask}(getmask, :tok) |>
-            Pipeline{:tok}(nested2batch∘trunc_and_pad(e.trunc, e.vocab.unk), :tok) |>
+            # truncate input that exceed length limit and pad them to have equal length
+            Pipeline{:trunc_tok}(trunc_and_pad(e.trunc, e.vocab.unk), :tok) |>
+            # get the truncated length
+            Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok) |>
+            # get mask with specific length
+            Pipeline{:mask}(getmask, (:tok, :trunc_len)) |>
+            # convert to dense array
+            Pipeline{:tok}(nested2batch, :trunc_tok) |>
+            # truncate & pad segment
             Pipeline{:segment}(nested2batch∘trunc_and_pad(e.trunc, 1), :segment) |>
-            Pipeline{:input}(build_input) |>
+            # input namedtuple
+            Pipeline{:input}(NamedTuple{(:tok, :segment)}∘tuple, (:tok, :segment)) |>
+            # return input and mask
             PipeGet{(:input, :mask)}()
     end
 end

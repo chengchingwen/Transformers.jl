@@ -10,6 +10,7 @@ using TextEncodeBase
 using ..Basic
 using ..Pretrain: isbson, iszip, istfbson, zipname, zipfile, findfile
 export Bert, load_bert_pretrain, bert_pretrain_task, masklmloss
+export BertTextEncoder, bert_cased_tokenizer, bert_uncased_tokenizer
 
 include("bert.jl")
 include("tfckpt2bson.jl")
