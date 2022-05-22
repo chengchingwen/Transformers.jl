@@ -24,22 +24,6 @@ end
 const args = parse_commandline()
 
 enable_gpu(args["gpu"])
-if args["gpu"]
-    @generated function todevice(x::T) where {T <: AbstractArray}
-        _R = Core.Compiler.return_type(Flux.CUDA.cu, Tuple{x})
-        R = if _R isa Union
-            T == _R.a ? _R.b : _R.a
-        else
-            _R
-        end
-        return :(gpu(x)::$R)
-    end
-    todevice(x) = gpu(x)
-    todevice(x...) = map(todevice, x)
-else
-    todevice(x) = x
-    todevice(x...) = x
-end
 
 const task = args["task"]
 

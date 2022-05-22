@@ -1,8 +1,5 @@
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
-CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
-NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
-TextEncodeBase = "f92c20c0-9f2a-4705-8116-881385faba05"
 Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
 WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"

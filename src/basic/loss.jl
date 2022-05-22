@@ -1,7 +1,7 @@
 "compute the kl divergence with mask where p is already the log(p)"
-logkldivergence(q::Abstract3DTensor{T},
+logkldivergence(q::Abstract3DTensor{L},
                 logp::Abstract3DTensor{T},
-                mask) where T =
+                mask) where {T, L<:Union{Bool, T}} =
                     sum(reshape(sum(sum(q .* (log.(q .+ epsilon(T)) .- logp); dims=1) .* mask; dims=2), :) ./ reshape(sum(mask; dims=2), :))
 
 function logkldivergence(q, logp, mask)
@@ -10,9 +10,9 @@ function logkldivergence(q, logp, mask)
 end
 
 "compute the cross entropy with mask where p is already the log(p)"
-logcrossentropy(q::Abstract3DTensor{T},
+logcrossentropy(q::Abstract3DTensor{L},
                 logp::Abstract3DTensor{T},
-                mask) where T =
+                mask) where {T, L<:Union{Bool, T}} =
                     -sum(reshape(sum(sum(q .* logp; dims=1) .* mask; dims=2), :) ./ reshape(sum(mask; dims=2), :))
 
 function logcrossentropy(q, logp, mask)
@@ -21,8 +21,8 @@ function logcrossentropy(q, logp, mask)
 end
 
 "compute the kl divergence where p is already the log(p)"
-logkldivergence(q::Abstract3DTensor{T},
-                logp::Abstract3DTensor{T}) where T =
+logkldivergence(q::Abstract3DTensor{L},
+                logp::Abstract3DTensor{T}) where {T, L<:Union{Bool, T}} =
                     sum(reshape(sum(sum(q .* (log.(q .+ epsilon(T)) .- logp); dims=1); dims=2), :) ./ size(q, 2))
 
 function logkldivergence(q, logp::AbstractArray{T}) where T
@@ -31,8 +31,8 @@ function logkldivergence(q, logp::AbstractArray{T}) where T
 end
 
 "compute the cross entropy where p is already the log(p)"
-logcrossentropy(q::Abstract3DTensor{T},
-                logp::Abstract3DTensor{T}) where T =
+logcrossentropy(q::Abstract3DTensor{L},
+                logp::Abstract3DTensor{T}) where {T, L<:Union{Bool, T}} =
                     -sum(reshape(sum(sum(q .* logp; dims=1); dims=2), :) ./ size(q, 2))
 
 function logcrossentropy(q, logp::AbstractArray{T}) where T

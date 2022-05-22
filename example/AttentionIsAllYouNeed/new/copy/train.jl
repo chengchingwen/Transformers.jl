@@ -2,9 +2,6 @@ using Flux
 using Flux: gradient, onehot
 import Flux.Optimise: update!
 
-using WordTokenizers
-using TextEncodeBase
-
 using Transformers
 using Transformers.Basic
 using Transformers.Datasets

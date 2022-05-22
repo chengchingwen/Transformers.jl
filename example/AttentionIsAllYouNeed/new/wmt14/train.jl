@@ -2,19 +2,16 @@ using Flux
 using Flux: gradient, onehot
 import Flux.Optimise: update!
 
-using WordTokenizers
-using TextEncodeBase
-
 using Transformers
 using Transformers.Basic
 using Transformers.Datasets
 using Transformers.Datasets: WMT
 
-const N = 6
-const Smooth = 0.4
+const N = 1
+const Smooth = 0.1
 const Epoch = 1
-const Batch = 8
-const lr = 1e-6
+const Batch = 32
+const lr = 1e-5
 const MaxLen = 100
 
 const wmt14 = WMT.GoogleWMT()
@@ -42,7 +39,7 @@ function train!()
     i = 1
     for e = 1:Epoch
         datas = dataset(Train, wmt14)
-        while (batch = get_batch(datas, Batch)) |> !isempty
+        while (batch = get_batch(datas, Batch)) |> !isnothing
             x, t, x_mask, t_mask = preprocess(batch)
             grad = gradient(ps) do
                 loss(model, x, t, x_mask, t_mask)

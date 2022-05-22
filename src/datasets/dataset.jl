@@ -76,12 +76,12 @@ get_vocab(::D, args...; kwargs...) where D <: Dataset = (println("No prebuild vo
 
 get_labels(::D, args...; kwargs...) where D <: Dataset = (println("Labels unknown"); nothing)
 
-
-function token_freq(files...; vocab::Dict{String, Int} = Dict{String,Int}(), min_freq::Int = 3)
+token_freq(files::AbstractString...; kws...) = token_freq(tokenize, files...; kws...)
+function token_freq(tokenizef, files::AbstractString...; vocab::Dict{String, Int} = Dict{String,Int}(), min_freq::Int = 3)
     for f ∈ files
         open(f) do fd
             for line ∈ eachline(fd)
-                for token ∈ tokenize(line)
+                for token ∈ tokenizef(line)
                     token = intern(token)
                     vocab[token] = get(vocab, token, 0) + 1
                 end

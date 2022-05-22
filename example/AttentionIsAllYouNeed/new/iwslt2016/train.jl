@@ -3,29 +3,28 @@ using Flux: gradient, onehot
 import Flux.Optimise: update!
 
 using WordTokenizers
-using TextEncodeBase
 
 using Transformers
 using Transformers.Basic
 using Transformers.Datasets
 using Transformers.Datasets: IWSLT
 
-const N = 6
-const Smooth = 0.4
+const N = 1
+const Smooth = 0.1
 const Epoch = 1
-const Batch = 8
-const lr = 1e-6
+const Batch = 32
+const lr = 1e-5
 const MaxLen = 100
 
 const iwslt2016 = IWSLT.IWSLT2016(:en, :de)
-const word_counts = get_vocab(iwslt2016)
+const word_counts = get_vocab(iwslt2016; tokenize=tokenize∘lowercase)
 
 const startsym = "<s>"
 const endsym = "</s>"
 const unksym = "</unk>"
 const labels = [unksym; startsym; endsym; collect(keys(word_counts))]
 
-const textenc = Basic.TransformerTextEncoder(labels; startsym, endsym, unksym,
+const textenc = Basic.TransformerTextEncoder(tokenize∘lowercase, labels; startsym, endsym, unksym,
                                              padsym = unksym, trunc = MaxLen)
 
 function preprocess(batch)
@@ -41,14 +40,15 @@ function train!()
     model = (embed=embed, encoder=encoder, decoder=decoder)
     i = 1
     for e = 1:Epoch
+        println("epoch: ", e)
         datas = dataset(Train, iwslt2016)
-        while (batch = get_batch(datas, Batch)) |> !isempty
+        while (batch = get_batch(datas, Batch)) |> !isnothing
             x, t, x_mask, t_mask = preprocess(batch)
             grad = gradient(ps) do
                 loss(model, x, t, x_mask, t_mask)
             end
             i+=1
-            i%8 == 0 && @show loss(model, x, t, x_mask, t_mask)
+            i%16 == 0 && @show loss(model, x, t, x_mask, t_mask)
             update!(opt, ps, grad)
         end
     end
