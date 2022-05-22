@@ -17,7 +17,7 @@ end
 composite several embedding into one embedding according the aggregate methods and apply `postprocessor` on it.
 """
 function CompositeEmbedding(;postprocessor=identity, es...)
-  eas = es.data
+  eas = values(es)
   emb = map(x-> x isa Tuple ? x[1] : x, eas)
   agg = map(x-> x isa Tuple ? x[2] : +, eas)
   CompositeEmbedding(emb, agg, postprocessor)
@@ -58,7 +58,7 @@ _repeatdims(bs, vs) = ntuple(i -> i > length(vs) ? bs[i] : 1, length(vs))
 @inline aggregate(e::Eb, f::typeof(vcat), base::A, value::A2) where {T, A <: AbstractArray{T}, A2 <: AbstractArray{T}, Eb <: AbstractBroadcastEmbed{T}} = vcat(base, repeat(value, _repeatdims(size(base), size(value))...))
 @inline aggregate(e::Eb, f::typeof(hcat), base::A, value::A2) where {T, A <: AbstractArray{T}, A2 <: AbstractArray{T}, Eb <: AbstractBroadcastEmbed{T}} = hcat(base, repeat(value, _repeatdims(size(base), size(value))...))
 
-(ce::CompositeEmbedding)(;xs...) = ce(xs.data)
+(ce::CompositeEmbedding)(;xs...) = ce(values(xs))
 function (ce::CompositeEmbedding{F, T1, T2, P})(xs::NamedTuple) where {F, T1, T2, P}
     names = keys(ce.embeddings)
     firstname = first(names)
