@@ -1,4 +1,3 @@
-using ..Transformers: Container
 using ..Basic: string_getvalue, check_vocab, TextTokenizer
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, nested2batch, nestedcall
@@ -60,7 +59,7 @@ julia> wordpiece = pretrain"bert-cased_L-12_H-768_A-12:wordpiece"
 [ Info: loading pretrain bert model: cased_L-12_H-768_A-12.tfbson wordpiece
 WordPiece(vocab_size=28996, unk=[UNK], max_char=200)
 
-julia> bertenc = BertTextEncoder(BidirectionalEncoder.bert_cased_tokenizer, wordpiece; trunc=5)
+julia> bertenc = BertTextEncoder(bert_cased_tokenizer, wordpiece; trunc=5)
 BertTextEncoder(
 ├─ TextTokenizer(WordPieceTokenization(bert_cased_tokenizer, WordPiece(vocab_size=28996, unk=[UNK], max_char=200))),
 ├─ vocab = Vocab{String, SizedArray}(size = 28996, unk = [UNK], unki = 101),
@@ -71,10 +70,12 @@ BertTextEncoder(
   ╰─ target[tok] := nestedcall(string_getvalue, source)
   ╰─ target[tok] := with_firsthead_tail([CLS], [SEP])(target.tok)
   ╰─ target[(tok, segment)] := segment_and_concat(target.tok)
-  ╰─ target[mask] := getmask(target.tok)
-  ╰─ target[tok] := (nested2batch ∘ trunc_and_pad(5, [UNK]))(target.tok)
-  ╰─ target[segment] := (nested2batch ∘ trunc_and_pad(5, 1))(target.segment)
-  ╰─ target[input] := build_input(source, target)
+  ╰─ target[trunc_tok] := trunc_and_pad(nothing, [UNK])(target.tok)
+  ╰─ target[trunc_len] := nestedmaxlength(target.trunc_tok)
+  ╰─ target[mask] := getmask(target.tok, target.trunc_len)
+  ╰─ target[tok] := nested2batch(target.trunc_tok)
+  ╰─ target[segment] := (nested2batch ∘ trunc_and_pad(nothing, 1))(target.segment)
+  ╰─ target[input] := (NamedTuple{(:tok, :segment)} ∘ tuple)(target.tok, target.segment)
   ╰─ target := (target.input, target.mask)
 )
 
@@ -161,7 +162,7 @@ BertTextEncoder(builder, e::BertTextEncoder) =
 
 TextEncodeBase.tokenize(e::BertTextEncoder, x::AbstractString) = e.tokenizer(Sentence(x))
 TextEncodeBase.tokenize(e::BertTextEncoder, x::Vector{<:AbstractString}) = e.tokenizer(Batch{Sentence}(x))
-TextEncodeBase.tokenize(e::BertTextEncoder, x::Vector{<:Container{<:AbstractString}}) = e.tokenizer(Batch{Batch{Sentence}}(x))
+TextEncodeBase.tokenize(e::BertTextEncoder, x::Vector{<:Vector{<:AbstractString}}) = e.tokenizer(Batch{Batch{Sentence}}(x))
 
 function TextEncodeBase.lookup(e::BertTextEncoder, x::NamedTuple)
     onehot_tok = lookup(e.vocab, x.input.tok)

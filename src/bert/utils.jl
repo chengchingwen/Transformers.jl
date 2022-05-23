@@ -46,15 +46,15 @@ Compute the segment for input of bert. If input have multiple segment, concate e
  an array of 1.
 =#
 segment_and_concat(tok::AbstractVector) = map(segment_and_concat, tok)
-segment_and_concat(tok::AbstractVector{<:AbstractString}) = tok, ones(Float32, length(tok))
+segment_and_concat(tok::AbstractVector{<:AbstractString}) = tok, ones(Int, length(tok))
 segment_and_concat(tok::AbstractVector{<:AbstractVector{<:AbstractString}}) = tok, map(t->segment_and_concat(t)[2], tok)
 function segment_and_concat(tok::AbstractVector{<:AbstractVector{<:AbstractVector{T}}}) where T<:AbstractString
     N = length(tok)
-    segments = Vector{Vector{Float32}}(undef, N); empty!(segments)
+    segments = Vector{Vector{Int}}(undef, N); empty!(segments)
     toks = Vector{Vector{T}}(undef, N); empty!(toks)
     for doc in tok
         n = sum(length, doc)
-        segment = Vector{Float32}(undef, n)
+        segment = Vector{Int}(undef, n)
         words = Vector{T}(undef, n)
         offset = 1
         for (i, sent) in enumerate(doc)
