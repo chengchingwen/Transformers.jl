@@ -165,10 +165,86 @@ TextEncodeBase.tokenize(e::BertTextEncoder, x::Vector{<:AbstractString}) = e.tok
 TextEncodeBase.tokenize(e::BertTextEncoder, x::Vector{<:Vector{<:AbstractString}}) = e.tokenizer(Batch{Batch{Sentence}}(x))
 
 function TextEncodeBase.lookup(e::BertTextEncoder, x::NamedTuple)
-    onehot_tok = lookup(e.vocab, x.input.tok)
+    onehot_tok = lookup(e, x.input.tok)
     input = merge(x.input, (tok = onehot_tok,))
     return merge(x, (input = input,))
 end
+
+# api doc
+
+"""
+    encode(::BertTextEncoder, ::String)
+
+Encode a single sentence with bert text encoder. The default pipeline returning
+ `@NamedTuple{input::@NamedTuple{tok::OneHotArray{K, 2}, segment::Vector{Int}}, mask::Nothing}`
+
+    encode(::BertTextEncoder, ::Vector{String})
+
+Encode a batch of sentences with bert text encoder. The default pipeline returning
+ `@NamedTuple{input::@NamedTuple{tok::OneHotArray{K, 3}, segment::Matrix{Int}}, mask::Array{Float32, 3}}`
+
+    encode(::BertTextEncoder, ::Vector{Vector{String}})
+
+Encode a batch of segments with bert text encoder. The default pipeline returning
+ `@NamedTuple{input::@NamedTuple{tok::OneHotArray{K, 3}, segment::Matrix{Int}}, mask::Array{Float32, 3}}`
+
+See also: [`decode`](@ref)
+
+# Example
+```julia-repl
+julia> wordpiece = pretrain"bert-cased_L-12_H-768_A-12:wordpiece";
+[ Info: loading pretrain bert model: cased_L-12_H-768_A-12.tfbson wordpiece
+
+julia> bertenc = BertTextEncoder(bert_cased_tokenizer, wordpiece);
+
+julia> e = encode(bertenc, [["this is a sentence", "and another"]])
+(input = (tok = [0 0 … 0 0; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0;;;], segment = [1; 1; … ; 2; 2;;]), mask = [1.0 1.0 … 1.0 1.0;;;])
+
+julia> typeof(e)
+NamedTuple{(:input, :mask), Tuple{NamedTuple{(:tok, :segment), Tuple{OneHotArray{0x00007144, 2, 3, Matrix{OneHot{0x00007144}}}, Matrix{Int64}}}, Array{Float32, 3}}}
+
+```
+"""
+TextEncodeBase.encode(::BertTextEncoder, _)
+
+"""
+    decode(bertenc::BertTextEncoder, x)
+
+Equivalent to `lookup(bertenc.vocab, x)`.
+
+See also: [`encode`](@ref)
+
+# Example
+```julia-repl
+julia> tok = encode(bertenc, [["this is a sentence", "and another"]]).input.tok;
+
+julia> decode(bertenc, tok)
+9×1 Matrix{String}:
+ "[CLS]"
+ "this"
+ "is"
+ "a"
+ "sentence"
+ "[SEP]"
+ "and"
+ "another"
+ "[SEP]"
+
+julia> lookup(bertenc.vocab, tok)
+9×1 Matrix{String}:
+ "[CLS]"
+ "this"
+ "is"
+ "a"
+ "sentence"
+ "[SEP]"
+ "and"
+ "another"
+ "[SEP]"
+
+```
+"""
+TextEncodeBase.decode(::BertTextEncoder, _)
 
 # pretty print
 
