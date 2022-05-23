@@ -33,26 +33,35 @@ get the ϵ value in type T
 epsilon(::Type{T}) where T = convert(T, ϵ[])
 
 using CUDA
-const has_cuda = Ref(false)
-const use_cuda = Ref(false)
 
 """
   enable_gpu(t=true)
 
-enable gpu for todevice, disable with `enable_gpu(false)`.
+enable gpu for `todevice`, disable with `enable_gpu(false)`.
 """
-enable_gpu(t::Bool=true) = !has_cuda[] && t ? error("CUDA not functional") : (use_cuda[] = t)
+function enable_gpu(t::Bool=true)
+    if t
+        CUDA.functional() || error("CUDA not functional")
+        @eval todevice(args...) = togpudevice(args...)
+    else
+        @eval todevice(args...) = tocpudevice(args...)
+    end
+end
 
 """
   todevice(x)
 
 move data to device, only when gpu is enable with `enable_gpu`, basically equal `Flux.gpu` except `AbstractArray{Int}` become `CuArray{Int}`. Otherwise equal `Flux.cpu`
 """
-todevice(args...) = use_cuda[] ? togpudevice(args...) : tocpudevice(args...)
+todevice(args...) = tocpudevice(args...)
 
 tocpudevice(x) = cpu(x)
-tocpudevice(x, xs...) = (x, map(cpu, xs)...)
-togpudevice(x...) = error("CUDA not functional")
+tocpudevice(x, xs...) = (tocpudevice(x), map(tocpudevice, xs)...)
+
+@generated function tocpudevice(x::T) where T <: AbstractArray
+    R = Core.Compiler.return_type(Flux.adapt, Tuple{Type{Array}, x})
+    return :(cpu(x)::$R)
+end
 
 #implement batchmul, batchtril for flux
 include("./fix/batchedmul.jl")
@@ -69,6 +78,8 @@ include("./bert/BidirectionalEncoder.jl")
 
 include("./huggingface/HuggingFace.jl")
 
+include("cuda/cuda.jl")
+
 using .Basic
 using .Stacks
 using .Datasets
@@ -77,21 +88,6 @@ using .GenerativePreTrain
 using .BidirectionalEncoder
 
 using .HuggingFace
-
-function __init__()
-  precompiling = ccall(:jl_generating_output, Cint, ()) != 0
-
-  # we don't want to include the CUDA module when precompiling,
-  # or we could end up replacing it at run time (triggering a warning)
-  precompiling && return
-
-  if !CUDA.functional()
-    # nothing to do here, and either CUDA or one of its dependencies will have warned
-  else
-    has_cuda[] = true
-    include(joinpath(@__DIR__, "cuda/cuda.jl"))
-  end
-end
 
 
 end # module

@@ -127,10 +127,10 @@ devfile(iw::IWSLT2016, year=2010; tedx = false) = tunefile(iw, true, year; tedx=
 testfile(iw::IWSLT2016, year=2010; tedx = false) = tunefile(iw, false, year; tedx=tedx)
 
 
-function get_vocab(iw::IWSLT2016; mode = :vocab, min_freq = 7)
+function get_vocab(iw::IWSLT2016; mode = :vocab, min_freq = 7, tokenize = tokenize)
     if mode == :vocab
         sf, rf = trainfile(iw)
-        vocab = token_freq(sf, rf; min_freq = min_freq)
+        vocab = token_freq(tokenize, sf, rf; min_freq = min_freq)
 
         return vocab
     else

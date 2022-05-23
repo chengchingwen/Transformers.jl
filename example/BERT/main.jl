@@ -1,4 +1,7 @@
 using ArgParse
+using Transformers
+
+ENV["DATADEPS_ALWAYS_ACCEPT"] = true
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -19,3 +22,7 @@ end
 const args = parse_commandline()
 
 enable_gpu(args["gpu"])
+
+const task = args["task"]
+
+include(joinpath(@__DIR__, task, "train.jl"))

@@ -14,7 +14,7 @@ Base.size(e::Embed, s...) = size(e.embedding, s...)
 
 Embed(size::Int, vocab_size::Int; scale = one(Float32)) = Embed(Float32(scale), randn(Float32, size, vocab_size))
 
-function (e::Embed)(x::AbstractArray{Int})
+function (e::Embed)(x)
     if isone(e.scale)
         gather(e.embedding, x)
     else

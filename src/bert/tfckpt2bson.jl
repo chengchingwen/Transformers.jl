@@ -6,7 +6,7 @@ using ZipFile
 using Flux: loadparams!
 
 function named2tokenizer(name)
-  if occursin("uncased", name)
+  if occursin("uncased", name) || name == "multilingual"
     return bert_uncased_tokenizer
   else
     return bert_cased_tokenizer
@@ -134,7 +134,7 @@ function get_activation(act_string)
     end
 end
 
-_create_classifier(;args...) = args.data
+_create_classifier(;args...) = values(args)
 
 load_bert_from_tfbson(path::AbstractString) = (@assert istfbson(path); load_bert_from_tfbson(BSON.load(path)))
 load_bert_from_tfbson(bson) = load_bert_from_tfbson(bson[:config], bson[:weights])

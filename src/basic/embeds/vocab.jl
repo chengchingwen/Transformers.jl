@@ -1,47 +1,40 @@
+using TextEncodeBase
+using TextEncodeBase: trunc_and_pad, nested2batch
+import TextEncodeBase: encode, decode
+
 """
     Vocabulary{T}(voc::Vector{T}, unk::T) where T
 
 struct for holding the vocabulary list to encode/decode input tokens.
 """
-struct Vocabulary{T}
-    siz::Int
-    list::Vector{T}
-    unk::T
-    unki::Int
-    function Vocabulary(voc::Vector{T}, unk::T) where T
-        if !(unk ∈ voc)
-            pushfirst!(voc, unk)
-            unki = 1
-        else
-            unki = findfirst(isequal(unk), voc)
-        end
-
-        new{T}(length(voc), voc, unk, unki)
-    end
+struct Vocabulary{T, V<:Vocab{T}} <: AbstractVocabulary{T}
+    vocab::V
 end
 
-Base.length(vocab::Vocabulary) = vocab.siz
+function Vocabulary(list::Vector{T}, unk::T) where T
+    if unk ∉ list
+        pushfirst!(list, unk)
+    end
+    return Vocabulary(Vocab(list, unk))
+end
+
+Base.length(vocab::Vocabulary) = length(vocab.vocab)
 Base.getindex(vocab::Vocabulary, is) = decode(vocab, is)
 Base.getindex(vocab::Vocabulary, i, is...) = (decode(vocab, i), map(i->decode(vocab, i), is)...)
+
+check_vocab(vocab::Vocabulary, word) = check_vocab(vocab.vocab, word)
+check_vocab(vocab::Vocab, word) = findfirst(==(word), vocab.list) !== nothing
 
 """
     encode(vocab::Vocabulary, x)
 
 encode the given data to the index encoding.
 """
-encode(vocab::Vocabulary{T}, i::Union{T,W}) where {T,W} = something(findfirst(isequal(i), vocab.list), vocab.unki)
-
-encode(vocab::Vocabulary{T}, xs::Container{<:Union{T,W}}) where {T,W} = indices = map(x->encode(vocab, x), xs)
+encode(vocab::Vocabulary, i) = lookup(Int, vocab.vocab, i)
+encode(vocab::Vocabulary, i, is...) = (encode(vocab, i), map(Base.Fix1(encode, vocab), is)...)
 
 function encode(vocab::Vocabulary{T}, xs::Container{<:Container{<:Union{T,W}}}) where {T,W}
-    lens = map(length, xs)
-    indices = fill(vocab.unki, maximum(lens), length(xs))
-    for (i, x) ∈ enumerate(xs)
-        for (j, xi) ∈ enumerate(x)
-            @inbounds indices[j, i] = encode(vocab, xi)
-        end
-    end
-    indices
+    nested2batch(trunc_and_pad(lookup(Int, vocab.vocab, xs), nothing, vocab.vocab.unki))
 end
 
 """
@@ -49,37 +42,21 @@ end
 
 encode the given data to the index encoding.
 """
-(vocab::Vocabulary)(x) = encode(vocab, x)
-(vocab::Vocabulary)(x, xs...) = (encode(vocab, x), map(x->encode(vocab, x), xs)...)
+(vocab::Vocabulary)(xs...) = encode(vocab, xs...)
 
-decode(vocab::Vocabulary{T}, i::Int) where T = 0 <= i <= length(vocab) ? vocab.list[i] : vocab.unk
+decode(vocab::Vocabulary, i) = lookup(String, vocab.vocab, i)
 
-decode(vocab::Vocabulary{T}, is::Container{Int}) where T = map(i->decode(vocab, i), is)
-
-function decode(vocab::Vocabulary{T}, is::Container{<:Container{Int}}) where T
-    tokens = Vector{Vector{T}}(undef, length(is))
-    for (idx, i) ∈ enumerate(is)
-        token = decode(vocab, i)
-        tokens[idx] = token
-    end
-    tokens
-end
-
-function decode(vocab::Vocabulary{T}, is::AbstractMatrix{Int}) where T
-    ilen, olen = size(is)
-    tokens = Vector{Vector{T}}(undef, olen)
+function decode(vocab::Vocabulary, is::AbstractMatrix{Int})
+    olen = size(is, 2)
+    tokens = Vector{Vector{eltype(vocab)}}(undef, olen)
     for idx ∈ 1:olen
-        token = Vector{T}(undef, ilen)
-        for idy ∈ 1:ilen
-            token[idy] = decode(vocab, is[idy, idx])
-        end
-        tokens[idx] = token
+        tokens[idx] = lookup(String, vocab.vocab, @view is[begin:end, idx])
     end
     tokens
 end
 
 Base.eltype(v::Vocabulary{T}) where T = T
-Base.show(io::IO, v::Vocabulary) = print(io, "Vocabulary{$(eltype(v))}($(v.siz), unk=$(v.unk))")
+Base.show(io::IO, v::Vocabulary) = print(io, "Vocabulary{$(eltype(v))}($(length(v)), unk=$(v.vocab.unk))")
 
 function Flux.onehot(v::Vocabulary, x)
   vt = eltype(v)
@@ -107,15 +84,18 @@ end) |> Base.Fix2(reshape, Base.tail(size(p))) |> collect
 
 get the mask for batched data.
 """
-function getmask(ls::Container{<:Container})
-    lens = map(length, ls)
-    m = zeros(Float32, maximum(lens), length(lens))
+function getmask(ls::Container{<:Container}, n::Integer)
+    m = zeros(Float32, n, length(ls))
 
     for (i, l) ∈ enumerate(ls)
-        selectdim(selectdim(m, 2, i), 1, 1:length(l)) .= 1
+        selectdim(selectdim(m, 2, i), 1, 1:min(length(l), n)) .= 1
     end
     reshape(m, (1, size(m)...))
 end
+
+getmask(ls::Container{<:Container}) = getmask(ls, maximum(length, ls))
+getmask(v::Vector) = nothing
+getmask(v::Vector, n::Integer) = nothing
 
 """
     getmask(m1::A, m2::A) where A <: Abstract3DTensor
