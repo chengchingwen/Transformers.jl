@@ -59,7 +59,7 @@ const embed = todevice(Embed(512, length(textenc.vocab); scale=inv(sqrt(512))))
 
 const encoder = todevice(Stack(
     @nntopo(e → pe:(e, pe) → x → x → $N),
-    PositionEmbedding(512),
+    PositionEmbedding(512, 100; trainable=true),
     .+,
     Dropout(0.1),
     [Transformer(512, 8, 64, 2048) for i = 1:N]...
@@ -67,7 +67,7 @@ const encoder = todevice(Stack(
 
 const decoder = todevice(Stack(
     @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
-    PositionEmbedding(512),
+    PositionEmbedding(512, 100; trainable=true),
     .+,
     Dropout(0.1),
     [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
