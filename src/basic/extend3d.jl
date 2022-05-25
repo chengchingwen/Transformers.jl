@@ -31,13 +31,14 @@ just like `Flux.Chain`, but reshape input to 2d and reshape back when output. Wo
 """
 struct Positionwise{T<:Tuple}
     models::T
-    Positionwise(xs...) = new{typeof(xs)}(xs)
 end
+
+Positionwise(xs...) = Positionwise(xs)
 
 @forward Positionwise.models Base.getindex, Base.length, Base.first, Base.last,
   Base.iterate, Base.lastindex
 
-Flux.functor(pw::Positionwise) = pw.models, m -> Positionwise(m...)
+@functor Positionwise
 
 (pw::Positionwise)(x::A) where A <: AbstractMatrix = applychain(pw.models, x)
 function (pw::Positionwise)(x)

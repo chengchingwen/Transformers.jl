@@ -64,7 +64,7 @@ end
 function Base.show(io::IO, model::TransformerModel)
     tabchar = "  "
     print(io, "TransformerModel{")
-    print(io, typeof(model.transformers))
+    print(io, nameof(typeof(model.transformers)))
     print(io, "}(\n$(tabchar)")
     print(io, "embed = ")
     print(io, model.embed)

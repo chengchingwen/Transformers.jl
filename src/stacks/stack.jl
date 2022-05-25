@@ -1,4 +1,5 @@
 using Flux
+using Flux: @functor
 using MacroTools: @forward, postwalk
 
 """
@@ -6,15 +7,16 @@ using MacroTools: @forward, postwalk
 
 like Flux.Chain, but you can use a NNTopo to define the order/structure of the function called.
 """
-struct Stack{T<:Tuple, FS}
-    models::T
+struct Stack{FS, T<:Tuple}
     topo::NNTopo{FS}
-    Stack(topo::NNTopo{FS}, xs...) where FS = new{typeof(xs), FS}(xs, topo)
+    models::T
 end
 
-Flux.functor(s::Stack) = s.models, m -> Stack(s.topo, m...)
+Stack(topo::NNTopo{FS}, xs...) where FS = Stack{FS, typeof(xs)}(topo, xs)
 
-@generated function (s::Stack{TP, FS})(xs...) where {TP, FS}
+@functor Stack
+
+@generated function (s::Stack{FS, TP})(xs...) where {FS, TP}
     _code = nntopo_impl(FS)
     n = fieldcount(TP)
     ms = [Symbol(:__model, i, :__) for i = 1:n]

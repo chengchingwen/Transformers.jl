@@ -1,6 +1,7 @@
 module Basic
 
 using Flux
+using Flux: @functor
 using Requires
 using Requires: @init
 

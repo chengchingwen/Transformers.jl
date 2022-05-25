@@ -10,7 +10,9 @@ mutable struct PositionEmbedding{F, W <: AbstractArray{F}} <: AbstractBroadcastE
     embedding::W
 end
 
-Flux.functor(pe::PositionEmbedding) = (pe.embedding,), m -> PositionEmbedding(pe.trainable, m...)
+@functor PositionEmbedding
+
+Flux.trainable(pe::PositionEmbedding) = pe.trainable ? (embedding = pe.embedding,) : (;)
 
 get_value(e::PositionEmbedding, name::Symbol, xs::NamedTuple) = e(first(xs))
 
@@ -55,6 +57,7 @@ function resize_pe!(pe::PositionEmbedding, len::Int)
 end
 
 (pe::PositionEmbedding)(x::AbstractArray{Int}) = pe(size(x, 1))
+(pe::PositionEmbedding)(x::OneHotArray) = pe(size(x, 2))
 (pe::PositionEmbedding{F})(x::AbstractArray{F}) where F = pe(size(x, 2))
 function (pe::PositionEmbedding)(len::Int)
     Flux.Zygote.ignore() do

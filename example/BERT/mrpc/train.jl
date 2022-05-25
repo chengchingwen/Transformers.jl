@@ -5,7 +5,7 @@ using Transformers.Datasets: GLUE
 using Transformers.BidirectionalEncoder
 
 using Flux
-using Flux: onehotbatch, pullback
+using Flux: pullback, params
 import Flux.Optimise: update!
 using WordTokenizers
 
@@ -26,7 +26,7 @@ const labels = Basic.Vocab([get_labels(mrpc)...])
 const _bert_model, wordpiece, tokenizer = pretrain"Bert-uncased_L-12_H-768_A-12"
 const bertenc = BertTextEncoder(tokenizer, wordpiece)
 
-const hidden_size = size(_bert_model.classifier.pooler.W ,1)
+const hidden_size = size(_bert_model.classifier.pooler.weight, 1)
 const clf = todevice(Chain(
     Dropout(0.1),
     Dense(hidden_size, length(labels)),

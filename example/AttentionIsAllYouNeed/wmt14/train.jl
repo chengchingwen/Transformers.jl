@@ -1,5 +1,5 @@
 using Flux
-using Flux: gradient, onehot
+using Flux: gradient, onehot, params
 import Flux.Optimise: update!
 
 using Transformers

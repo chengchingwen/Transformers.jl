@@ -28,7 +28,7 @@ struct MultiheadAttention{Q<:Dense, K<:Dense, V<:Dense, O<:Dense, DP<:Dropout} <
     drop::DP
 end
 
-Flux.functor(mh::MultiheadAttention) = (mh.iqproj, mh.ikproj, mh.ivproj, mh.oproj), m -> MultiheadAttention(mh.head, mh.future, m..., mh.drop)
+@functor MultiheadAttention
 
 """
     MultiheadAttention(head::Int, is::Int, hs::Int, os::Int;

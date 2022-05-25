@@ -23,8 +23,7 @@ function CompositeEmbedding(;postprocessor=identity, es...)
   CompositeEmbedding(emb, agg, postprocessor)
 end
 
-Flux.functor(ce::CompositeEmbedding) = (postprocessor = ce.postprocessor, ce.embeddings...),
-m -> CompositeEmbedding(Base.tail(m), ce.aggregator, Base.first(m))
+@functor CompositeEmbedding
 
 function Base.show(io::IO, e::CompositeEmbedding)
     names = keys(e.embeddings)
