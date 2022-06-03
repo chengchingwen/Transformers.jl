@@ -18,9 +18,9 @@ get_value(e::PositionEmbedding, name::Symbol, xs::NamedTuple) = e(first(xs))
 
 function PE(size, pos, i::Int)
     if rem(i, 2) == 0
-        sin(pos/1e4^(i/size))
+        sin((pos-1)/1e4^((i-2)/size))
     else
-        cos(pos/1e4^((i-1)/size))
+        cos((pos-1)/1e4^((i-1)/size))
     end
 end
 
