@@ -8,7 +8,7 @@ mnli_init() = register(DataDep(
     "https://dl.fbaipublicfiles.com/glue/data/MNLI.zip",
     "e7c1d896d26ed6caf700110645df426cc2d8ebf02a5ab743d5a5c68ac1c83633";
     post_fetch_method = fn -> begin
-      mv(fn, "MNLI.zip")
+      Base.Filesystem.rename(fn, "MNLI.zip")
       DataDeps.unpack("MNLI.zip")
       innerdir = "MNLI"
       innerfiles = readdir(innerdir)

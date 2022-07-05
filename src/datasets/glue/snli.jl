@@ -8,7 +8,7 @@ snli_init() = register(DataDep(
     "https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FSNLI.zip?alt=media&token=4afcfbb2-ff0c-4b2d-a09a-dbf07926f4df",
     "48c972c3d3590cb79227cd91fda7319ac14068ce804e703364524e171b53dc16";
     post_fetch_method = fn -> begin
-      mv(fn, "SNLI.zip")
+      Base.Filesystem.rename(fn, "SNLI.zip")
       DataDeps.unpack("SNLI.zip")
       innerdir = "SNLI"
       innerfiles = readdir(innerdir)

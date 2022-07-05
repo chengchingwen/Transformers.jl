@@ -8,7 +8,7 @@ rte_init() = register(DataDep(
     "https://dl.fbaipublicfiles.com/glue/data/RTE.zip",
     "6bf86de103ecd335f3441bd43574d23fef87ecc695977a63b82d5efb206556ee";
     post_fetch_method = fn -> begin
-      mv(fn, "RTE.zip")
+      Base.Filesystem.rename(fn, "RTE.zip")
       DataDeps.unpack("RTE.zip")
       innerdir = "RTE"
       innerfiles = readdir(innerdir)

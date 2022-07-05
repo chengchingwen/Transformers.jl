@@ -8,7 +8,7 @@ qnli_init() = register(DataDep(
     "https://dl.fbaipublicfiles.com/glue/data/QNLIv2.zip",
     "e634e78627a29adaecd4f955359b22bf5e70f2cbd93b493f2d624138a0c0e5f5";
     post_fetch_method = fn -> begin
-      mv(fn, "QNLIv2.zip")
+      Base.Filesystem.rename(fn, "QNLIv2.zip")
       DataDeps.unpack("QNLIv2.zip")
       innerdir = "QNLI"
       innerfiles = readdir(innerdir)

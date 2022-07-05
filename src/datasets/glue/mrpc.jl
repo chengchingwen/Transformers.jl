@@ -16,7 +16,7 @@ mrpc_init() = register(DataDep(
     post_fetch_method = [
         identity,
         fn -> begin
-          mv(fn, "mrpc_dev_ids.tsv")
+          Base.Filesystem.rename(fn, "mrpc_dev_ids.tsv")
 
           dev_ids = open("mrpc_dev_ids.tsv") do fn
             map(eachline(fn)) do line

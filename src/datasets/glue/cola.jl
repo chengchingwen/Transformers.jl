@@ -8,7 +8,7 @@ cola_init() = register(DataDep(
     "https://dl.fbaipublicfiles.com/glue/data/CoLA.zip",
     "f212fcd832b8f7b435fb991f101abf89f96b933ab400603bf198960dfc32cbff";
     post_fetch_method = fn -> begin
-      mv(fn, "CoLA.zip")
+      Base.Filesystem.rename(fn, "CoLA.zip")
       DataDeps.unpack("CoLA.zip")
       innerdir = "CoLA"
       innerfiles = readdir(innerdir)

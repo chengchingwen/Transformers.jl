@@ -8,7 +8,7 @@ sts_init() = register(DataDep(
     "https://dl.fbaipublicfiles.com/glue/data/STS-B.zip",
     "e60a6393de5a8b5b9bac5020a1554b54e3691f9d600b775bd131e613ac179c85";
     post_fetch_method = fn -> begin
-      mv(fn, "STS-B.zip")
+      Base.Filesystem.rename(fn, "STS-B.zip")
       DataDeps.unpack("STS-B.zip")
       innerdir = "STS-B"
       innerfiles = readdir(innerdir)

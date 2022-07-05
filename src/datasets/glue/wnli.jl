@@ -8,7 +8,7 @@ wnli_init() = register(DataDep(
     "https://dl.fbaipublicfiles.com/glue/data/WNLI.zip",
     "ae0e8e4d16f4d46d4a0a566ec7ecceccfd3fbfaa4a7a4b4e02848c0f2561ac46";
     post_fetch_method = fn -> begin
-      mv(fn, "WNLI.zip")
+      Base.Filesystem.rename(fn, "WNLI.zip")
       DataDeps.unpack("WNLI.zip")
       innerdir = "WNLI"
       innerfiles = readdir(innerdir)

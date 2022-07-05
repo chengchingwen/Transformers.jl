@@ -8,7 +8,7 @@ qqp_init() = register(DataDep(
     "https://dl.fbaipublicfiles.com/glue/data/QQP-clean.zip",
     "40e7c862c04eb26ee04b67fd900e76c45c6ba8e6d8fab4f8f1f8072a1a3fbae0";
     post_fetch_method = fn -> begin
-      mv(fn, "QQP-clean.zip")
+      Base.Filesystem.rename(fn, "QQP-clean.zip")
       DataDeps.unpack("QQP-clean.zip")
       innerdir = "QQP"
       innerfiles = readdir(innerdir)
