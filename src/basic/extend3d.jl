@@ -1,7 +1,7 @@
 using Base: tail
 
 using MacroTools: @forward, @capture
-using Flux: applychain
+using Flux: _applychain
 
 """
     @toNd f(x, y, z...; a=a, b=b, c=c...) n
