@@ -40,10 +40,10 @@ Positionwise(xs...) = Positionwise(xs)
 
 @functor Positionwise
 
-(pw::Positionwise)(x::A) where A <: AbstractMatrix = applychain(pw.models, x)
+(pw::Positionwise)(x::A) where A <: AbstractMatrix = _applychain(pw.models, x)
 function (pw::Positionwise)(x)
     insize = size(x)
-    y = applychain(pw.models, reshape(x, insize[1], :))
+    y = _applychain(pw.models, reshape(x, insize[1], :))
     reshape(y, :, Base.tail(insize)...)
 end
 
