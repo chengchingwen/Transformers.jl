@@ -2,10 +2,9 @@ module HuggingFace
 
 using ..Transformers
 
-export get_or_download_hgf_file,
-  get_or_download_hgf_config,
-  get_or_download_hgf_weight,
-  @hgf_str,
+using HuggingFaceApi
+
+export @hgf_str,
   load_config,
   load_model,
   load_model!,
@@ -14,17 +13,20 @@ export get_or_download_hgf_file,
   save_config,
   save_model
 
+include("./utils.jl")
 include("./download.jl")
 include("./weight.jl")
 include("./configs/config.jl")
 include("./models/models.jl")
+include("./tokenizer/tokenizer.jl")
+include("./implementation/implement.jl")
 
 """
   `hgf"<model-name>:<item>"`
 
-Get `item` from `model-name`. This will ensure the required 
-data are downloaded and registered. `item` can be "config", 
-"tokenizer", and model related like "model", or "formaskedlm", etc. Use [`get_model_type`](@ref) to see what 
+Get `item` from `model-name`. This will ensure the required
+data are downloaded and registered. `item` can be "config",
+"tokenizer", and model related like "model", or "formaskedlm", etc. Use [`get_model_type`](@ref) to see what
 model/task are supported.
 """
 macro hgf_str(name)
@@ -32,39 +34,43 @@ macro hgf_str(name)
 end
 
 """
-  `get_model_type(::Val{model})`
-
-See the list of supported model type of given model. 
-For example, use `get_mdoel_type(Val(:bert))` to 
-see all model/task that `bert` support.
-"""
-get_model_type
-
-get_model_type(model, task) = error("Model $model doesn't support this kind of task: $task")
-
-"""
   `load_hgf_pretrained(name)`
 
 The underlying function of [`@hgf_str`](@ref).
 """
 function load_hgf_pretrained(name)
-  model_name, item = rsplit(name, ':'; limit=2)
-  get_or_download_hgf_config(model_name)
-  cfg = load_config(model_name)
+    name_item = rsplit(name, ':'; limit=2)
+    all = length(name_item) == 1
+    model_name, item = if all
+        name, "model"
+    else
+        Iterators.map(String, name_item)
+    end
 
-  item == "config" &&
-    return cfg
+    hgf_model_config(model_name)
+    cfg = load_config(model_name)
 
-  item == "tokenizer" &&
-    error("tokenizer not support yet.")
+    item == "config" &&
+        return cfg
 
-  model_type = cfg.model_type
-  model_cons = get_model_type((Val ∘ Symbol ∘ lowercase)(model_type), (Val ∘ Symbol ∘ lowercase)(item))
+    (item == "tokenizer" || all) &&
+        (tkr = load_tokenizer(model_name; config = cfg))
 
-  get_or_download_hgf_weight(model_name)
-  model = load_model(model_cons, model_name; config=cfg)
+    item == "tokenizer" &&
+        return tkr
 
-  return model
+    model_type = cfg.model_type
+    model_cons = get_model_type((Val ∘ Symbol)(model_type), (Val ∘ Symbol ∘ lowercase)(item))
+
+    hgf_model_weight(model_name)
+    model = load_model(model_cons, model_name; config=cfg)
+
+    if all
+        tkr = load_tokenizer(model_name; config = cfg)
+        return tkr, model
+    else
+        return model
+    end
 end
 
 end
