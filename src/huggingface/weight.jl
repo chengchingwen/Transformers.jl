@@ -20,7 +20,7 @@ load the state_dict from the given model name.
 See also: [`state_dict_to_namedtuple`](@ref)
 """
 function load_state_dict(model_name)
-  state_dict = Pickle.Torch.THload(get_registered_weight_path(model_name))
+  state_dict = Pickle.Torch.THload(get_or_download_hgf_weight(model_name; local_files_only = true))
   return state_dict
 end
 
