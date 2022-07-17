@@ -693,3 +693,7 @@ get_model_type(::Val{:gpt2}) = (
   :lmheadmodel => HGFGPT2LMHeadModel,
   :doubleheadsmodel => HGFGPT2DoubleHeadsModel,
 )
+
+for (name, type) in get_model_type(:gpt2)
+    @eval get_model_type(::Val{:gpt2}, ::Val{$(Meta.quot(name))}) = $type
+end
