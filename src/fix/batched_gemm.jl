@@ -34,7 +34,7 @@ for (gemm, elty) in
             ptrC = Base.unsafe_convert(Ptr{$elty}, C)
 
             for k in 1:size(A, 3)
-                ccall((LinearAlgebra.BLAS.@blasfunc($gemm), LinearAlgebra.BLAS.libblas), Cvoid,
+                ccall((LinearAlgebra.BLAS.@blasfunc($gemm), Base.libblas_name), Cvoid,
                     (Ref{UInt8}, Ref{UInt8}, Ref{LinearAlgebra.BLAS.BlasInt}, Ref{LinearAlgebra.BLAS.BlasInt},
                      Ref{LinearAlgebra.BLAS.BlasInt}, Ref{$elty}, Ptr{$elty}, Ref{LinearAlgebra.BLAS.BlasInt},
                      Ptr{$elty}, Ref{LinearAlgebra.BLAS.BlasInt}, Ref{$elty}, Ptr{$elty},
