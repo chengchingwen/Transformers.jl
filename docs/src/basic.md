@@ -10,7 +10,7 @@ Therefore, we implement both 2d & 3d operation according to the input type (The 
 `(hidden size, sequence length, batch size)` and `(hidden size, sequence length)` for the case with only 1 input.
 
 ```julia
-using Transfomers
+using Transformers
 
 m = Transformer(512, 8, 64, 2048) #define a Transformer block with 8 head and 64 neuron for each head
 x = randn(512, 30, 3) #fake data of length 30
