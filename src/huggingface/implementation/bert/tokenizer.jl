@@ -79,6 +79,12 @@ function load_tokenizer(::Val{:bert}, model_name; force_fast_tkr = false,
         for dict in sort(tkr_dict[:added_tokens]; by = Base.Fix2(getindex, :id))
             idx = dict[:id]
             token = dict[:content]
+
+            (dict[:rstrip] || dict[:lstrip]) &&
+                tokenizer_warn("match token `$token` require to match with space on either side but that is not implemented here")
+            dict[:single_word] &&
+                tokenizer_warn("match token `$token` does not match inside of a word but that is not implemented here")
+
             if dict[:special]
                 @assert idx <= length(vocab_list)
                 @assert vocab_list[idx + 1] == token
@@ -113,14 +119,22 @@ function load_tokenizer(::Val{:bert}, model_name; force_fast_tkr = false,
         @assert norm_dict[:type] == "BertNormalizer"
         lower = norm_dict[:lowercase]
         !isnothing(norm_dict[:strip_accents]) && lower != norm_dict[:strip_accents] &&
-            @warn("strip_accents and lowercase are not aligned in the loaded tokenizer, the result might be slightly different")
+            tokenizer_warn("strip_accents and lowercase are not aligned in the loaded tokenizer")
         @assert tkr_dict[:pre_tokenizer][:type] == "BertPreTokenizer"
         trunc = nothing
         if !isnothing(tkr_dict[:padding])
+            @assert get(tkr_dict[:padding], :direction, "Right") == "Right" "Cannot padding on left"
             kwargs[:fixedsize] = true
             trunc = get(tkr_dict[:padding], :max_length, trunc)
+            kwargs[:padsym] = get(tkr_dict[:padding], :pad_token, pad_token)
         end
         if !isnothing(tkr_dict[:truncation])
+            strategy = get(tkr_dict[:truncation], :strategy, nothing)
+            !isnothing(strategy) && strategy != "LongestFirst" &&
+                tokenizer_warn("truncation strategy $strategy not support, only LongestFirst")
+            get(tkr_dict[:truncation], :stride, 0) != 0 &&
+                tokenizer_warn("truncation stride is not 0")
+            @assert get(tkr_dict[:truncation], :direction, "Right") == "Right" "Cannot truncate on left"
             trunc = get(tkr_dict[:truncation], :max_length, trunc)
         end
         kwargs[:trunc] = trunc

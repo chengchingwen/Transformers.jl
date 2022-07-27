@@ -17,3 +17,5 @@ function reverse_keymap_to_list(dict)
 end
 
 load_tokenizer_added_tokens(model_name; kw...) = JSON.parsefile(hgf_tokenizer_added_token(model_name; kw...); dicttype = Dict{String, Any})
+
+tokenizer_warn(msg) = @warn "$msg, the tokenization result might be slightly different in some cases."
