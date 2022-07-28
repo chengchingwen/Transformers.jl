@@ -1,5 +1,4 @@
 using ..Transformers
-using ..Transformers.Basic
 using TextEncodeBase
 using JSON
 
