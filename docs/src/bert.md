@@ -19,6 +19,7 @@ training bert is just like training other Flux model (i.e. all the usage should 
 ```@docs
 Bert
 BidirectionalEncoder.WordPiece
+BidirectionalEncoder.BertTextEncoder
 BidirectionalEncoder.bert_cased_tokenizer
 BidirectionalEncoder.bert_uncased_tokenizer
 BidirectionalEncoder.tfckpt2bson
