@@ -152,7 +152,7 @@ function children(::THModule, x::Pair{Symbol})
 end
 children(::THModule, x::Pair{Int}) = children(x[2])
 
-_printnode(io, x) = print(io, Base.typename(typeof(x)))
+_printnode(io, x) = print(io, Base.nameof(typeof(x)))
 function _printnode(io::IO, p::Pair)
   print(io, p[1])
   print(io, " => ")
@@ -160,7 +160,7 @@ function _printnode(io::IO, p::Pair)
   if v isa AbstractArray
     summary(io, p[2])
   else
-    print(io, Base.typename(typeof(v)))
+    print(io, Base.nameof(typeof(v)))
   end
 end
 
