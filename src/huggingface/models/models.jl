@@ -4,6 +4,8 @@ using DataStructures
 using Pickle.Torch
 using Pickle.Torch: StridedView
 
+using ValSplit
+
 using LinearAlgebra
 
 """
@@ -44,13 +46,13 @@ function load_state!(layer, state)
     if hasfield(typeof(layer), k)
       load_state!(getfield(layer, k),  getfield(state, k))
     else
-      @warn "$(Base.typename(typeof(layer))) doesn't have field $k."
+      @warn "$(Base.nameof(typeof(layer))) doesn't have field $k."
     end
   end
   pf = Functors.functor(layer) |> first |> keys
   rem = setdiff(pf, keys(state))
   if (!iszero ∘ length)(rem)
-    @warn "Some fields of $(Base.typename(typeof(layer))) aren't initialized with loaded state: $(rem...)"
+    @warn "Some fields of $(Base.nameof(typeof(layer))) aren't initialized with loaded state: $(rem...)"
   end
 end
 
@@ -67,19 +69,18 @@ end
 
 include("./utils.jl")
 include("./base.jl")
-include("./bert.jl")
-include("./gpt2.jl")
-include("./roberta.jl")
 
-for model in :[
-  bert,
-  gpt2,
-  roberta,
-].args
-  for (name, type) in get_model_type(Val(model))
-    @eval get_model_type(::Val{$(Meta.quot(model))}, ::Val{$(Meta.quot(name))}) = $type
-  end
-end
+"""
+  `get_model_type(::Val{model})`
+
+See the list of supported model type of given model.
+For example, use `get_mdoel_type(Val(:bert))` to
+see all model/task that `bert` support.
+"""
+get_model_type
+
+@valsplit get_model_type(Val(model_name::Symbol)) = error("Unknown model type: $model_type")
+@valsplit get_model_type(Val(model_name::Symbol), Val(task::Symbol)) = error("Model $model doesn't support this kind of task: $task")
 
 """
   `load_model!(model::HGFPreTrainedModel, state)`
@@ -114,7 +115,7 @@ end
 build model with given `model_type` and load state from 
 `model_name`.
 """
-function load_model(model_type, model_name; config=load_config(model_name))
+function load_model(model_type, model_name; config = load_config(model_name))
   model = model_type(config)
   state = load_state(model_name)
   load_model!(model, state)
@@ -122,11 +123,11 @@ function load_model(model_type, model_name; config=load_config(model_name))
 end
 
 """
-  `save_model(model_name, model; path=pwd(), weight_name=DEFAULT_WEIGHT_NAME)`
+  `save_model(model_name, model; path = pwd(), weight_name = PYTORCH_WEIGHTS_NAME)`
 
 save the `model` at `<path>/<model_name>/<weight_name>`.
 """
-function save_model(model_name, model; path=pwd(), weight_name=DEFAULT_WEIGHT_NAME)
+function save_model(model_name, model; path = pwd(), weight_name = PYTORCH_WEIGHTS_NAME)
   model_path = joinpath(path, model_name)
   !isdir(model_path) && error("$model_path is not a dir.")
   model_file = joinpath(model_path, weight_name)

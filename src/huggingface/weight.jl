@@ -6,8 +6,8 @@ using Pickle: TableBlock, HierarchicalTable
 
 load the state from the given model name as NamedTuple.
 """
-function load_state(model_name)
-  state_dict = load_state_dict(model_name)
+function load_state(model_name; kw...)
+  state_dict = load_state_dict(model_name; kw...)
   state = state_dict_to_namedtuple(state_dict)
   return state
 end
@@ -19,8 +19,8 @@ load the state_dict from the given model name.
 
 See also: [`state_dict_to_namedtuple`](@ref)
 """
-function load_state_dict(model_name)
-  state_dict = Pickle.Torch.THload(get_registered_weight_path(model_name))
+function load_state_dict(model_name; kw...)
+  state_dict = Pickle.Torch.THload(hgf_model_weight(model_name; kw...))
   return state_dict
 end
 

@@ -745,3 +745,7 @@ get_model_type(::Val{:roberta}) = (
   :fortokenclassification => HGFRobertaForTokenClassification,
   :forquestionanswering => HGFRobertaForQuestionAnswering,
 )
+
+for (name, type) in get_model_type(:roberta)
+    @eval get_model_type(::Val{:roberta}, ::Val{$(Meta.quot(name))}) = $type
+end

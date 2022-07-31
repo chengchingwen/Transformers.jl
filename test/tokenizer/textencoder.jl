@@ -75,9 +75,9 @@ using Transformers.BidirectionalEncoder
         @test e1.mask == nothing
         d3 = [d2, d1]
         s3 = if VERSION < v"1.7"
-            hcat([s2; fill(bertenc.vocab.unk, 4)], s1)
+            hcat([s2; fill(bertenc.padsym, 4)], s1)
         else
-            [s2; fill(bertenc.vocab.unk, 4);; s1]
+            [s2; fill(bertenc.padsym, 4);; s1]
         end
         @test decode(bertenc, encode(bertenc, d3).input.tok) == s3
         e3 = encode(bertenc, d3)
@@ -90,9 +90,9 @@ using Transformers.BidirectionalEncoder
         end
         d4 = [[d2, d1], [d2,]]
         s4 = if VERSION < v"1.7"
-            hcat([s2; s1[begin+1:(16-length(s2))]], [s2; fill(bertenc.vocab.unk, 15-length(s2))])
+            hcat([s2; s1[begin+1:(16-length(s2))]], [s2; fill(bertenc.padsym, 15-length(s2))])
         else
-            [s2; s1[begin+1:(16-length(s2))] ;; s2; fill(bertenc.vocab.unk, 15-length(s2))]
+            [s2; s1[begin+1:(16-length(s2))] ;; s2; fill(bertenc.padsym, 15-length(s2))]
         end
         @test decode(bertenc, encode(bertenc, d4).input.tok) == s4
         e4 = encode(bertenc, d4)

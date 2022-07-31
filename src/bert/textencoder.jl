@@ -1,7 +1,8 @@
 using ..Basic: string_getvalue, check_vocab, TextTokenizer
+using FuncPipelines
 using TextEncodeBase
-using TextEncodeBase: trunc_and_pad, nested2batch, nestedcall
-using TextEncodeBase: BaseTokenization, WrappedTokenization, Splittable,
+using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
+using TextEncodeBase: BaseTokenization, WrappedTokenization, MatchTokenization, Splittable,
     ParentStages, TokenStages, SentenceStage, WordStage, Batch, Sentence, getvalue, getmeta
 
 # bert tokenizer
@@ -70,11 +71,11 @@ BertTextEncoder(
   ╰─ target[tok] := nestedcall(string_getvalue, source)
   ╰─ target[tok] := with_firsthead_tail([CLS], [SEP])(target.tok)
   ╰─ target[(tok, segment)] := segment_and_concat(target.tok)
-  ╰─ target[trunc_tok] := trunc_and_pad(nothing, [UNK])(target.tok)
+  ╰─ target[trunc_tok] := trunc_and_pad(5, [UNK])(target.tok)
   ╰─ target[trunc_len] := nestedmaxlength(target.trunc_tok)
   ╰─ target[mask] := getmask(target.tok, target.trunc_len)
   ╰─ target[tok] := nested2batch(target.trunc_tok)
-  ╰─ target[segment] := (nested2batch ∘ trunc_and_pad(nothing, 1))(target.segment)
+  ╰─ target[segment] := (nested2batch ∘ trunc_and_pad(5, 1))(target.segment)
   ╰─ target[input] := (NamedTuple{(:tok, :segment)} ∘ tuple)(target.tok, target.segment)
   ╰─ target := (target.input, target.mask)
 )
@@ -88,6 +89,7 @@ BertTextEncoder(
 ├─ vocab = Vocab{String, SizedArray}(size = 28996, unk = [UNK], unki = 101),
 ├─ startsym = [CLS],
 ├─ endsym = [SEP],
+├─ trunc = 5,
 └─ process = Pipelines:
   ╰─ target[tok] := nestedcall(string_getvalue, source)
   ╰─ target[tok] := with_firsthead_tail([CLS], [SEP])(target.tok)
@@ -105,6 +107,7 @@ struct BertTextEncoder{T<:AbstractTokenizer,
     process::P
     startsym::String
     endsym::String
+    padsym::String
     trunc::Union{Nothing, Int}
 end
 
@@ -116,47 +119,75 @@ BertTextEncoder(::typeof(bert_uncased_tokenizer), args...; kws...) =
     BertTextEncoder(BertUnCasedPreTokenization(), args...; kws...)
 BertTextEncoder(bt::BertTokenization, wordpiece::WordPiece, args...; kws...) =
     BertTextEncoder(WordPieceTokenization(bt, wordpiece), args...; kws...)
-BertTextEncoder(t::WordPieceTokenization, args...; kws...) =
-    BertTextEncoder(TextTokenizer(t), Vocab(t.wordpiece), args...; kws...)
-BertTextEncoder(t::AbstractTokenization, vocab::AbstractVocabulary, args...; kws...) =
-    BertTextEncoder(TextTokenizer(t), vocab, args...; kws...)
-
-function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process;
-                         startsym = "[CLS]", endsym = "[SEP]", trunc = nothing)
-    check_vocab(vocab, startsym) || @warn "startsym $startsym not in vocabulary, this might cause problem."
-    check_vocab(vocab, endsym) || @warn "endsym $endsym not in vocabulary, this might cause problem."
-    return BertTextEncoder(tkr, vocab, process, startsym, endsym, trunc)
+function BertTextEncoder(t::WordPieceTokenization, args...; match_tokens = nothing, kws...)
+    if isnothing(match_tokens)
+        return BertTextEncoder(TextTokenizer(t), Vocab(t.wordpiece), args...; kws...)
+    else
+        match_tokens = match_tokens isa AbstractVector ? match_tokens : [match_tokens]
+        return BertTextEncoder(TextTokenizer(MatchTokenization(t, match_tokens)), Vocab(t.wordpiece), args...; kws...)
+    end
+end
+function BertTextEncoder(t::AbstractTokenization, vocab::AbstractVocabulary, args...; match_tokens = nothing, kws...)
+    if isnothing(match_tokens)
+        return BertTextEncoder(TextTokenizer(t), vocab, args...; kws...)
+    else
+        match_tokens = match_tokens isa AbstractVector ? match_tokens : [match_tokens]
+        return BertTextEncoder(TextTokenizer(MatchTokenization(t, match_tokens)), vocab, args...; kws...)
+    end
 end
 
-function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary; kws...)
+function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process;
+                         startsym = "[CLS]", endsym = "[SEP]", padsym = "[PAD]", trunc = nothing)
+    check_vocab(vocab, startsym) || @warn "startsym $startsym not in vocabulary, this might cause problem."
+    check_vocab(vocab, endsym) || @warn "endsym $endsym not in vocabulary, this might cause problem."
+    return BertTextEncoder(tkr, vocab, process, startsym, endsym, padsym, trunc)
+end
+
+function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary; fixedsize = false, kws...)
     enc = BertTextEncoder(tkr, vocab, TextEncodeBase.process(AbstractTextEncoder); kws...)
     # default processing pipelines for bert encoder
     return BertTextEncoder(enc) do e
-        # get token and convert to string
-        Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
-            # add start & end symbol
-            Pipeline{:tok}(with_firsthead_tail(e.startsym, e.endsym), :tok) |>
-            # compute segment and merge sentences
-            Pipeline{(:tok, :segment)}(segment_and_concat, :tok) |>
-            # truncate input that exceed length limit and pad them to have equal length
-            Pipeline{:trunc_tok}(trunc_and_pad(e.trunc, e.vocab.unk), :tok) |>
-            # get the truncated length
-            Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok) |>
-            # get mask with specific length
-            Pipeline{:mask}(getmask, (:tok, :trunc_len)) |>
-            # convert to dense array
-            Pipeline{:tok}(nested2batch, :trunc_tok) |>
-            # truncate & pad segment
-            Pipeline{:segment}(nested2batch∘trunc_and_pad(e.trunc, 1), :segment) |>
-            # input namedtuple
-            Pipeline{:input}(NamedTuple{(:tok, :segment)}∘tuple, (:tok, :segment)) |>
-            # return input and mask
-            PipeGet{(:input, :mask)}()
+        bert_default_preprocess(; trunc = e.trunc, startsym = e.startsym, endsym = e.endsym, padsym = e.padsym, fixedsize)
     end
 end
 
 BertTextEncoder(builder, e::BertTextEncoder) =
-    BertTextEncoder(e.tokenizer, e.vocab, builder(e), e.startsym, e.endsym, e.trunc)
+    BertTextEncoder(e.tokenizer, e.vocab, builder(e), e.startsym, e.endsym, e.padsym, e.trunc)
+
+# preprocess
+
+function bert_default_preprocess(; trunc = nothing, startsym = "[CLS]", endsym = "[SEP]", padsym = "[PAD]", fixedsize = false)
+    if fixedsize
+        @assert !isnothing(trunc) "`fixedsize=true` but `trunc` is not set."
+        truncf = trunc_or_pad
+    else
+        truncf = trunc_and_pad
+    end
+    # get token and convert to string
+    return Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
+        # add start & end symbol
+        Pipeline{:tok}(with_firsthead_tail(startsym, endsym), :tok) |>
+        # compute segment and merge sentences
+        Pipeline{(:tok, :segment)}(segment_and_concat, :tok) |>
+        # truncate input that exceed length limit and pad them to have equal length
+        Pipeline{:trunc_tok}(truncf(trunc, padsym), :tok) |>
+        # get the truncated length
+        (fixedsize ?
+         Pipeline{:trunc_len}(FuncPipelines.FixRest(identity, trunc), 0) :
+         Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok)
+         ) |>
+        # get mask with specific length
+        Pipeline{:mask}(getmask, (:tok, :trunc_len)) |>
+        # convert to dense array
+        Pipeline{:tok}(nested2batch, :trunc_tok) |>
+        # truncate & pad segment
+        Pipeline{:segment}(truncf(trunc, 1), :segment) |>
+        Pipeline{:segment}(nested2batch, :segment) |>
+        # input namedtuple
+        Pipeline{:input}(NamedTuple{(:tok, :segment)}∘tuple, (:tok, :segment)) |>
+        # return input and mask
+        PipeGet{(:input, :mask)}()
+end
 
 # encoder behavior
 
@@ -253,7 +284,8 @@ function Base.show(io::IO, e::BertTextEncoder)
     print(io, e.tokenizer, ",\n├─ ")
     print(io, "vocab = ", e.vocab, ",\n├─ ")
     print(io, "startsym = ", e.startsym, ",\n├─ ")
-    print(io, "endsym = ", e.endsym)
+    print(io, "endsym = ", e.endsym, ",\n├─ ")
+    print(io, "padsym = ", e.padsym)
     isnothing(e.trunc) || print(io, ",\n├─ trunc = ", e.trunc)
     print(IOContext(io, :pipeline_display_prefix => "  ╰─ "), ",\n└─ process = ", e.process, "\n)")
 end
