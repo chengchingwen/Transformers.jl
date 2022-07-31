@@ -89,5 +89,6 @@ using .BidirectionalEncoder
 
 using .HuggingFace
 
+include("./experimental/experimental.jl")
 
 end # module
