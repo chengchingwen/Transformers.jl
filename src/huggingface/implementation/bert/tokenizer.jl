@@ -1,6 +1,6 @@
 using ..Transformers.BidirectionalEncoder
 using ..Transformers.BidirectionalEncoder: WordPiece, WordPieceTokenization,
-    BertUnCasedPreTokenization, BertUnCasedPreTokenization
+    BertUnCasedPreTokenization, BertCasedPreTokenization
 
 tokenizer_type(T::Val{:bert}) = T
 
@@ -11,6 +11,9 @@ function load_tokenizer(::Val{:bert}, model_name; force_fast_tkr = false,
 
     if isnothing(tkr_cfg) && TOKENIZER_CONFIG_FILE in possible_files
         tkr_cfg = load_tokenizer_config(model_name; kw...)
+    end
+
+    if !isnothing(tkr_cfg)
         model_max_length = get(tkr_cfg, :model_max_length, config.max_position_embeddings)
         lower = get(tkr_cfg, :do_lower_case, true)
         unk_token = get(tkr_cfg, :unk_token, "[UNK]")
@@ -140,7 +143,7 @@ function load_tokenizer(::Val{:bert}, model_name; force_fast_tkr = false,
         kwargs[:trunc] = trunc
     end
 
-    tkz = lower ? BertUnCasedPreTokenization() : BertUnCasedPreTokenization()
+    tkz = lower ? BertUnCasedPreTokenization() : BertCasedPreTokenization()
     tkz = WordPieceTokenization(tkz, wordpiece)
     return BertTextEncoder(tkz; match_tokens, kwargs...)
 end
