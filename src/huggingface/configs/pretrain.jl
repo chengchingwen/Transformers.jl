@@ -123,6 +123,11 @@ function pretrained_config(; kws...)
     global PRETRAIN_CONFIG
     p = PRETRAIN_CONFIG
     for (k, v) in kws
+        if k == :id2label && !isnothing(v)
+            v = Dict{Int, String}(parse(Int, key)=>val for (key, val) in v)
+        elseif k == :label2id && !isnothing(v)
+            v = convert(Dict{String, Int}, v)
+        end
         p = update(p, k, v)
     end
     return p
