@@ -65,8 +65,33 @@ macro cfgdef(ex)
     end
 end
 
-Base.getproperty(cfg::HGFConfig, k::Symbol) = hasfield(typeof(cfg), k) ? getfield(cfg, k) : getproperty(_parent(cfg), k)
-Base.get(cfg::HGFConfig, k::Symbol, d) = hasfield(typeof(cfg), k) ? getfield(cfg, k) : get(_parent(cfg), k, d)
+function Base.getproperty(cfg::HGFConfig, k::Symbol)
+    if hasfield(typeof(cfg), k)
+        return getfield(cfg, k)
+    else
+        if k == :num_labels
+            id2label = getproperty(cfg, :id2label)
+            if !isnothing(id2label)
+                return length(id2label)
+            end
+        end
+        return getproperty(_parent(cfg), k)
+    end
+end
+
+function Base.get(cfg::HGFConfig, k::Symbol, d)
+    if hasfield(typeof(cfg), k)
+        return getfield(cfg, k)
+    else
+        if k == :num_labels
+            id2label = cfg.id2label
+            if !isnothing(id2label)
+                return length(id2label)
+            end
+        end
+        return get(_parent(cfg), k, d)
+    end
+end
 
 include("./auto.jl")
 include("./pretrain.jl")
