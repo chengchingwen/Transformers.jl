@@ -66,7 +66,6 @@ compute the language modeling loss for Gpt, onehot is the onehot array of the or
 input sentence. encoding the output of Gpt, mask is the mask between input sentences.
 
 """
-lmloss(embed::Embed{T}, o::OneHotArray, t::AbstractArray{T}, mask) where T = lmloss(embed, tofloat(T, o), t, mask)
 function lmloss(embed::Embed{T}, et, t::AbstractArray{T, N}, mask) where {T,N}
     if N == 3
         t = t[:, 1:end-1, :]

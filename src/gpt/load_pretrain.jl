@@ -1,3 +1,21 @@
+using BytePairEncoding
+using BytePairEncoding: CachedBPE
+
+function load_bpe_from_old_ver_file(bson)
+    _rank = BSON.raise_recursive(bson[:bpe][:data][6], Main)
+    rank = Dict{NTuple{2, BytePairEncoding.Merge}, Int}()
+    endsym = BSON.raise_recursive(bson[:bpe][:data][2], Main)
+    new_endsym = BSON.raise_recursive(bson[:bpe][:data][3], Main)
+    sepsym = BSON.raise_recursive(bson[:bpe][:data][1], Main)
+    pattern = isnothing(endsym) ? nothing : Base.compile(Regex("(.*)\\Q$endsym\\E\$"))
+    for (k, v) in _rank
+        p = BytePairEncoding.parse_merge(k, pattern)
+        rank[p] = v
+    end
+    bpe = CachedBPE(BPE(rank, sepsym, new_endsym))
+    return bpe
+end
+
 """
     load_gpt_pretrain(path::AbstractString, sym = :all;
                       startsym="_start_",
@@ -18,7 +36,7 @@ function load_gpt_pretrain(path::AbstractString, sym = :all; kw...)
     bson = BSON.parse(path)
 
     if sym ∈ (:all, :bpe)
-      bpe = BSON.raise_recursive(bson[:bpe], Main)
+      bpe = load_bpe_from_old_ver_file(bson)
       sym == :bpe && return bpe
     end
 
@@ -37,7 +55,7 @@ function load_gpt_pretrain(path::AbstractString, sym = :all; kw...)
   elseif isbson(path)
     bson = BSON.parse(path)
     if sym ∈ (:all, :bpe)
-      bpe = BSON.raise_recursive(bson[:bpe], Main)
+      bpe = load_bpe_from_old_ver_file(bson)
       sym == :bpe && return bpe
     end
     tokenizer = BSON.raise_recursive(bson[:tokenizer], Main)
