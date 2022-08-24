@@ -113,7 +113,7 @@ function build_vocab(raw_vocab;
     push!(vocab, delisym)
     push!(vocab, clfsym)
 
-    vocab = Vocabulary(vocab, unksym)
+    vocab = Vocab(vocab, unksym)
 end
 
 load_gpt_from_npbson(path::AbstractString) = (@assert isnpbson(path); load_gpt_from_npbson(BSON.load(path)))

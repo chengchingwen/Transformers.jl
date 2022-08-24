@@ -14,13 +14,13 @@ cases <input>:
  3. batch of multiple sentence: Input `Vector{Vector{Vector{String}}}`. Outer-most length is batch size, and
      middle length is the number of segment. Apply head to the first segment, and add `tail` to all segments.
 =#
-with_firsthead_tail(x::AbstractVector, head, tail) =
-    map(with_firsthead_tail(head, tail), x)
-with_firsthead_tail(x::AbstractVector{<:AbstractString}, head, tail) = with_head_tail(x, head, tail)
-with_firsthead_tail(x::AbstractVector{<:AbstractVector{<:AbstractString}}, head, tail) =
+with_firsthead_tail(x::AbstractVector, head, tail, sep = tail) =
+    map(with_firsthead_tail(head, tail, sep), x)
+with_firsthead_tail(x::AbstractVector{<:AbstractString}, head, tail, sep = tail) = with_head_tail(x, head, tail)
+with_firsthead_tail(x::AbstractVector{<:AbstractVector{<:AbstractString}}, head, tail, sep = tail) =
     with_head_tail(x, head, tail)
 function with_firsthead_tail(x::AbstractVector{<:AbstractVector{<:AbstractVector{S}}},
-                             head, tail) where S<:AbstractString
+                             head, tail, sep = tail) where S<:AbstractString
     n = length(x)
     T = promote_type(S, typeof(head), typeof(tail))
     vecs = Vector{Vector{Vector{T}}}(undef, n); empty!(vecs)
@@ -28,15 +28,17 @@ function with_firsthead_tail(x::AbstractVector{<:AbstractVector{<:AbstractVector
         len = length(doc)
         vec = Vector{Vector{T}}(undef, len)
         for (i, sent) in enumerate(doc)
-            vec[i] = with_head_tail(sent, i == 1 ? head : nothing, tail)
+            h = i == 1 ? head : nothing
+            t = i == len ? tail : sep
+            vec[i] = with_head_tail(sent, h, t)
         end
         push!(vecs, vec)
     end
     return vecs
 end
-with_firsthead_tail(head, tail) = TextEncodeBase.FixRest(with_firsthead_tail, head, tail)
-with_firsthead_tail(x; head=nothing, tail=nothing) = with_firsthead_tail(x, head, tail)
-with_firsthead_tail(; head=nothing, tail=nothing) = with_firsthead_tail(head, tail)
+with_firsthead_tail(head, tail, sep = tail) = TextEncodeBase.FixRest(with_firsthead_tail, head, tail, sep)
+with_firsthead_tail(x; head=nothing, tail=nothing, sep = tail) = with_firsthead_tail(x, head, tail, sep)
+with_firsthead_tail(; head=nothing, tail=nothing, sep = tail) = with_firsthead_tail(head, tail, sep)
 
 #=
  segment_and_concat
@@ -67,4 +69,30 @@ function segment_and_concat(tok::AbstractVector{<:AbstractVector{<:AbstractVecto
         push!(toks, words)
     end
     return toks, segments
+end
+
+#=
+ concat
+
+concat the segment for input. If input have multiple segment, concate each segment to one array.
+ If input only have single segment, return the input.
+=#
+concat(tok::AbstractVector) = map(concat, tok)
+concat(tok::AbstractVector{<:AbstractString}) = tok
+concat(tok::AbstractVector{<:AbstractVector{<:AbstractString}}) = tok
+function concat(tok::AbstractVector{<:AbstractVector{<:AbstractVector{T}}}) where T<:AbstractString
+    N = length(tok)
+    toks = Vector{Vector{T}}(undef, N); empty!(toks)
+    for doc in tok
+        n = sum(length, doc)
+        words = Vector{T}(undef, n)
+        offset = 1
+        for (i, sent) in enumerate(doc)
+            len = length(sent)
+            copyto!(words, offset, sent, 1, len)
+            offset += len
+        end
+        push!(toks, words)
+    end
+    return toks
 end
