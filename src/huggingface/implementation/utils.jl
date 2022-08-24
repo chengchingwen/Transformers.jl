@@ -1,3 +1,4 @@
+using BytePairEncoding
 using HuggingFaceApi: list_model_files
 
 ensure_possible_files(possible_files, model_name; revision = nothing, auth_token = nothing, kw...) =
@@ -19,3 +20,12 @@ end
 load_tokenizer_added_tokens(model_name; kw...) = JSON.parsefile(hgf_tokenizer_added_token(model_name; kw...); dicttype = Dict{String, Any})
 
 tokenizer_warn(msg) = @warn "$msg, the tokenization result might be slightly different in some cases."
+
+function rank_from_lines(lines)
+    rank = Dict{NTuple{2, BytePairEncoding.Merge}, Int}()
+    for (i, line) in enumerate(lines)
+        p = BytePairEncoding.parse_merge(line, nothing)
+        rank[p] = i
+    end
+    return rank
+end
