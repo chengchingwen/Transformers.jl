@@ -1,7 +1,5 @@
 [deps]
-BytePairEncoding = "a4280ba5-8788-555a-8ca8-4a8c3d966a71"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
-HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+TextEncodeBase = "f92c20c0-9f2a-4705-8116-881385faba05"
 Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
