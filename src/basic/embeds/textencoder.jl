@@ -95,11 +95,10 @@ TransformerTextEncoder(t::AbstractTokenization, v::WList, args...; kws...) =
 
 function TransformerTextEncoder(tkr::AbstractTokenizer, words::AbstractVector, process; trunc = nothing,
                                 startsym = "<s>", endsym = "</s>", unksym = "<unk>", padsym = "<pad>")
-    vocab_list = String[]
+    vocab_list = copy(words)
     for sym in (padsym, unksym, startsym, endsym)
-        sym ∉ words && push!(vocab_list, sym)
+        sym ∉ vocab_list && push!(vocab_list, sym)
     end
-    append!(vocab_list, words)
     vocab = Vocab(vocab_list, unksym)
     return TransformerTextEncoder(tkr, vocab, process, startsym, endsym, padsym, trunc)
 end
