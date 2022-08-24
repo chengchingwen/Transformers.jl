@@ -1,4 +1,5 @@
 using ..Basic: string_getvalue, check_vocab, TextTokenizer, WList, concat, with_firsthead_tail
+using StructWalk
 using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
@@ -7,6 +8,14 @@ using TextEncodeBase: BaseTokenization, WrappedTokenization, MatchTokenization, 
 
 using BytePairEncoding
 using BytePairEncoding: AbstractBPE, gpt2_codemap
+
+function find_codemap(tkr)
+    rcm = Ref{Union{Nothing, CodeMap}}(nothing)
+    StructWalk.scan(x->x isa CodeMap && (rcm[] = x), TextEncodeBase.TokenizerStyle(), tkr)
+    cm = rcm[]
+    isnothing(cm) && error("cannot find codemap from gpt2 text encoder.")
+    return cm
+end
 
 # gpt tokenizer
 
@@ -34,10 +43,11 @@ end
 
 ## gpt2 encoder
 
-struct GPT2TextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P} <: AbstractTextEncoder
+struct GPT2TextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P, C<:CodeMap} <: AbstractTextEncoder
     tokenizer::T
     vocab::V
     process::P
+    codemap::C
     startsym::Union{Nothing, String}
     endsym::Union{Nothing, String}
     padsym::Union{Nothing, String}
@@ -81,7 +91,7 @@ function GPTTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, proce
     return GPTTextEncoder(tkr, vocab, process, startsym, sepsym, endsym, padsym, trunc)
 end
 
-function GPTTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary;
+function GPTTextEncoder(tkr::AbstractTokenizer, vocab::WList;
                         fixedsize = false, trunc_end = :head, pad_end = :head,
                         kwargs...)
     enc = GPTTextEncoder(tkr, vocab, TextEncodeBase.process(AbstractTextEncoder); kwargs...)
@@ -123,7 +133,7 @@ function GPT2TextEncoder(tkr::AbstractTokenizer, words::AbstractVector, process;
         sym ∉ vocab_list && push!(vocab_list, sym)
     end
     vocab = Vocab(vocab_list, unksym)
-    return GPT2TextEncoder(tkr, vocab, process, startsym, endsym, padsym, trunc)
+    return GPT2TextEncoder(tkr, vocab, process, find_codemap(tkr), startsym, endsym, padsym, trunc)
 end
 
 function GPT2TextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process;
@@ -133,22 +143,22 @@ function GPT2TextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, proc
     check_vocab(vocab, endsym) || @warn "endsym $endsym not in vocabulary, this might cause problem."
     check_vocab(vocab, unksym) || @warn "unksym $unksym not in vocabulary, this might cause problem."
     check_vocab(vocab, padsym) || @warn "padsym $padsym not in vocabulary, this might cause problem."
-    return GPT2TextEncoder(tkr, vocab, process, startsym, endsym, padsym, trunc)
+    return GPT2TextEncoder(tkr, vocab, process, find_codemap(tkr), startsym, endsym, padsym, trunc)
 end
 
-function GPT2TextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary;
+function GPT2TextEncoder(tkr::AbstractTokenizer, vocab::WList;
                         fixedsize = false, trunc_end = :head, pad_end = :head,
                         kwargs...)
     enc = GPT2TextEncoder(tkr, vocab, TextEncodeBase.process(AbstractTextEncoder); kwargs...)
     # default processing pipelines for bert encoder
     return GPT2TextEncoder(enc) do e
         gpt2_default_preprocess(; trunc = e.trunc, startsym = e.startsym, endsym = e.endsym, padsym = e.padsym,
-                               fixedsize, trunc_end, pad_end)
+                                fixedsize, trunc_end, pad_end)
     end
 end
 
 GPT2TextEncoder(builder, e::GPT2TextEncoder) =
-    GPT2TextEncoder(e.tokenizer, e.vocab, builder(e), e.startsym, e.endsym, e.padsym, e.trunc)
+    GPT2TextEncoder(e.tokenizer, e.vocab, builder(e), e.codemap, e.startsym, e.endsym, e.padsym, e.trunc)
 
 
 # preprocess
@@ -241,6 +251,13 @@ function TextEncodeBase.lookup(e::GPT2TextEncoder, x::NamedTuple)
     onehot_tok = lookup(e, x.input.tok)
     input = merge(x.input, (tok = onehot_tok,))
     return merge(x, (input = input,))
+end
+
+# decode
+
+function TextEncodeBase.decode(e::GPT2TextEncoder, x)
+    uc = CodeUnMap(e.codemap)
+    return TextEncodeBase.nestedcall(uc, TextEncodeBase.decode_indices(e, x))
 end
 
 # pretty print
