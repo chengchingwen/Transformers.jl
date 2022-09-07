@@ -30,6 +30,7 @@ function test_tokenizer(name, corpus)
             end
         catch e
             isnothing(fd) || close(fd)
+            rethrow(e)
         end
     end
 end

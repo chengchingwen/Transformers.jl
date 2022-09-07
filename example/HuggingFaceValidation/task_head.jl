@@ -1,4 +1,4 @@
-function test_task_head(name, n)
+function test_task_head(name, n; max_error = 1e-1, mean_error = 1e-2)
     global torch, hgf_trf, config, vocab_size
     @info "Validate $name task head"
     @testset "Task Head" begin
@@ -42,8 +42,8 @@ function test_task_head(name, n)
                 end
                 jl_result = reshape(jl_result, Val(ndims(py_result)))
                 diff = (py_result .- jl_result) .^ 2
-                @test maximum(diff) < 0.1
-                @test mean(diff) < 1e-2
+                @test maximum(diff) < max_error
+                @test mean(diff) < mean_error
             end
         end
     end

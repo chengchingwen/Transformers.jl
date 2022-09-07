@@ -1,4 +1,4 @@
-function test_based_model(name, n)
+function test_based_model(name, n; max_error = 1e-2, mean_error = 1e-4)
     global torch, hgf_trf, vocab_size
     @info "Validate $name based model"
     @testset "Based Model" begin
@@ -22,8 +22,8 @@ function test_based_model(name, n)
             py_result = rowmaj2colmaj(hgf_model(pyindices)["last_hidden_state"].detach().numpy())
             jl_result = model(reshape(indices, len, 1)).last_hidden_state
             diff = (py_result .- jl_result) .^ 2
-            @test maximum(diff) < 1e-2
-            @test mean(diff) < 1e-4
+            @test maximum(diff) < max_error
+            @test mean(diff) < mean_error
         end
     end
 end

@@ -47,21 +47,31 @@ We are using PyCall.jl for the python part. To run the checker, you need the ins
 
 ```
 some/path/to/this/HuggingFaceValidation$ julia --project main.jl --help
-usage: main.jl [-s SUBJECT] [-n NUMBER] [-h] name [corpus]
+usage: main.jl [-s SUBJECT] [-n NUMBER] [--max-error MAX-ERROR]
+               [--mean-error MEAN-ERROR] [-h] name [corpus]
 
 positional arguments:
   name                  model name
-  corpus                corpus for testing tokenizer
+  corpus                corpus for testing, must specified if you are
+                        testing with tokenizer
 
 optional arguments:
   -s, --subject SUBJECT
-                        a specific testing subject (default: "all")
+                        a specific testing subject, should be one of
+                        ("all", "none", "based_model", "task_head",
+                        "tokenizer", "whole_model") (default: "all")
   -n, --number NUMBER   the number of random sample for testing the
                         model (type: Int64, default: 100)
+  --max-error MAX-ERROR
+                        the error bound for the square error (type:
+                        Float64, default: 0.1)
+  --mean-error MEAN-ERROR
+                        the error bound for the mean square error
+                        (type: Float64, default: 0.01)
   -h, --help            show this help message and exit
 
 ```
 
 + `<model_name>` is the model (repo name on huggingface hub) that you want to validate.
-+ `<subject>` is the specific stuff you want to test, can be `"based_model"`, `"task_head"`, or `"tokenizer"`
++ `<subject>` is the specific stuff you want to test.
 + `<corpus>` is a file containing text to be tested with the tokenizer.
