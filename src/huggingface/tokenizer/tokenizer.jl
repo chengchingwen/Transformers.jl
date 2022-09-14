@@ -10,10 +10,10 @@ function load_tokenizer(model_name; possible_files = nothing, config = nothing, 
     possible_files = ensure_possible_files(possible_files, model_name; kw...)
 
     if TOKENIZER_CONFIG_FILE in possible_files
-        tkr_cfg = load_tokenizer_config(model_name; kw...)
-        tkr_type = get(tkr_cfg, :tokenizer_class, nothing)
+        tkr_config = load_tokenizer_config(model_name; kw...)
+        tkr_type = get(tkr_config, :tokenizer_class, nothing)
     else
-        tkr_cfg = nothing
+        tkr_config = nothing
         tkr_type = nothing
     end
 
@@ -28,7 +28,7 @@ function load_tokenizer(model_name; possible_files = nothing, config = nothing, 
         tkr_type = Symbol(lowercase(m.captures[1]))
     end
 
-    return load_tokenizer(tkr_type, model_name; possible_files, config, tkr_cfg, kw...)
+    return load_tokenizer(tkr_type, model_name; possible_files, config, tkr_config, kw...)
 end
 
 load_tokenizer(tkr_type::Symbol, model_name; kw...) = load_tokenizer(tokenizer_type(tkr_type), model_name; kw...)
