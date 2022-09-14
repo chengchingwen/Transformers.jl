@@ -4,10 +4,12 @@ using BytePairEncoding: CachedBPE, GPT2Tokenization, gpt2_codemap
 using TextEncodeBase
 
 tokenizer_type(T::Val{:gpt2}) = T
+encoder_construct(::Val{:gpt2}, tokenizer, vocab; kwargs...) = GPT2TextEncoder(tokenizer, vocab; kwargs...)
+slow_tkr_files(::Val{:gpt2}) = (VOCAB_JSON_FILE, MERGES_FILE)
 
 function load_slow_tokenizer(
     ::Val{:gpt2}, vocab_file, merges_file, added_tokens_file = nothing, special_tokens = nothing;
-    unk_token
+    unk_token = "<|endoftext|>"
 )
     vocab_list = reverse_keymap_to_list(JSON.parsefile(vocab_file))
     bpe = CachedBPE(BPE(merges_file))
@@ -19,10 +21,8 @@ function load_slow_tokenizer(
     return tokenizer, Vocab(vocab_list, unk_token), (;)
 end
 
-gpt2_kwargs(::Nothing, config, special_tokens) = gpt2_kwargs(config, special_tokens)
-gpt2_kwargs(tkr_cfg, config, special_tokens) = gpt2_kwargs(config, special_tokens; tkr_cfg...)
-function gpt2_kwargs(
-    config, special_tokens;
+function extract_tkr_kwargs(
+    ::Val{:gpt2}, config, special_tokens;
     unk_token = "<|endoftext|>", bos_token = "<|endoftext|>", eos_token = "<|endoftext|>", pad_token = "<|endoftext|>",
     model_max_length = config.n_positions, kw...
 )
@@ -39,41 +39,8 @@ function gpt2_kwargs(
     kwargs[:padsym] = pad_token
     kwargs[:trunc] = model_max_length
 
-    return kwargs, unk_token
-end
+    slow_tkr_kwargs = Dict{Symbol, Any}()
+    slow_tkr_kwargs[:unk_token] = unk_token
 
-
-function load_tokenizer(
-    T::Val{:gpt2}, model_name; force_fast_tkr = false, possible_files = nothing,
-    config = nothing, tkr_config = nothing,
-    kw...
-)
-    possible_files = ensure_possible_files(possible_files, model_name; kw...)
-    config = ensure_config(config, model_name; kw...)
-
-    isnothing(tkr_config) && TOKENIZER_CONFIG_FILE in possible_files &&
-        (tkr_config = load_tokenizer_config(model_name; kw...))
-    special_tokens = SPECIAL_TOKENS_MAP_FILE in possible_files ?
-        load_special_tokens_map(hgf_tokenizer_special_tokens_map(model_name; kw...)) : nothing
-    kwargs, unk_token = gpt2_kwargs(tkr_config, config, special_tokens)
-
-    if FULL_TOKENIZER_FILE in possible_files || force_fast_tkr
-        @assert FULL_TOKENIZER_FILE in possible_files "Forcely using fast tokenizer but cannot find $FULL_TOKENIZER_FILE in $model_name repo"
-        tokenizer, vocab, process_config = load_fast_tokenizer(T, hgf_tokenizer(model_name; kw...))
-    else
-        @assert VOCAB_JSON_FILE in possible_files && MERGES_FILE in possible_files "Cannot not find $VOCAB_FILE and $MERGES_FILE or $FULL_TOKENIZER_FILE in $model_name repo"
-        vocab_file = hgf_vocab_json(model_name; kw...)
-        merges_file = hgf_merges(model_name; kw...)
-        added_tokens_file = ADDED_TOKENS_FILE in possible_files ? hgf_tokenizer_added_token(model_name; kw...) : nothing
-        tokenizer, vocab, process_config = load_slow_tokenizer(
-            T, vocab_file, merges_file, added_tokens_file, special_tokens;
-            unk_token
-        )
-    end
-
-    for (k, v) in process_config
-        kwargs[k] = v
-    end
-
-    return GPT2TextEncoder(tokenizer, vocab; kwargs...)
+    return kwargs, slow_tkr_kwargs
 end

@@ -377,4 +377,12 @@ function load_fast_tokenizer(tokenizer_json)
     return tokenizer, vocab, process_config
 end
 
-@valsplit load_slow_tokenizer(Val(type::Symbol), args...; kwargs...) = error("No slow tokenizer defined for $type")
+@valsplit load_slow_tokenizer(Val(type::Symbol), args...; kwargs...) = error("No slow tokenizer defined for $type.")
+
+extract_tkr_kwargs(type, ::Nothing, config, special_tokens) = extract_tkr_kwargs(type, config, special_tokens)
+extract_tkr_kwargs(type, tkr_cfg, config, special_tokens) = extract_tkr_kwargs(type, config, special_tokens; tkr_cfg...)
+@valsplit extract_tkr_kwargs(Val(type::Symbol), config, special_tokens; kw...) =
+    error("Don't know how to extract arguments for $type tokenizer.")
+
+@valsplit slow_tkr_files(Val(type::Symbol)) = error("Don't know what files are need to load slow $type tokenizer.")
+@valsplit encoder_construct(Val(type::Symbol), tokenizer, vocab; kwargs...) = error("Don't know how to construct text encoder for $type")
