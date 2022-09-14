@@ -1,5 +1,3 @@
-using ValSplit
-using HuggingFaceApi: list_model_files
 using StructWalk: scan
 using TextEncodeBase
 using TextEncodeBase: CodeNormalizer, ReplaceNormalizer,
@@ -8,76 +6,6 @@ using ..BidirectionalEncoder: WordPiece, BertUnCasedPreTokenization, BertCasedPr
 using BytePairEncoding
 using BytePairEncoding: GPT2Tokenization, gpt2_codemap
 using ..Basic: TextTokenizer
-
-ensure_possible_files(possible_files, model_name; revision = nothing, auth_token = nothing, kw...) =
-    _ensure(list_model_files, possible_files, model_name; revision, token = auth_token)
-
-ensure_config(config, model_name; kw...) = _ensure(load_config, config, model_name; kw...)
-
-function reverse_keymap_to_list(dict)
-    vocab_list = Vector{String}(undef, length(dict))
-    for (k, v) in dict
-        v += 1
-        @assert !isassigned(vocab_list, v) "Two word has same index: $(k) and $(vocab_list[v])"
-        vocab_list[v] = k
-    end
-    @assert all(Base.Fix1(isassigned, vocab_list), eachindex(vocab_list)) "There is a gap in the vocabulary"
-    return vocab_list
-end
-
-tokenizer_warn(msg) = @warn "$msg, the tokenization result might be slightly different in some cases."
-
-load_error_msg(msg) = "$msg\nFile an issue with the model name you want to load."
-load_error(msg) = error(load_error_msg(msg))
-
-function rank_from_lines(lines)
-    rank = Dict{NTuple{2, BytePairEncoding.Merge}, Int}()
-    for (i, line) in enumerate(lines)
-        p = BytePairEncoding.parse_merge(line, nothing)
-        rank[p] = i
-    end
-    return rank
-end
-
-empty_then_nothing(::Nothing) = nothing
-empty_then_nothing(x) = isempty(unique!(x)) ? nothing : x
-
-function load_special_tokens_map(special_tokens_map_json)
-    special_tokens = Dict{Symbol, String}()
-    for (k, v) in json_load(special_tokens_map_json)
-        special_tokens[k] = v isa String ? v : v["content"]
-    end
-    return special_tokens
-end
-
-function load_added_tokens(added_tokens_json, vocab_list)
-    added_tokens = String[]
-    added_tokens_dict = JSON.parsefile(added_tokens_json)
-    for (idx, token) in sort!(collect(Iterators.map(reverse, added_tokens_dict)))
-        n_vocab = length(vocab_list)
-        if n_vocab == idx
-            push!(vocab_list, token)
-        elseif n_vocab > idx
-            idx += 1
-            @assert vocab_list[idx] == token "Two word has same index: $(token) and $(vocab_list[idx])"
-        else
-            error("There is a gap in the vocabulary")
-        end
-        push!(added_tokens, token)
-    end
-    return isempty(added_tokens) ? nothing :  added_tokens
-end
-
-function load_and_add_tokens(added_tokens_file, vocab_list, special_tokens)
-    match_tokens = isnothing(added_tokens_file) ? nothing : load_added_tokens(added_tokens_file, vocab_list)
-    if !isnothing(special_tokens)
-        special_token_values = values(special_tokens)
-        match_tokens = isnothing(match_tokens) ?
-            collect(special_token_values) : append!(match_tokens, special_token_values)
-    end
-    match_tokens = empty_then_nothing(match_tokens)
-    return match_tokens
-end
 
 function extract_added_token(added_token)
     vidx = added_token["id"] + 1
@@ -376,13 +304,3 @@ function load_fast_tokenizer(tokenizer_json)
     tokenizer = TextTokenizer(base_tokenization)
     return tokenizer, vocab, process_config
 end
-
-@valsplit load_slow_tokenizer(Val(type::Symbol), args...; kwargs...) = error("No slow tokenizer defined for $type.")
-
-extract_tkr_kwargs(type, ::Nothing, config, special_tokens) = extract_tkr_kwargs(type, config, special_tokens)
-extract_tkr_kwargs(type, tkr_cfg, config, special_tokens) = extract_tkr_kwargs(type, config, special_tokens; tkr_cfg...)
-@valsplit extract_tkr_kwargs(Val(type::Symbol), config, special_tokens; kw...) =
-    error("Don't know how to extract arguments for $type tokenizer.")
-
-@valsplit slow_tkr_files(Val(type::Symbol)) = error("Don't know what files are need to load slow $type tokenizer.")
-@valsplit encoder_construct(Val(type::Symbol), tokenizer, vocab; kwargs...) = error("Don't know how to construct text encoder for $type")
