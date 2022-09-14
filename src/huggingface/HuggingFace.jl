@@ -5,13 +5,14 @@ using ..Transformers
 using HuggingFaceApi
 
 export @hgf_str,
-  load_config,
-  load_model,
-  load_model!,
-  load_state_dict,
-  load_state,
-  save_config,
-  save_model
+    load_config,
+    load_model,
+    load_model!,
+    load_tokenizer,
+    load_state_dict,
+    load_state,
+    save_config,
+    save_model
 
 include("./utils.jl")
 include("./download.jl")
