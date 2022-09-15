@@ -1,4 +1,5 @@
-using ..Basic: string_getvalue, check_vocab, TextTokenizer, WList, concat, with_firsthead_tail
+using ..Basic: string_getvalue, check_vocab, TextTokenizer, WList, concat, with_firsthead_tail,
+    AbstractTransformerTextEncoder
 using StructWalk
 using FuncPipelines
 using TextEncodeBase
@@ -30,7 +31,7 @@ using BytePairEncoding: GPT2Tokenization, gpt2_tokenizer
 
 # encoder
 
-struct GPTTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P} <: AbstractTextEncoder
+struct GPTTextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P} <: AbstractTransformerTextEncoder
     tokenizer::T
     vocab::V
     process::P
@@ -43,7 +44,7 @@ end
 
 ## gpt2 encoder
 
-struct GPT2TextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P, C<:CodeMap} <: AbstractTextEncoder
+struct GPT2TextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P, C<:CodeMap} <: AbstractTransformerTextEncoder
     tokenizer::T
     vocab::V
     process::P
@@ -261,28 +262,5 @@ function TextEncodeBase.decode(e::GPT2TextEncoder, x)
 end
 
 # pretty print
-
-function Base.show(io::IO, e::GPTTextEncoder)
-    print(io, "GPTTextEncoder(\n├─ ")
-    print(io, e.tokenizer, ",\n├─ ")
-    print(io, "vocab = ", e.vocab)
-    isnothing(e.startsym) || print(io, ",\n├─ startsym = ", e.startsym)
-    isnothing(e.sepsym) || print(io, ",\n├─ sepsym = ", e.sepsym)
-    isnothing(e.endsym) || print(io, ",\n├─ endsym = ", e.endsym)
-    isnothing(e.padsym) || print(io, ",\n├─ padsym = ", e.padsym)
-    isnothing(e.trunc) || print(io, ",\n├─ trunc = ", e.trunc)
-    print(IOContext(io, :pipeline_display_prefix => "  ╰─ "), ",\n└─ process = ", e.process, "\n)")
-end
-
-function Base.show(io::IO, e::GPT2TextEncoder)
-    print(io, "GPT2TextEncoder(\n├─ ")
-    print(io, e.tokenizer, ",\n├─ ")
-    print(io, "vocab = ", e.vocab)
-    isnothing(e.startsym) || print(io, ",\n├─ startsym = ", e.startsym)
-    isnothing(e.endsym) || print(io, ",\n├─ endsym = ", e.endsym)
-    isnothing(e.padsym) || print(io, ",\n├─ padsym = ", e.padsym)
-    isnothing(e.trunc) || print(io, ",\n├─ trunc = ", e.trunc)
-    print(IOContext(io, :pipeline_display_prefix => "  ╰─ "), ",\n└─ process = ", e.process, "\n)")
-end
 
 Base.show(io::IO, ::GPTTokenization) = print(io, nameof(gpt_tokenizer))

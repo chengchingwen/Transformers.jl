@@ -1,4 +1,4 @@
-using ..Basic: string_getvalue, check_vocab, TextTokenizer
+using ..Basic: string_getvalue, check_vocab, TextTokenizer, AbstractTransformerTextEncoder
 using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
@@ -99,9 +99,7 @@ BertTextEncoder(
 
 ```
 """
-struct BertTextEncoder{T<:AbstractTokenizer,
-                       V<:AbstractVocabulary{String},
-                       P} <: AbstractTextEncoder
+struct BertTextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P} <: AbstractTransformerTextEncoder
     tokenizer::T
     vocab::V
     process::P
@@ -156,7 +154,8 @@ BertTextEncoder(builder, e::BertTextEncoder) =
 
 # preprocess
 
-function bert_default_preprocess(; trunc = nothing, startsym = "[CLS]", endsym = "[SEP]", padsym = "[PAD]", fixedsize = false)
+function bert_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym = "[PAD]",
+                                 fixedsize = false, trunc = nothing, trunc_end = :tail, pad_end = :tail)
     if fixedsize
         @assert !isnothing(trunc) "`fixedsize=true` but `trunc` is not set."
         truncf = trunc_or_pad
@@ -170,7 +169,7 @@ function bert_default_preprocess(; trunc = nothing, startsym = "[CLS]", endsym =
         # compute segment and merge sentences
         Pipeline{(:tok, :segment)}(segment_and_concat, :tok) |>
         # truncate input that exceed length limit and pad them to have equal length
-        Pipeline{:trunc_tok}(truncf(trunc, padsym), :tok) |>
+        Pipeline{:trunc_tok}(truncf(trunc, padsym, trunc_end, pad_end), :tok) |>
         # get the truncated length
         (fixedsize ?
          Pipeline{:trunc_len}(FuncPipelines.FixRest(identity, trunc), 0) :
@@ -278,17 +277,6 @@ julia> lookup(bertenc.vocab, tok)
 TextEncodeBase.decode(::BertTextEncoder, _)
 
 # pretty print
-
-function Base.show(io::IO, e::BertTextEncoder)
-    print(io, "BertTextEncoder(\n├─ ")
-    print(io, e.tokenizer, ",\n├─ ")
-    print(io, "vocab = ", e.vocab, ",\n├─ ")
-    print(io, "startsym = ", e.startsym, ",\n├─ ")
-    print(io, "endsym = ", e.endsym, ",\n├─ ")
-    print(io, "padsym = ", e.padsym)
-    isnothing(e.trunc) || print(io, ",\n├─ trunc = ", e.trunc)
-    print(IOContext(io, :pipeline_display_prefix => "  ╰─ "), ",\n└─ process = ", e.process, "\n)")
-end
 
 Base.show(io::IO, ::BertCasedPreTokenization) = print(io, nameof(bert_cased_tokenizer))
 Base.show(io::IO, ::BertUnCasedPreTokenization) = print(io, nameof(bert_uncased_tokenizer))

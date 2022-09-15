@@ -4,6 +4,21 @@ using TextEncodeBase: WordTokenization
 
 string_getvalue(x::TextEncodeBase.TokenStage) = intern(getvalue(x))::String
 
+# abstract type
+
+abstract type AbstractTransformerTextEncoder <: AbstractTextEncoder end
+
+function Base.show(io::IO, e::AbstractTransformerTextEncoder)
+    print(io, "$(nameof(typeof(e)))(\n├─ ")
+    print(io, e.tokenizer)
+    for name in fieldnames(typeof(e))
+        (name == :tokenizer || name == :process) && continue
+        val = getfield(e, name)
+        isnothing(val) || print(io, ",\n├─ ", name, " = ",  val)
+    end
+    print(IOContext(io, :pipeline_display_prefix => "  ╰─ "), ",\n└─ process = ", e.process, "\n)")
+end
+
 # text encoder
 
 """
@@ -73,7 +88,7 @@ TransformerTextEncoder(
 
 ```
 """
-struct TransformerTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P} <: AbstractTextEncoder
+struct TransformerTextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P} <: AbstractTransformerTextEncoder
     tokenizer::T
     vocab::V
     process::P
@@ -236,16 +251,3 @@ julia> lookup(textenc.vocab, e.tok)
 ```
 """
 TextEncodeBase.decode(::TransformerTextEncoder, _)
-
-# pretty print
-
-function Base.show(io::IO, e::TransformerTextEncoder)
-    print(io, "TransformerTextEncoder(\n├─ ")
-    print(io, e.tokenizer, ",\n├─ ")
-    print(io, "vocab = ", e.vocab, ",\n├─ ")
-    print(io, "startsym = ", e.startsym, ",\n├─ ")
-    print(io, "endsym = ", e.endsym, ",\n├─ ")
-    print(io, "padsym = ", e.padsym)
-    isnothing(e.trunc) || print(io, ",\n├─ trunc = ", e.trunc)
-    print(IOContext(io, :pipeline_display_prefix => "  ╰─ "), ",\n└─ process = ", e.process, "\n)")
-end
