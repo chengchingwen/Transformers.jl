@@ -115,9 +115,9 @@ end
 build model with given `model_type` and load state from 
 `model_name`.
 """
-function load_model(model_type, model_name; config = load_config(model_name))
+function load_model(model_type, model_name; config = load_config(model_name), kws...)
   model = model_type(config)
-  state = load_state(model_name)
+  state = load_state(model_name; kws...)
   load_model!(model, state)
   return model
 end
