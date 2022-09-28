@@ -1,5 +1,10 @@
 using TextEncodeBase: with_head_tail
 
+# used for grouping tokenized tokens into correct format for SequenceTemplate
+grouping_sentence(x::AbstractVector{<:AbstractString}) = x # single sentence
+grouping_sentence(x::AbstractVector{<:AbstractVector{<:AbstractString}}) = map(Base.vect, x) # batch of sentence
+grouping_sentence(x::AbstractVector{<:AbstractVector{<:AbstractVector{<:AbstractString}}}) = x
+
 #=
  with_firsthead_tail(x, head, tail)
 

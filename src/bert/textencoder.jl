@@ -1,9 +1,10 @@
-using ..Basic: string_getvalue, check_vocab, TextTokenizer, AbstractTransformerTextEncoder
+using ..Basic: string_getvalue, grouping_sentence, check_vocab, TextTokenizer, AbstractTransformerTextEncoder
 using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
 using TextEncodeBase: BaseTokenization, WrappedTokenization, MatchTokenization, Splittable,
     ParentStages, TokenStages, SentenceStage, WordStage, Batch, Sentence, getvalue, getmeta
+using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm
 
 # bert tokenizer
 
@@ -164,15 +165,21 @@ function bert_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym 
     end
     # get token and convert to string
     return Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
-        # add start & end symbol
-        Pipeline{:tok}(with_firsthead_tail(startsym, endsym), :tok) |>
-        # compute segment and merge sentences
-        Pipeline{(:tok, :segment)}(segment_and_concat, :tok) |>
+        # group input for SequenceTemplate
+        Pipeline{:tok}(grouping_sentence, :tok) |>
+        # add start & end symbol, compute segment and merge sentences
+        Pipeline{:tok_segment}(
+            SequenceTemplate(
+                ConstTerm(startsym, 1), InputTerm{String}(1), ConstTerm(endsym, 1),
+                RepeatedTerm(InputTerm{String}(2), ConstTerm(endsym, 2); dynamic_type_id = true)
+            ), :tok) |>
+        Pipeline{:tok}(nestedcall(Base.Fix2(getindex, 1)), :tok_segment) |>
+        Pipeline{:segment}(nestedcall(Base.Fix2(getindex, 2)), :tok_segment) |>
         # truncate input that exceed length limit and pad them to have equal length
         Pipeline{:trunc_tok}(truncf(trunc, padsym, trunc_end, pad_end), :tok) |>
         # get the truncated length
         (fixedsize ?
-         Pipeline{:trunc_len}(FuncPipelines.FixRest(identity, trunc), 0) :
+         PipeVar{:trunc_len}(trunc) :
          Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok)
          ) |>
         # get mask with specific length
@@ -180,7 +187,7 @@ function bert_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym 
         # convert to dense array
         Pipeline{:tok}(nested2batch, :trunc_tok) |>
         # truncate & pad segment
-        Pipeline{:segment}(truncf(trunc, 1), :segment) |>
+        Pipeline{:segment}(truncf(trunc, 1, trunc_end, pad_end), :segment) |>
         Pipeline{:segment}(nested2batch, :segment) |>
         # input namedtuple
         Pipeline{:input}(NamedTuple{(:tok, :segment)}∘tuple, (:tok, :segment)) |>
