@@ -1,4 +1,4 @@
-using ..Basic: string_getvalue, check_vocab, TextTokenizer, WList, AbstractTransformerTextEncoder
+using ..Basic: string_getvalue, check_vocab, TextTokenizer, WList, AbstractTransformerTextEncoder, grouping_sentence
 using StructWalk
 using FuncPipelines
 using TextEncodeBase
