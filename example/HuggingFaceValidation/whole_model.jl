@@ -39,6 +39,7 @@ function test_whole_model(name, corpus; max_error = 1e-1, mean_error = 1e-2)
         try
             fd = open(corpus)
             for line in eachline(fd)
+                isempty(line) && continue
                 jl_tokens = TextEncodeBase.getvalue.(TextEncodeBase.tokenize(tkr, line))
                 py_tokens = hgf_tkr.tokenize(line)
                 @test jl_tokens == py_tokens
