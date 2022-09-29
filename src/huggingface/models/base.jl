@@ -6,7 +6,7 @@ using Flux: @adjoint, pullback
 using AbstractTrees
 import AbstractTrees: children
 
-const ACT2FN = (gelu = gelu, relu = relu, swish = swish, gelu_new = gelu, mish = mish)
+const ACT2FN = (gelu = gelu, relu = relu, swish = swish, gelu_new = gelu, mish = mish, quick_gelu = gelu, selu = selu)
 
 abstract type THModule end
 abstract type HGFPreTrainedModel <: THModule end
