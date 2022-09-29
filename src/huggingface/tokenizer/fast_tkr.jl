@@ -102,7 +102,7 @@ function extract_tokenization_method(::Val{:BPE}, model_dict)
     unk_token = model_dict["unk_token"]
     sepsym = empty2nothing(model_dict["continuing_subword_prefix"])
     endsym = empty2nothing(model_dict["end_of_word_suffix"])
-    merges = rank_from_lines(model_dict["merges"])
+    merges = rank_from_lines(model_dict["merges"]; endsym)
     bpe = CachedBPE(BPE(merges, sepsym, endsym))
     vocab_list = reverse_keymap_to_list(model_dict["vocab"])
     return Base.Fix2(BPETokenization, bpe), bpe, unk_token, vocab_list
