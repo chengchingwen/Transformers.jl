@@ -19,10 +19,11 @@ function reverse_keymap_to_list(dict)
     return vocab_list
 end
 
-function rank_from_lines(lines)
+function rank_from_lines(lines; endsym = nothing)
     rank = Dict{NTuple{2, BytePairEncoding.Merge}, Int}()
+    pattern = isnothing(endsym) ? nothing : Base.compile(Regex("(.*)\\Q$endsym\\E\$"))
     for (i, line) in enumerate(lines)
-        p = BytePairEncoding.parse_merge(line, nothing)
+        p = BytePairEncoding.parse_merge(line, pattern)
         rank[p] = i
     end
     return rank

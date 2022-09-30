@@ -1,11 +1,13 @@
 using StructWalk: scan
+using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: CodeNormalizer, ReplaceNormalizer,
-    MatchTokenization, EachSplitTokenization, EachMatchTokenization, TokenizerStyle
+    MatchTokenization, EachSplitTokenization, EachMatchTokenization, TokenizerStyle, nestedcall
+using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm, IndexInputTerm
 using ..BidirectionalEncoder: WordPiece, BertUnCasedPreTokenization, BertCasedPreTokenization, WordPieceTokenization
 using BytePairEncoding
 using BytePairEncoding: GPT2Tokenization, gpt2_codemap
-using ..Basic: TextTokenizer
+using ..Basic: TextTokenizer, grouping_sentence
 
 function extract_added_token(added_token)
     vidx = added_token["id"] + 1
@@ -100,7 +102,7 @@ function extract_tokenization_method(::Val{:BPE}, model_dict)
     unk_token = model_dict["unk_token"]
     sepsym = empty2nothing(model_dict["continuing_subword_prefix"])
     endsym = empty2nothing(model_dict["end_of_word_suffix"])
-    merges = rank_from_lines(model_dict["merges"])
+    merges = rank_from_lines(model_dict["merges"]; endsym)
     bpe = CachedBPE(BPE(merges, sepsym, endsym))
     vocab_list = reverse_keymap_to_list(model_dict["vocab"])
     return Base.Fix2(BPETokenization, bpe), bpe, unk_token, vocab_list
@@ -137,7 +139,6 @@ function extract_pre_tokenization(
     ::Val{:ByteLevel}, pretokenizer_dict, tokenization, match_tokens, normalizer, tokenizer_dict
 )
     @assert !pretokenizer_dict["add_prefix_space"] "add_prefix_space is unsupported"
-    @assert pretokenizer_dict["trim_offsets"]
     isnothing(tokenization) && (tokenization = GPT2Tokenization())
     normalizer = normalizer ∘ Base.Fix2(CodeNormalizer, gpt2_codemap())
     return tokenization, match_tokens, normalizer
@@ -282,14 +283,112 @@ function extract_trunc_pad(tokenizer_dict)
     return process_config
 end
 
+extract_post_processor(::Nothing, tokenizer_dict, process_config) = process_config
+extract_post_processor(post_processor_dict, tokenizer_dict, process_config) =
+    extract_post_processor(Symbol(post_processor_dict["type"]), post_processor_dict, tokenizer_dict, process_config)
+@valsplit extract_post_processor(
+    Val(post_processor_type::Symbol), post_processor_dict, tokenizer_dict, process_config
+) =
+    load_error("Unsupported post processor method: $post_processor_type")
+
+function extract_term(term)
+    if haskey(term, "SpecialToken")
+        @assert length(term) == 1
+        term = term["SpecialToken"]
+        id = term["id"]
+        type_id = term["type_id"] + 1
+        return ConstTerm(id, type_id)
+    elseif haskey(term, "Sequence")
+        @assert length(term) == 1
+        term = term["Sequence"]
+        id = term["id"]
+        type_id = term["type_id"] + 1
+        if id == "A"
+            id = 1
+        elseif id == "B"
+            id = 2
+        else
+            load_error("Unknown pattern in TemplateProcessing: $term")
+        end
+        return IndexInputTerm{String}(id, type_id)
+    else
+        load_error("Unknown pattern in TemplateProcessing: $term")
+    end
+end
+
+function extract_post_processor(::Val{:TemplateProcessing}, post_processor_dict, tokenizer_dict, process_config)
+    all(Base.splat(==), zip(post_processor_dict["single"], post_processor_dict["pair"])) ||
+        load_error("Un-mergeable pattern for TemplateProcessing")
+    special_tokens = post_processor_dict["special_tokens"]
+    single_term = map(extract_term, post_processor_dict["single"])
+    pair_term = map(extract_term, post_processor_dict["pair"][length(single_term)+1:end])
+    process = Pipelines(
+        Pipeline{:tok}(grouping_sentence, :tok),
+        Pipeline{:tok_segment}(SequenceTemplate(single_term..., RepeatedTerm(pair_term...)), :tok),
+        Pipeline{:tok}(nestedcall(Base.Fix2(getindex, 1)), :tok_segment) |>
+        Pipeline{:segment}(nestedcall(Base.Fix2(getindex, 2)), :tok_segment)
+    )
+    process_config[:process] = process
+    return process_config
+end
+
+function extract_post_processor(::Val{:BertProcessing}, post_processor_dict, tokenizer_dict, process_config)
+    sepsym, sepid = post_processor_dict["sep"]
+    startsym, startid = post_processor_dict["cls"]
+    process = Pipelines(
+        Pipeline{:tok}(grouping_sentence, :tok),
+        Pipeline{:tok_segment}(
+            SequenceTemplate(
+                ConstTerm(startsym, 1), InputTerm{String}(1), ConstTerm(sepsym, 1),
+                RepeatedTerm(InputTerm{String}(2), ConstTerm(sepsym, 2))),
+            :tok),
+        Pipeline{:tok}(nestedcall(Base.Fix2(getindex, 1)), :tok_segment) |>
+        Pipeline{:segment}(nestedcall(Base.Fix2(getindex, 2)), :tok_segment)
+    )
+    process_config[:process] = process
+    return process_config
+end
+
+function extract_post_processor(::Val{:RobertaProcessing}, post_processor_dict, tokenizer_dict, process_config)
+    @assert !post_processor_dict["add_prefix_space"] "add_prefix_space is unsupported"
+    sepsym, sepid = post_processor_dict["sep"]
+    startsym, startid = post_processor_dict["cls"]
+    process = Pipelines(
+        Pipeline{:tok}(grouping_sentence, :tok),
+        Pipeline{:tok_segment}(
+            SequenceTemplate(
+                ConstTerm(startsym), InputTerm{String}(), ConstTerm(sepsym),
+                RepeatedTerm(ConstTerm(sepsym), InputTerm{String}(), ConstTerm(sepsym))),
+            :tok),
+        Pipeline{:tok}(nestedcall(Base.Fix2(getindex, 1)), :tok_segment) |>
+        Pipeline{:segment}(nestedcall(Base.Fix2(getindex, 2)), :tok_segment)
+    )
+    process_config[:process] = process
+    return process_config
+end
+
+function extract_post_processor(::Val{:ByteLevel}, post_processor_dict, tokenizer_dict, process_config)
+    process = Pipelines(
+        Pipeline{:tok}(grouping_sentence, :tok),
+        Pipeline{:tok}(SequenceTemplate(RepeatedTerm(InputTerm{String}()))(Val(1)), :tok),
+    )
+    process_config[:process] = process
+    return process_config
+end
+
+function extract_processor(tokenizer_json)
+    process_config = extract_trunc_pad(tokenizer_json)
+    process_config = extract_post_processor(tokenizer_json["post_processor"], tokenizer_json, process_config)
+    return process_config
+end
+
 function load_fast_tokenizer_components(tokenizer_json)
     tokenizer_dict = JSON.parsefile(tokenizer_json)
     method, tokenization_object, unk, vocab_list = extract_tokenizer_model(tokenizer_dict["model"])
     match_tokens = extract_and_add_tokens!(tokenizer_dict["added_tokens"], vocab_list)
     base_tokenization, match_tokens = extract_base_tokenization(method, match_tokens, tokenizer_dict)
     match_tokens = empty_then_nothing(match_tokens)
-    process_config = extract_trunc_pad(tokenizer_dict)
-    # we are ignoring the "post_processor" here.
+    process_config = extract_processor(tokenizer_dict)
     return base_tokenization, match_tokens, vocab_list, unk, tokenization_object, process_config
 end
 

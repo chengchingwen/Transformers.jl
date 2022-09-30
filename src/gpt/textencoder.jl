@@ -1,11 +1,11 @@
-using ..Basic: string_getvalue, check_vocab, TextTokenizer, WList, concat, with_firsthead_tail,
-    AbstractTransformerTextEncoder
+using ..Basic: string_getvalue, check_vocab, TextTokenizer, WList, AbstractTransformerTextEncoder, grouping_sentence
 using StructWalk
 using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
 using TextEncodeBase: BaseTokenization, WrappedTokenization, MatchTokenization, CodeNormalizer,
     CodeMap, CodeUnMap, ParentStages, TokenStages, SentenceStage, WordStage, Batch, Sentence, getvalue, getmeta
+using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm
 
 using BytePairEncoding
 using BytePairEncoding: AbstractBPE, gpt2_codemap
@@ -93,14 +93,14 @@ function GPTTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, proce
 end
 
 function GPTTextEncoder(tkr::AbstractTokenizer, vocab::WList;
-                        fixedsize = false, trunc_end = :head, pad_end = :head,
+                        fixedsize = false, trunc_end = :head, pad_end = :head, process = nothing,
                         kwargs...)
     enc = GPTTextEncoder(tkr, vocab, TextEncodeBase.process(AbstractTextEncoder); kwargs...)
     # default processing pipelines for bert encoder
     return GPTTextEncoder(enc) do e
         gpt_default_preprocess(; trunc = e.trunc, startsym = e.startsym, sepsym = e.sepsym,
                                endsym = e.endsym, padsym = e.padsym,
-                               fixedsize, trunc_end, pad_end)
+                               fixedsize, trunc_end, pad_end, process)
     end
 end
 
@@ -148,13 +148,13 @@ function GPT2TextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, proc
 end
 
 function GPT2TextEncoder(tkr::AbstractTokenizer, vocab::WList;
-                        fixedsize = false, trunc_end = :head, pad_end = :head,
+                        fixedsize = false, trunc_end = :head, pad_end = :head, process = nothing,
                         kwargs...)
     enc = GPT2TextEncoder(tkr, vocab, TextEncodeBase.process(AbstractTextEncoder); kwargs...)
     # default processing pipelines for bert encoder
     return GPT2TextEncoder(enc) do e
         gpt2_default_preprocess(; trunc = e.trunc, startsym = e.startsym, endsym = e.endsym, padsym = e.padsym,
-                                fixedsize, trunc_end, pad_end)
+                                fixedsize, trunc_end, pad_end, process)
     end
 end
 
@@ -166,7 +166,7 @@ GPT2TextEncoder(builder, e::GPT2TextEncoder) =
 
 function gpt_default_preprocess(; startsym = "_start_", sepsym = "_delimiter_", endsym = "_classify_",
                                 padsym = "<pad>", trunc = nothing, fixedsize = false,
-                                trunc_end = :head, pad_end = :head)
+                                trunc_end = :head, pad_end = :head, process = nothing)
     if fixedsize
         @assert !isnothing(trunc) "`fixedsize=true` but `trunc` is not set."
         truncf = trunc_or_pad
@@ -174,20 +174,26 @@ function gpt_default_preprocess(; startsym = "_start_", sepsym = "_delimiter_", 
         truncf = trunc_and_pad
     end
 
+    if isnothing(process)
+        process =
+            # group input for SequenceTemplate
+            Pipeline{:tok}(grouping_sentence, :tok) |>
+            # add start & end symbol and merge sentences
+            Pipeline{:tok}(SequenceTemplate(
+                ConstTerm(startsym), InputTerm{String}(),
+                RepeatedTerm(ConstTerm(sepsym), InputTerm{String}()),
+                ConstTerm(endsym),
+            )(Val(1)), :tok)
+    end
+
     return Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
-        # add start & end symbol
-        Pipeline{:tok}(with_firsthead_tail(startsym, endsym, sepsym), :tok) |>
-        # compute segment and merge sentences
-        Pipeline{:tok}(concat, :tok) |>
+        process |>
         # truncate input that exceed length limit and pad them to have equal length
         Pipeline{:trunc_tok}(truncf(trunc, padsym, trunc_end, pad_end), :tok) |>
         # get the truncated length
-        (fixedsize ?
-         Pipeline{:trunc_len}(FuncPipelines.FixRest(identity, trunc), 0) :
-         Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok)
-         ) |>
+        (fixedsize ? PipeVar{:trunc_len}(trunc) : Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok)) |>
         # set pad end
-        Pipeline{:lpad}(FuncPipelines.FixRest(identity, pad_end == :head), 0) |>
+        PipeVar{:lpad}(pad_end == :head) |>
         # get mask with specific length
         Pipeline{:mask}(getmask, (:tok, :trunc_len, :lpad)) |>
         # convert to dense array
@@ -199,8 +205,8 @@ function gpt_default_preprocess(; startsym = "_start_", sepsym = "_delimiter_", 
 end
 
 function gpt2_default_preprocess(; startsym = "<|endoftext|>", endsym = "<|endoftext|>", padsym = "<|endoftext|>",
-                                 trunc = nothing, fixedsize = false,
-                                 trunc_end = :head, pad_end = :head)
+                                 trunc = nothing, fixedsize = false, trunc_end = :head, pad_end = :head,
+                                 process = nothing)
     if fixedsize
         @assert !isnothing(trunc) "`fixedsize=true` but `trunc` is not set."
         truncf = trunc_or_pad
@@ -208,20 +214,25 @@ function gpt2_default_preprocess(; startsym = "<|endoftext|>", endsym = "<|endof
         truncf = trunc_and_pad
     end
 
+    if isnothing(process)
+        process =
+            # group input for SequenceTemplate
+            Pipeline{:tok}(grouping_sentence, :tok) |>
+            # add start & end symbol and merge sentences
+            Pipeline{:tok}(SequenceTemplate(RepeatedTerm(InputTerm{String}()))(Val(1)), :tok)
+    end
+
     return Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
-        # add start & end symbol
-        Pipeline{:tok}(with_firsthead_tail(startsym, endsym, nothing), :tok) |>
-        # compute segment and merge sentences
-        Pipeline{:tok}(concat, :tok) |>
+        process |>
         # truncate input that exceed length limit and pad them to have equal length
         Pipeline{:trunc_tok}(truncf(trunc, padsym, trunc_end, pad_end), :tok) |>
         # get the truncated length
         (fixedsize ?
-         Pipeline{:trunc_len}(FuncPipelines.FixRest(identity, trunc), 0) :
+         PipeVar{:trunc_len}(trunc) :
          Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok)
          ) |>
         # set pad end
-        Pipeline{:lpad}(FuncPipelines.FixRest(identity, pad_end == :head), 0) |>
+        PipeVar{:lpad}(pad_end == :head) |>
         # get mask with specific length
         Pipeline{:mask}(getmask, (:tok, :trunc_len, :lpad)) |>
         # convert to dense array

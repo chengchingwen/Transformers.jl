@@ -1,3 +1,5 @@
+using TextEncodeBase: getvalue, nestedcall
+
 function test_tokenizer(name, corpus)
     global torch, hgf_trf, config, vocab_size
     @info "Validate $name tokenizer with corpus $corpus"
@@ -18,15 +20,30 @@ function test_tokenizer(name, corpus)
 
         @info "Testing: Tokenizer"
         fd = nothing
+        prev_line = nothing
         try
             fd = open(corpus)
             for line in eachline(fd)
+                # single input
+                isempty(line) && continue
                 jl_tokens = TextEncodeBase.getvalue.(TextEncodeBase.tokenize(tkr, line))
                 py_tokens = hgf_tkr.tokenize(line)
                 @test jl_tokens == py_tokens
                 jl_indices = collect(reinterpret(Int32, encode(tkr, line).input.tok))
                 py_indices = collect(hgf_tkr(line)["input_ids"]) .+ 1
                 @test jl_indices == py_indices
+                # pair input
+                if !isnothing(prev_line)
+                    pair_jl_tokens =
+                        vcat(nestedcall(getvalue, TextEncodeBase.tokenize(tkr, [[prev_line, line]]))[]...)
+                    pair_py_tokens = hgf_tkr.tokenize(prev_line, line)
+                    @test pair_jl_tokens == pair_py_tokens
+                    pair_jl_indices = reshape(
+                        collect(reinterpret(Int32, encode(tkr, [[prev_line, line]]).input.tok)), :)
+                    pair_py_indices = collect(hgf_tkr(prev_line, line)["input_ids"]) .+ 1
+                    @test pair_jl_indices == pair_py_indices
+                end
+                prev_line = line
             end
         catch e
             isnothing(fd) || close(fd)
