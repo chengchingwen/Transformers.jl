@@ -139,7 +139,6 @@ function extract_pre_tokenization(
     ::Val{:ByteLevel}, pretokenizer_dict, tokenization, match_tokens, normalizer, tokenizer_dict
 )
     @assert !pretokenizer_dict["add_prefix_space"] "add_prefix_space is unsupported"
-    @assert pretokenizer_dict["trim_offsets"]
     isnothing(tokenization) && (tokenization = GPT2Tokenization())
     normalizer = normalizer ∘ Base.Fix2(CodeNormalizer, gpt2_codemap())
     return tokenization, match_tokens, normalizer
@@ -351,8 +350,7 @@ function extract_post_processor(::Val{:BertProcessing}, post_processor_dict, tok
 end
 
 function extract_post_processor(::Val{:RobertaProcessing}, post_processor_dict, tokenizer_dict, process_config)
-    @assert !post_processor_dict["add_prefix_space"]
-    @assert !post_processor_dict["trim_offsets"]
+    @assert !post_processor_dict["add_prefix_space"] "add_prefix_space is unsupported"
     sepsym, sepid = post_processor_dict["sep"]
     startsym, startid = post_processor_dict["cls"]
     process = Pipelines(
