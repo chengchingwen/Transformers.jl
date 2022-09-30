@@ -193,8 +193,10 @@ function bert_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym 
          PipeVar{:trunc_len}(trunc) :
          Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok)
          ) |>
+        # set pad end
+        PipeVar{:lpad}(pad_end == :head) |>
         # get mask with specific length
-        Pipeline{:mask}(getmask, (:tok, :trunc_len)) |>
+        Pipeline{:mask}(getmask, (:tok, :trunc_len, :lpad)) |>
         # convert to dense array
         Pipeline{:tok}(nested2batch, :trunc_tok) |>
         # truncate & pad segment
