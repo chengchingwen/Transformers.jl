@@ -1,6 +1,6 @@
 function test_whole_model(name, corpus; max_error = 1e-1, mean_error = 1e-2)
     global torch, hgf_trf, config, vocab_size
-    global error_samples = []    
+    global error_samples = []
     @info "Validate $name whole model with corpus $corpus"
     @testset "Whole model" begin
         model_type = config.model_type |> Symbol |> Val
