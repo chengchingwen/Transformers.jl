@@ -179,8 +179,8 @@ function bert_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym 
                     RepeatedTerm(InputTerm{String}(2), ConstTerm(endsym, 2); dynamic_type_id = true)
                 ), :tok
             ) |>
-            Pipeline{:tok}(nestedcall(Base.Fix2(getindex, 1)), :tok_segment) |>
-            Pipeline{:segment}(nestedcall(Base.Fix2(getindex, 2)), :tok_segment)
+            Pipeline{:tok}(nestedcall(first), :tok_segment) |>
+            Pipeline{:segment}(nestedcall(last), :tok_segment)
     end
 
     # get token and convert to string

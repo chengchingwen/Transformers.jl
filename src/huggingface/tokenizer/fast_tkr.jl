@@ -325,8 +325,8 @@ function extract_post_processor(::Val{:TemplateProcessing}, post_processor_dict,
     process = Pipelines(
         Pipeline{:tok}(grouping_sentence, :tok),
         Pipeline{:tok_segment}(SequenceTemplate(single_term..., RepeatedTerm(pair_term...)), :tok),
-        Pipeline{:tok}(nestedcall(Base.Fix2(getindex, 1)), :tok_segment) |>
-        Pipeline{:segment}(nestedcall(Base.Fix2(getindex, 2)), :tok_segment)
+        Pipeline{:tok}(nestedcall(first), :tok_segment) |>
+        Pipeline{:segment}(nestedcall(last), :tok_segment)
     )
     process_config[:process] = process
     return process_config
@@ -342,8 +342,8 @@ function extract_post_processor(::Val{:BertProcessing}, post_processor_dict, tok
                 ConstTerm(startsym, 1), InputTerm{String}(1), ConstTerm(sepsym, 1),
                 RepeatedTerm(InputTerm{String}(2), ConstTerm(sepsym, 2))),
             :tok),
-        Pipeline{:tok}(nestedcall(Base.Fix2(getindex, 1)), :tok_segment) |>
-        Pipeline{:segment}(nestedcall(Base.Fix2(getindex, 2)), :tok_segment)
+        Pipeline{:tok}(nestedcall(first), :tok_segment) |>
+        Pipeline{:segment}(nestedcall(last), :tok_segment)
     )
     process_config[:process] = process
     return process_config
@@ -360,8 +360,8 @@ function extract_post_processor(::Val{:RobertaProcessing}, post_processor_dict, 
                 ConstTerm(startsym), InputTerm{String}(), ConstTerm(sepsym),
                 RepeatedTerm(ConstTerm(sepsym), InputTerm{String}(), ConstTerm(sepsym))),
             :tok),
-        Pipeline{:tok}(nestedcall(Base.Fix2(getindex, 1)), :tok_segment) |>
-        Pipeline{:segment}(nestedcall(Base.Fix2(getindex, 2)), :tok_segment)
+        Pipeline{:tok}(nestedcall(first), :tok_segment) |>
+        Pipeline{:segment}(nestedcall(last), :tok_segment)
     )
     process_config[:process] = process
     return process_config
