@@ -1,12 +1,14 @@
 using StructWalk: scan
 using FuncPipelines
 using TextEncodeBase
-using TextEncodeBase: CodeNormalizer, ReplaceNormalizer,
+using TextEncodeBase: CodeNormalizer, ReplaceNormalizer, WordReplaceNormalizer,
     MatchTokenization, EachSplitTokenization, EachMatchTokenization, TokenizerStyle, nestedcall
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm, IndexInputTerm
 using ..BidirectionalEncoder: WordPiece, BertUnCasedPreTokenization, BertCasedPreTokenization, WordPieceTokenization
 using BytePairEncoding
 using BytePairEncoding: GPT2Tokenization, gpt2_codemap
+using ..UnigramLanguageModel
+using ..UnigramLanguageModel: PrecompiledNormalizer
 using ..Basic: TextTokenizer, grouping_sentence
 
 function extract_added_token(added_token)
@@ -108,7 +110,21 @@ function extract_tokenization_method(::Val{:BPE}, model_dict)
     return Base.Fix2(BPETokenization, bpe), bpe, unk_token, vocab_list
 end
 
-# extract_tokenization_method(::Val{:Unigram}, model_dict)
+function extract_tokenization_method(::Val{:Unigram}, model_dict)
+    unki = model_dict["unk_id"] + 1
+    score_list = model_dict["vocab"]
+    vocab_list = Vector{String}(undef, length(score_list))
+    scores = Vector{Float64}(undef, length(score_list))
+    for (i, entry) in enumerate(score_list)
+        @assert length(entry) == 2
+        vocab_list[i] = entry[1]
+        scores[i] = entry[2]
+    end
+    unk = vocab_list[unki]
+    unigram = Unigram(vocab_list, scores, unki)
+    return Base.Fix2(UnigramTokenization, unigram), unigram, unk, vocab_list
+end
+
 # extract_tokenization_method(M::Val{:WordLevel}, model_dict)
 
 function extract_tokenizer_model(model_dict)
@@ -118,7 +134,7 @@ end
 
 @valsplit extract_pre_tokenization(
     Val(tokenization_type::Symbol), pretokenizer_dict, tokenization, match_tokens, normalizer, tokenizer_dict
-) = load_error("Unsupported tokenization method: $tokenization_type")
+) = load_error("Unsupported pre-tokenization method: $tokenization_type")
 
 extract_pre_tokenization(pretokenizer_dict, tokenization, match_tokens, normalizer, tokenizer_dict) =
     extract_pre_tokenization(
@@ -141,6 +157,24 @@ function extract_pre_tokenization(
     @assert !pretokenizer_dict["add_prefix_space"] "add_prefix_space is unsupported"
     isnothing(tokenization) && (tokenization = GPT2Tokenization())
     normalizer = normalizer ∘ Base.Fix2(CodeNormalizer, gpt2_codemap())
+    return tokenization, match_tokens, normalizer
+end
+
+function extract_pre_tokenization(
+    ::Val{:Metaspace}, pretokenizer_dict, tokenization, match_tokens, normalizer, tokenizer_dict
+)
+    @assert tokenization == EachSplitTokenization(isspace) load_error_msg("Metaspace without WhiteSpaceSPlit is unsupported")
+    @assert pretokenizer_dict["replacement"] == pretokenizer_dict["str_rep"]
+    replacement = collect(pretokenizer_dict["replacement"])[]::Char
+    add_prefix_space = pretokenizer_dict["add_prefix_space"]
+    metaspacef(x) = isspace(x) || x == replacement
+    tokenizaiton = EachSplitTokenization(metaspacef)
+    if add_prefix_space
+        normalizer = normalizer ∘ Base.Fix2(
+            WordReplaceNormalizer,
+            Regex("^(?!$(replacement))(.*)\$") => SubstitutionString("$replacement\\1")
+        )
+    end
     return tokenization, match_tokens, normalizer
 end
 
@@ -244,6 +278,11 @@ function extract_normalizer(::Val{:Replace}, normalizer_dict, tokenization, toke
     content = normalizer_dict["content"]
     regex = Regex(normalizer_dict["pattern"]["Regex"])
     return ReplaceNormalizer(tokenization, regex=>content)
+end
+
+function extract_normalizer(::Val{:Precompiled}, normalizer_dict, tokenization, tokenizer_dict)
+    precompiled = UnigramLanguageModel.Precompiled(normalizer_dict["precompiled_charsmap"])
+    return PrecompiledNormalizer(tokenization, precompiled)
 end
 
 function extract_normalizer(::Val{:Sequence}, normalizer_dict, tokenization, tokenizer_dict)
@@ -398,7 +437,7 @@ function load_fast_tokenizer(tokenizer_json)
         load_fast_tokenizer_components(tokenizer_json)
     isnothing(match_tokens) || (base_tokenization = MatchTokenization(base_tokenization, match_tokens))
     isnothing(unk) && (unk = "<unk>") # dummy unk token, wouldn't appear in vocabulary
-    unk isa AbstractString || (unk = vocab_list[unk + 1])
+    unk isa AbstractString || (unk = vocab_list[unk])
     vocab = Vocab(vocab_list, unk)
     tokenizer = TextTokenizer(base_tokenization)
     return tokenizer, vocab, process_config
