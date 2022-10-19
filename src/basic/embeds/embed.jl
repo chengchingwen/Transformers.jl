@@ -25,3 +25,26 @@ end
 (e::Embed{F})(x, scale) where {F} = gather(e.embedding, x) .* convert(F, scale)
 
 Base.show(io::IO, e::Embed) = print(io, "Embed(scale=$(e.scale), $(size(e.embedding, 1)))")
+
+struct EmbeddingDecoder{E<:AbstractEmbed}
+    embedding_layer::E
+end
+@functor EmbeddingDecoder
+
+function embed_decode(embedding, x)
+    x′ = reshape(x, size(x, 1), :)
+    y = embedding' * x′
+    return reshape(y, :, Base.tail(size(x))...)
+end
+
+(d::EmbeddingDecoder)(x) = embed_decode(d.embedding_layer.embedding, x)
+function (d::EmbeddingDecoder{<:Embed})(x)
+    y = embed_decode(d.embedding_layer.embedding, x)
+    if isone(d.embedding_layer.scale)
+        return y
+    else
+        return y .* convert(eltype(d.embedding_layer), d.embedding_layer.scale)
+    end
+end
+
+Base.show(io::IO, d::EmbeddingDecoder) = (print(io, "EmbeddingDecoder("); show(io, d.embedding_layer); print(io, ')'))
