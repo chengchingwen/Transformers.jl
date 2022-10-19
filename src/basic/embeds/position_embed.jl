@@ -1,3 +1,5 @@
+using ChainRulesCore
+
 """
     PositionEmbedding(size::Int, max_len::Int = 1024; trainable::Bool = false)
 
@@ -37,17 +39,17 @@ function PositionEmbedding(size::Int, max_len::Int = 1024; trainable::Bool = fal
 end
 
 function resize_pe!(pe::PositionEmbedding, len::Int)
-    max_len = size(pe.embedding, 2)
+    emb_dim, max_len = size(pe.embedding)
 
     if len > max_len
         if pe.trainable
             error("position embedding length exceeded")
         else
-            over = similar(pe.embedding, size(pe.embedding, 1), len)
-            copyto!(over, 1, pe.embedding, 1, length(pe.embedding))
+            over = similar(pe.embedding, emb_dim, len)
+            copyto!(over, pe.embedding)
 
             for l = size(pe.embedding, 2)+1:len
-                map!(i->PE(size(pe.embedding, 1), l, i), selectdim(over, 2, l), 1:size(pe.embedding, 1))
+                map!(i->PE(emb_dim, l, i), selectdim(over, 2, l), 1:emb_dim)
             end
 
             pe.embedding = over
@@ -55,14 +57,13 @@ function resize_pe!(pe::PositionEmbedding, len::Int)
     end
     return nothing
 end
+ChainRulesCore.@non_differentiable resize_pe!(pe::PositionEmbedding, len::Int)
 
 (pe::PositionEmbedding)(x::AbstractArray{Int}) = pe(size(x, 1))
 (pe::PositionEmbedding)(x::OneHotArray) = pe(size(x, 2))
 (pe::PositionEmbedding{F})(x::AbstractArray{F}) where F = pe(size(x, 2))
 function (pe::PositionEmbedding)(len::Int)
-    Flux.Zygote.ignore() do
-        resize_pe!(pe, len)
-    end
+    resize_pe!(pe, len)
     pe.embedding[:, Base.OneTo(len)]
 end
 
