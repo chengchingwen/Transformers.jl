@@ -31,6 +31,9 @@ function parse_commandline()
             help = "the error bound for the mean square error"
             arg_type = Float64
             default = 0.01
+        "--output", "-o"
+            help = "file name where the failed sample would be write to (for testing tokenizer only)."
+            default = nothing
         "name"
             help = "model name"
             required = true
@@ -47,12 +50,18 @@ const model_name = args["name"]
 const subject = args["subject"] |> lowercase
 const num = args["number"]
 const corpus = args["corpus"]
+const output_file = args["output"]
 
 const max_error = args["max-error"]
 const mean_error = args["mean-error"]
 
 if subject ∉ allowed_subject
     error("unknown testing subject: $subject")
+end
+
+if subject == "tokenizer" || subject == "all"
+    isnothing(output_file) ||
+        @assert !isfile(output_file) "File $output_file already exists"
 end
 
 if isnothing(corpus) && (subject == "tokenizer" || subject == "whole_model")
@@ -102,7 +111,7 @@ include("whole_model.jl")
         (subject == "all" || subject == "based_model") && test_based_model(model_name, num; max_error, mean_error)
         (subject == "all" || subject == "task_head") && test_task_head(model_name, num; max_error, mean_error)
 
-        !isnothing(corpus) && (subject == "all" || subject == "tokenizer") && test_tokenizer(model_name, corpus)
+        !isnothing(corpus) && (subject == "all" || subject == "tokenizer") && test_tokenizer(model_name, corpus; output = output_file)
         !isnothing(corpus) && (subject == "all" || subject == "whole_model") &&
             test_whole_model(model_name, corpus; max_error, mean_error)
     end
