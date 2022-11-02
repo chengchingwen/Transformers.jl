@@ -79,8 +79,8 @@ see all model/task that `bert` support.
 """
 get_model_type
 
-@valsplit get_model_type(Val(model_name::Symbol)) = error("Unknown model type: $model_type")
-@valsplit get_model_type(Val(model_name::Symbol), Val(task::Symbol)) = error("Model $model doesn't support this kind of task: $task")
+@valsplit get_model_type(Val(model_name::Symbol)) = error("Unknown model type: $model_name")
+@valsplit get_model_type(Val(model_name::Symbol), Val(task::Symbol)) = error("Model $model_name doesn't support this kind of task: $task")
 
 """
   `load_model!(model::HGFPreTrainedModel, state)`
