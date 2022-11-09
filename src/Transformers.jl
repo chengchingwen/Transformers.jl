@@ -75,6 +75,7 @@ include("./pretrain/Pretrain.jl")
 
 include("./gpt/GenerativePreTrain.jl")
 include("./bert/BidirectionalEncoder.jl")
+include("./tokenizer/tokenizer.jl")
 
 include("./huggingface/HuggingFace.jl")
 
