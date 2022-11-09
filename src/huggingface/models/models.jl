@@ -11,7 +11,7 @@ using LinearAlgebra
 """
   `get_state_dict(layer)`
 
-Collect model parameters into one `OrderedDict` which also 
+Collect model parameters into one `OrderedDict` which also
 known as `state_dict` in PyTorch.
 
 model parameters are get from `Functors.functor`.
@@ -38,7 +38,7 @@ end
 """
   `load_state!(layer, state)`
 
-Load the model parameter from `state` into the `layer`. 
+Load the model parameter from `state` into the `layer`.
 give warning if something appear in `state` but not `layer`.
 """
 function load_state!(layer, state)
@@ -52,7 +52,7 @@ function load_state!(layer, state)
   pf = Functors.functor(layer) |> first |> keys
   rem = setdiff(pf, keys(state))
   if (!iszero ∘ length)(rem)
-    @warn "Some fields of $(Base.nameof(typeof(layer))) aren't initialized with loaded state: $(rem...)"
+    @warn "Some fields of $(Base.nameof(typeof(layer))) aren't initialized with loaded state: $(join(rem, """, """))"
   end
 end
 
@@ -85,8 +85,8 @@ get_model_type
 """
   `load_model!(model::HGFPreTrainedModel, state)`
 
-Similar to [`load_state!`](@ref) but only work for 
-huggingface pre-trained models, this is used for 
+Similar to [`load_state!`](@ref) but only work for
+huggingface pre-trained models, this is used for
 handling loading state of different level.
 """
 function load_model!(model::HGFPreTrainedModel, state)
@@ -112,15 +112,17 @@ end
 """
   `load_model(model_type, model_name; config=load_config(model_name))`
 
-build model with given `model_type` and load state from 
+build model with given `model_type` and load state from
 `model_name`.
 """
-function load_model(model_type, model_name; config = load_config(model_name), kws...)
-  model = model_type(config)
+function load_model(::Type{T}, model_name; config = load_config(model_name), kws...) where T
+  model = T(config)
   state = load_state(model_name; kws...)
   load_model!(model, state)
   return model
 end
+load_model(model_type, model_task, model_name; kws...) =
+    load_model(get_model_type(model_type, model_task), model_name; kws...)
 
 """
   `save_model(model_name, model; path = pwd(), weight_name = PYTORCH_WEIGHTS_NAME)`
@@ -135,3 +137,5 @@ function save_model(model_name, model; path = pwd(), weight_name = PYTORCH_WEIGH
   Torch.THsave(model_file, state)
   return model_file
 end
+
+is_seq2seq(_) = false
