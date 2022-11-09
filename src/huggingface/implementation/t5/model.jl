@@ -19,7 +19,7 @@ struct HGFT5LayerNorm{E, W<:AbstractArray{E}} <: THModule
     weight::W
     var_ϵ::E
 end
-Functors.functor(::Type{<:HGFT5LayerNorm}, ln) = (weight = ln.weight,), y->HGFT5LayerNorm(ln.var_ϵ, y...)
+@functor HGFT5LayerNorm (weight,)
 
 (ln::HGFT5LayerNorm)(x) = rms_layer_norm(ln.var_ϵ, ln.weight, x)
 
@@ -30,7 +30,7 @@ struct HGFT5DenseActDense{F, Di, Do} <: THModule
     wi::Di
     wo::Do
 end
-Functors.functor(::Type{<:HGFT5DenseActDense}, dd) = (wi = dd.wi, wo = dd.wo), y->HGFT5DenseActDense(dd.act, y...)
+@functor HGFT5DenseActDense (wi, wo)
 
 (dd::HGFT5DenseActDense)(x) = dd.wo(dd.act.(dd.wi(x)))
 
@@ -46,7 +46,7 @@ struct HGFT5DenseGatedActDense{F, Di0, Di1, Do} <: THModule
     wi1::Di1
     wo::Do
 end
-Functors.functor(::Type{<:HGFT5DenseGatedActDense}, dd) = (wi0 = dd.wi0, wi1 = dd.wi1, wo = dd.wo), y->HGFT5DenseGatedActDense(dd.act, y...)
+@functor HGFT5DenseGatedActDense (wi0, wi1, wo)
 
 function (dd::HGFT5DenseGatedActDense)(x)
     hidden_gelu = dd.wi0(x)
