@@ -16,6 +16,8 @@
     use_cache::Bool = true
     pad_token_id::Int = 0
     eos_token_id::Int = 1
+    dense_act_fn::String
+    is_gated_act::Bool
 end
 
 config_type(::Val{:t5}) = HGFT5Config
@@ -24,5 +26,9 @@ function load_config(::Type{HGFT5Config}, cfg)
     if !haskey(cfg, :num_decoder_layers) && haskey(cfg, :num_layers)
         cfg[:num_decoder_layers] = cfg[:num_layers]
     end
+    feed_forward_proj = get!(cfg, :feed_forward_proj, "relu")
+    act_info = split(feed_forward_proj, '-')
+    cfg[:dense_act_fn] = String(last(act_info))
+    cfg[:is_gated_act] = first(act_info) == "gated"
     return HGFT5Config(; cfg...)
 end
