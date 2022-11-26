@@ -1,0 +1,5 @@
+[deps]
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+TextEncodeBase = "f92c20c0-9f2a-4705-8116-881385faba05"
+Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"

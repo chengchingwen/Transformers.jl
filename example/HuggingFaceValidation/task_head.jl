@@ -6,6 +6,7 @@ function test_task_head(name, n; max_error = 1e-1, mean_error = 1e-2)
         model_type = config.model_type |> Symbol |> Val
 
         for task_type in config.architectures
+            task_type = task_type_map(task_type)
             @info "Loading model with $task_type head in Python"
             hgf_model = @tryrun begin
                 pyauto = hgf_trf[task_type]
@@ -26,9 +27,16 @@ function test_task_head(name, n; max_error = 1e-1, mean_error = 1e-2)
                 len = rand(50:100)
                 indices = rand(1:vocab_size, len)
                 pyindices = torch.tensor(indices .- 1).reshape(1, len)
-
-                py_states = hgf_model(pyindices)
-                jl_states = model(reshape(indices, len, 1))
+                if HuggingFace.is_seq2seq(model)
+                    len2 = rand(50:100)
+                    indices2 = rand(1:vocab_size, len2)
+                    pyindices2 = torch.tensor(indices2 .- 1).reshape(1, len2)
+                    py_states = hgf_model(input_ids = pyindices, decoder_input_ids = pyindices2)
+                    jl_states = model(indices, indices2)
+                else
+                    py_states = hgf_model(pyindices)
+                    jl_states = model(reshape(indices, len, 1))
+                end
 
                 if haskey(jl_states, :logits)
                     py_result = rowmaj2colmaj(py_states["logits"].detach().numpy())
@@ -47,4 +55,17 @@ function test_task_head(name, n; max_error = 1e-1, mean_error = 1e-2)
             end
         end
     end
+end
+
+const TASK_TYPE_MAP = Dict{String, String}(
+    "T5WithLMHeadModel" => "T5ForConditionalGeneration",
+)
+
+function task_type_map(task_type)
+    global TASK_TYPE_MAP
+    new_task_type = get(TASK_TYPE_MAP, task_type, task_type)
+    if new_task_type != task_type
+        @info "$task_type mapped to $new_task_type"
+    end
+    return new_task_type
 end

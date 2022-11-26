@@ -139,6 +139,7 @@ function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, proc
                          startsym = "[CLS]", endsym = "[SEP]", padsym = "[PAD]", trunc = nothing)
     check_vocab(vocab, startsym) || @warn "startsym $startsym not in vocabulary, this might cause problem."
     check_vocab(vocab, endsym) || @warn "endsym $endsym not in vocabulary, this might cause problem."
+    check_vocab(vocab, padsym) || @warn "padsym $padsym not in vocabulary, this might cause problem."
     return BertTextEncoder(tkr, vocab, process, startsym, endsym, padsym, trunc)
 end
 
