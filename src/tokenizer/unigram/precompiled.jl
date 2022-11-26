@@ -1,36 +1,16 @@
 using Base64
 
-struct DoubleArrayTrie
-    array::Vector{UInt}
-end
-
-function common_prefix_search(dat::DoubleArrayTrie, key::AbstractVector{UInt8})
+function first_prefix_search(array, key::AbstractVector{UInt8})
     node_pos = 0
-    results = Int[]
-    unit = dat.array[node_pos+1]
+    unit = @inbounds array[node_pos+1]
     node_pos ⊻= (unit >> 10) << ((unit & (UInt(1) << 9)) >> 6)
     for c in key
         iszero(c) && break
         node_pos ⊻= c
-        unit = dat.array[node_pos+1]
-        unit & ((UInt(1) << 31) | 0xff) != c && return results
-        node_pos ⊻= (unit >> 10) << ((unit & (UInt(1) << 9)) >> 6)
-        (unit >> 8) & 1 == 1 && push!(results, Int(dat.array[node_pos+1] & ((UInt(1) << 31) - 1)))
-    end
-    return results
-end
-
-function first_prefix_search(dat::DoubleArrayTrie, key::AbstractVector{UInt8})
-    node_pos = 0
-    unit = @inbounds dat.array[node_pos+1]
-    node_pos ⊻= (unit >> 10) << ((unit & (UInt(1) << 9)) >> 6)
-    for c in key
-        iszero(c) && break
-        node_pos ⊻= c
-        unit = @inbounds dat.array[node_pos+1]
+        unit = @inbounds array[node_pos+1]
         unit & ((UInt(1) << 31) | 0xff) != c && return nothing
         node_pos ⊻= (unit >> 10) << ((unit & (UInt(1) << 9)) >> 6)
-        (unit >> 8) & 1 == 1 && return @inbounds Int(dat.array[node_pos+1] & ((UInt(1) << 31) - 1))
+        (unit >> 8) & 1 == 1 && return @inbounds Int(array[node_pos+1] & ((UInt(1) << 31) - 1))
     end
     return nothing
 end
@@ -54,22 +34,20 @@ function parse_charsmap(precompiled_charsmap::AbstractVector{UInt8})
     return normalized_blob, trie_blob
 end
 
-struct Precompiled
-    precompiled_charsmap::Vector{UInt8}
+struct PrecompiledNorm
     normalized::String
     length::Int
-    trie::DoubleArrayTrie
+    trie::Vector{UInt}
 end
 
-Precompiled(precompiled_charsmap::String) = Precompiled(base64decode(precompiled_charsmap))
-function Precompiled(precompiled_charsmap)
+PrecompiledNorm(precompiled_charsmap::String) = PrecompiledNorm(base64decode(precompiled_charsmap))
+function PrecompiledNorm(precompiled_charsmap)
     normalized_blob, trie_blob = parse_charsmap(precompiled_charsmap)
     normalized = String(normalized_blob)
-    trie = DoubleArrayTrie(trie_blob)
-    return Precompiled(precompiled_charsmap, normalized, length(normalized), trie)
+    return PrecompiledNorm(normalized, length(normalized), trie_blob)
 end
 
-Base.show(io::IO, ::Precompiled) = print(io, "Precompiled(...)")
+Base.show(io::IO, ::PrecompiledNorm) = print(io, "PrecompiledNorm(...)")
 
 function _transform(normalized_bytes, len, index2)
     @inbounds while index2 <= len
@@ -79,8 +57,8 @@ function _transform(normalized_bytes, len, index2)
     return index2
 end
 
-transform(precompiled::Precompiled, chunk::AbstractString) = transform(precompiled, codeunits(chunk))
-function transform(precompiled::Precompiled, chunk)
+transform(precompiled::PrecompiledNorm, chunk::AbstractString) = transform(precompiled, codeunits(chunk))
+function transform(precompiled::PrecompiledNorm, chunk)
     result = first_prefix_search(precompiled.trie, chunk)
     isnothing(result) && return nothing
     index = result + 1
@@ -92,7 +70,7 @@ function transform(precompiled::Precompiled, chunk)
     return normalized
 end
 
-function (precompiled::Precompiled)(x)
+function (precompiled::PrecompiledNorm)(x)
     return _normalize(precompiled, x)
 end
 

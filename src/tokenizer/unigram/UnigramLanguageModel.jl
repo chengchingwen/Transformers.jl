@@ -4,8 +4,7 @@ using TextEncodeBase
 
 export Unigram, UnigramTokenization
 
-include("trie.jl")
-include("dat.jl")
+include("precompiled.jl")
 include("unigram.jl")
 include("tokenization.jl")
 

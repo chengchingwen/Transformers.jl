@@ -4,7 +4,7 @@ using TextEncodeBase: DefaultTokenization, WrappedTokenization, Splittable, Sent
 
 struct PrecompiledNormalizer{T<:AbstractTokenization} <: SentenceNormalizer{T}
     base::T
-    precompiled::Precompiled
+    precompiled::PrecompiledNorm
 end
 PrecompiledNormalizer(precompiled) = PrecompiledNormalizer(DefaultTokenization(), precompiled)
 

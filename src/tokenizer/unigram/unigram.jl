@@ -1,23 +1,35 @@
 using StringViews
 
+import DoubleArrayTries
+using DoubleArrayTries: DoubleArrayTrie, CommonPrefixSearch
+
+const DAT = DoubleArrayTries
+
 struct Unigram
-    vocab::Vector{String}
+    trie::DoubleArrayTrie
     unki::Int
     scores::Vector{Float64}
     min_score::Float64
-    trie::Trie{UInt8, Int}
 end
 
 function Unigram(vocab::Vector{String}, scores::Vector{Float64}, unki)
     @assert 0 < unki <= length(vocab)
-    trie = Trie(map(codeunits, vocab), 1:length(vocab))
-    return Unigram(vocab, unki, scores, minimum(scores), trie)
+    unk = vocab[unki]
+    trie = DoubleArrayTrie(copy(vocab))
+    unki = DAT.lookup(trie, unk)
+    nscores = similar(scores)
+    for (str, score) in zip(vocab, scores)
+        id = DAT.lookup(trie, str)
+        @assert id != 0
+        nscores[id] = score
+    end
+    return Unigram(trie, unki, nscores, minimum(nscores))
 end
 
 (unigram::Unigram)(x) = optimized_encode(unigram, x)
 
 Base.show(io::IO, unigram::Unigram) =
-    print(io, "Unigram(vocab_size = ", length(unigram.vocab), ", unk = ", unigram.vocab[unigram.unki], ')')
+    print(io, "Unigram(vocab_size = ", length(unigram.trie), ", unk = ", DAT.decode(unigram.trie, unigram.unki), ')')
 
 const kUnkPenalty = 10.0
 
@@ -37,12 +49,10 @@ function optimized_encode(unigram::Unigram, x)
         best_path_score_till_here = best_path_ends_at[starts_at].best_path_score
         has_single_node = false
         mblen = ncodeunits(x[starts_at])
-        for token_bytes in find_prefixes(unigram.trie, @view(codes[starts_at:end]))
-            len = length(token_bytes)
-            token = StringView(token_bytes)
+        for (id, token) in CommonPrefixSearch(unigram.trie, @view(codes[starts_at:end]))
+            len = ncodeunits(token)
             key_pos = starts_at + len
             target_node = best_path_ends_at[key_pos]
-            id = findfirst(==(token), unigram.vocab)
             score = unigram.scores[id]
             candidate_best_path_score = score + best_path_score_till_here
             if target_node.starts_at == -1 || candidate_best_path_score > target_node.best_path_score
@@ -79,7 +89,7 @@ function optimized_encode(unigram::Unigram, x)
                 push!(results, StringView(codes[unk_start:unk_end]))
                 unk_buf = false
             end
-            push!(results, unigram.vocab[node.id])
+            push!(results, DAT.decode(unigram.trie, node.id))
             unk_end = starts_at-1
         end
         ends_at = starts_at
