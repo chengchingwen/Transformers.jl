@@ -281,7 +281,7 @@ function extract_normalizer(::Val{:Replace}, normalizer_dict, tokenization, toke
 end
 
 function extract_normalizer(::Val{:Precompiled}, normalizer_dict, tokenization, tokenizer_dict)
-    precompiled = UnigramLanguageModel.Precompiled(normalizer_dict["precompiled_charsmap"])
+    precompiled = UnigramLanguageModel.PrecompiledNorm(normalizer_dict["precompiled_charsmap"])
     return PrecompiledNormalizer(tokenization, precompiled)
 end
 
