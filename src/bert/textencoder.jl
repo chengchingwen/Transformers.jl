@@ -1,10 +1,12 @@
 using ..Basic: string_getvalue, grouping_sentence, check_vocab, TextTokenizer, AbstractTransformerTextEncoder
+using ..WordPieceModel
 using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
 using TextEncodeBase: BaseTokenization, WrappedTokenization, MatchTokenization, Splittable,
     ParentStages, TokenStages, SentenceStage, WordStage, Batch, Sentence, getvalue, getmeta
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm
+
 
 # bert tokenizer
 
@@ -15,14 +17,6 @@ TextEncodeBase.splitting(::BertCasedPreTokenization, s::SentenceStage) = bert_ca
 TextEncodeBase.splitting(::BertUnCasedPreTokenization, s::SentenceStage) = bert_uncased_tokenizer(getvalue(s))
 
 const BertTokenization = Union{BertCasedPreTokenization, BertUnCasedPreTokenization}
-
-struct WordPieceTokenization{T<:AbstractTokenization} <: WrappedTokenization{T}
-    base::T
-    wordpiece::WordPiece
-end
-
-TextEncodeBase.splittability(::ParentStages, ::WordPieceTokenization, ::WordStage) = Splittable()
-TextEncodeBase.splitting(::ParentStages, t::WordPieceTokenization, w::WordStage) = t.wordpiece(getvalue(w))
 
 # encoder
 
@@ -134,6 +128,16 @@ function BertTextEncoder(t::AbstractTokenization, vocab::AbstractVocabulary, arg
         return BertTextEncoder(TextTokenizer(MatchTokenization(t, match_tokens)), vocab, args...; kws...)
     end
 end
+
+function _wp_vocab(wp::WordPiece)
+    vocab = Vector{String}(undef, length(wp.trie))
+    for (str, id) in wp.trie
+        vocab[wp.index[id]] = str
+    end
+    return vocab
+end
+Basic.Vocabulary(wp::WordPiece) = Vocabulary(_wp_vocab(wp), wp.vocab[wp.unk_idx])
+TextEncodeBase.Vocab(wp::WordPiece) = Vocab(_wp_vocab(wp), wp.vocab[wp.unk_idx])
 
 function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process;
                          startsym = "[CLS]", endsym = "[SEP]", padsym = "[PAD]", trunc = nothing)
