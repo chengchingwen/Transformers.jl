@@ -1,7 +1,18 @@
 using Pkg.TOML
 using Markdown
 
+using HuggingFaceApi
+
 const all_config = open(TOML.parse, joinpath(@__DIR__, "pretrains.toml"))
+
+function hgfdown(url, localdir)
+    m = Base.match(Regex("$(HuggingFaceApi.ENDPOINT[])/(chengchingwen/[^/]+)/blob/([^/]+)/(.+)\$"), url)
+    isnothing(m) && error("don't know how to process the url: $url")
+    repo, revision, name = m.captures
+    hgfurl = HuggingFaceURL(repo, name; revision)
+    dest = joinpath(localdir, basename(name))
+    HuggingFaceApi.hgf_download(hgfurl, dest; verbose = true)
+end
 
 function description(config::Dict)
   desc = config["description"]
@@ -58,13 +69,12 @@ function register_config(configs)
         depdesc = join([mt_desc, summary, model_desc], "\n\n")
         url = model_detail["url"]
         checksum = model_detail["checksum"]
-        dep = DataDep(depname, depdesc, url, checksum; fetch_method=gdownload)
+        dep = DataDep(depname, depdesc, url, checksum; fetch_method = hgfdown)
         DataDeps.register(dep)
       end
     end
   end
 end
-
 
 match(model, name, query) = isequal(lowercase(query), model) || isequal(query, name)
 
