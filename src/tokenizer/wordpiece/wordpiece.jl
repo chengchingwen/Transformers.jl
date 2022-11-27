@@ -77,3 +77,7 @@ function (wp::WordPiece)(x)
     end
     return result
 end
+
+Base.show(io::IO, wp::WordPiece) =
+    print(io, "WordPiece(vocab_size = ", length(wp.trie), ", unk = ", DAT.decode(wp.trie, wp.unki),
+          ", max_char = ", wp.max_char, ')')
