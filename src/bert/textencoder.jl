@@ -1,5 +1,6 @@
 using ..Basic: string_getvalue, grouping_sentence, check_vocab, TextTokenizer, AbstractTransformerTextEncoder
 using ..WordPieceModel
+using ..WordPieceModel: DAT
 using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
@@ -136,8 +137,8 @@ function _wp_vocab(wp::WordPiece)
     end
     return vocab
 end
-Basic.Vocabulary(wp::WordPiece) = Vocabulary(_wp_vocab(wp), wp.vocab[wp.unk_idx])
-TextEncodeBase.Vocab(wp::WordPiece) = Vocab(_wp_vocab(wp), wp.vocab[wp.unk_idx])
+Basic.Vocabulary(wp::WordPiece) = Vocabulary(_wp_vocab(wp), DAT.decode(wp.trie, wp.unki))
+TextEncodeBase.Vocab(wp::WordPiece) = Vocab(_wp_vocab(wp), DAT.decode(wp.trie, wp.unki))
 
 function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process;
                          startsym = "[CLS]", endsym = "[SEP]", padsym = "[PAD]", trunc = nothing)
