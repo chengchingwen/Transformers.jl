@@ -4,7 +4,8 @@ using TextEncodeBase
 using TextEncodeBase: CodeNormalizer, ReplaceNormalizer, WordReplaceNormalizer,
     MatchTokenization, EachSplitTokenization, EachMatchTokenization, TokenizerStyle, nestedcall
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm, IndexInputTerm
-using ..BidirectionalEncoder: WordPiece, BertUnCasedPreTokenization, BertCasedPreTokenization, WordPieceTokenization
+using ..BidirectionalEncoder: BertUnCasedPreTokenization, BertCasedPreTokenization
+using ..WordPieceModel
 using BytePairEncoding
 using BytePairEncoding: GPT2Tokenization, gpt2_codemap
 using ..UnigramLanguageModel

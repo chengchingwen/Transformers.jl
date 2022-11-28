@@ -2,7 +2,7 @@ using Test
 using BSON
 using Transformers.Basic
 using Transformers.BidirectionalEncoder
-
+import DoubleArrayTries
 
 @testset "TextEncoder" begin
     @testset "Transformer" begin

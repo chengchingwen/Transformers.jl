@@ -17,7 +17,6 @@ include("bert.jl")
 include("tfckpt2bson.jl")
 include("load_pretrain.jl")
 include("tokenizer.jl")
-include("wordpiece.jl")
 include("textencoder.jl")
 include("pretrain_helper.jl")
 
