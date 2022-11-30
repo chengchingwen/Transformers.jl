@@ -281,8 +281,8 @@ end
 
 function HGFT5Model(config::HGFT5Config)
     shared = FakeTHEmbedding(HGFT5Model, config, config.vocab_size, config.d_model)
-    enc_config = HGFT5Config(; merge(merge((;), config), (is_decoder = false, is_encoder_decoder = false))...)
-    dec_config = HGFT5Config(; merge(merge((;), config), (is_decoder = true, is_encoder_decoder = false, num_layers = config.num_decoder_layers))...)
+    enc_config = HGFConfig(config; is_decoder = false, is_encoder_decoder = false)
+    dec_config = HGFConfig(config; is_decoder = true, is_encoder_decoder = false, num_layers = config.num_decoder_layers)
     encoder = HGFT5Stack(enc_config, shared)
     decoder = HGFT5Stack(dec_config, shared)
     return HGFT5Model(shared, encoder, decoder)
@@ -316,8 +316,8 @@ end
 
 function HGFT5ForConditionalGeneration(config::HGFT5Config)
     shared = FakeTHEmbedding(HGFT5Model, config, config.vocab_size, config.d_model)
-    enc_config = HGFT5Config(; merge(merge((;), config), (is_decoder = false, is_encoder_decoder = false))...)
-    dec_config = HGFT5Config(; merge(merge((;), config), (is_decoder = true, is_encoder_decoder = false, num_layers = config.num_decoder_layers))...)
+    enc_config = HGFConfig(config; is_decoder = false, is_encoder_decoder = false)
+    dec_config = HGFConfig(config; is_decoder = true, is_encoder_decoder = false, num_layers = config.num_decoder_layers)
     encoder = HGFT5Stack(enc_config, shared)
     decoder = HGFT5Stack(dec_config, shared)
     lm_head_weight = config.tie_word_embeddings ?
@@ -340,7 +340,7 @@ end
 
 function HGFT5EncoderModel(config::HGFT5Config)
     shared = FakeTHEmbedding(HGFT5Model, config, config.vocab_size, config.d_model)
-    enc_config = HGFT5Config(; merge(merge((;), config), (is_decoder = false, is_encoder_decoder = false))...)
+    enc_config = HGFConfig(config; is_decoder = false, is_encoder_decoder = false)
     encoder = HGFT5Stack(enc_config, shared)
     return HGFT5EncoderModel(shared, encoder)
 end

@@ -1,4 +1,4 @@
-@cfgdef struct HGFBartConfig <: HGFConfig
+@defaultdef :bart struct HGFBartConfigDefault
     vocab_size::Int = 50265
     max_position_embeddings::Int = 1024
     encoder_layers::Int = 12
@@ -27,4 +27,4 @@
     forced_eos_token_id::Int = 2
 end
 
-config_type(::Val{:bart}) = HGFBartConfig
+const HGFBartConfig = HGFConfig{:bart}

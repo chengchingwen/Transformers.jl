@@ -1,4 +1,4 @@
-@cfgdef struct HGFOpenAIGPTConfig <: HGFConfig
+@defaultdef var"openai-gpt" struct HGFOpenAIGPTConfigDefault
     vocab_size::Int = 40478
     n_positions::Int = 512
     n_embd::Int = 768
@@ -18,4 +18,4 @@
     summary_first_dropout::Float64 = 0.1
 end
 
-config_type(::Val{Symbol("openai-gpt")}) = HGFOpenAIGPTConfig
+const HGFOpenAIGPTConfig = HGFConfig{Symbol("openai-gpt")}

@@ -17,10 +17,10 @@ function FakeTHEmbedding(config::HGFGPT2Config, num, dims)
   FakeTHEmbedding(0, weight)
 end
 
-function FakeTHLayerNorm(config::HGFGPT2Config, dims; eps::Float32=1e-05)
+function FakeTHLayerNorm(config::HGFGPT2Config, dims; eps = 1f-05)
   weight = ones(Float32, dims)
   bias = zeros(Float32, dims)
-  FakeTHLayerNorm(eps, weight, bias)
+  FakeTHLayerNorm(Float32(eps), weight, bias)
 end
 
 function FakeHGFConv1D(config::HGFGPT2Config, nf, nx)

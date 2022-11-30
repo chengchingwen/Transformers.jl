@@ -5,9 +5,9 @@ Get the configuration file of given model.
 """
 load_config(model; kw...) = _load_config(load_config_dict(model; kw...))
 
-load_config_dict(model_name; kw...) = json_load(hgf_model_config(model_name; kw...))
+load_config_dict(model_name; kw...) = JSON3.read(read(hgf_model_config(model_name; kw...)))
 
-_load_config(cfg_file::AbstractString) = _load_config(json_load(cfg_file))
+_load_config(cfg_file::AbstractString) = _load_config(JSON3.read(read(cfg_file)))
 function _load_config(cfg)
     !haskey(cfg, :model_type) && error(
         """
@@ -20,7 +20,7 @@ function _load_config(cfg)
     return load_config(model_type, cfg)
 end
 
-@valsplit config_type(Val(model_type::Symbol)) = error("Unknown model type: $model_type")
+@valsplit config_type(Val(model_type::Symbol)) = HGFConfig{model_type}
 
 """
     load_config(model_type, cfg)
@@ -28,7 +28,15 @@ end
 Load `cfg` as `model_type`. This is used for manually load a config when `model_type` is not specified in the config.
 """
 load_config(model_type::Union{Symbol, Val}, cfg) = load_config(config_type(model_type), cfg)
-load_config(cfg_type::Type, cfg) = cfg_type(; cfg...)
+
+function load_config(model_type::Type{<:HGFConfig}, cfg)
+    overwrite = Dict{Symbol, Any}()
+    haskey(cfg, :id2label) && !isnothing(cfg.id2label) &&
+        (overwrite[:id2label] = Dict{Int, String}(parse(Int, String(key))=>val for (key, val) in cfg.id2label))
+    haskey(cfg, :label2id) && !isnothing(cfg.label2id) &&
+        (overwrite[:label2id] = Dict{String, Int}(String(key)=>val for (key, val) in cfg.label2id))
+    return model_type(cfg, overwrite)
+end
 
 """
     save_config(model_name, config; path = pwd(), config_name = CONFIG_NAME)
@@ -41,8 +49,7 @@ function save_config(model_name, config; path = pwd(), config_name = CONFIG_NAME
     mkpath(model_path)
     config_file = joinpath(model_path, config_name)
     open(config_file, "w+") do io
-        JSON.print(io, config)
+        JSON3.write(io, config)
     end
     return config_file
 end
-

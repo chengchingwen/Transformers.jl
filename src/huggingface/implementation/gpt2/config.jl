@@ -1,4 +1,4 @@
-@cfgdef struct HGFGPT2Config <: HGFConfig
+@defaultdef :gpt2 struct HGFGPT2ConfigDefault
   vocab_size::Int = 50257
   n_positions::Int = 1024
   n_ctx::Int = 1024
@@ -21,4 +21,4 @@
   eos_token_id::Int = 50256
 end
 
-config_type(::Val{:gpt2}) = HGFGPT2Config
+const HGFGPT2Config = HGFConfig{:gpt2}

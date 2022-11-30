@@ -1,4 +1,4 @@
-@cfgdef struct HGFBertConfig <: HGFConfig
+@defaultdef :bert struct HGFBertConfigDefault
   vocab_size::Int = 30522
   hidden_size::Int = 768
   num_hidden_layers::Int = 12
@@ -14,4 +14,4 @@
   pad_token_id::Int = 0
 end
 
-config_type(::Val{:bert}) = HGFBertConfig
+const HGFBertConfig = HGFConfig{:bert}
