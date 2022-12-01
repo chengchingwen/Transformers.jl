@@ -148,7 +148,7 @@ function TransformerTextEncoder(tkr::AbstractTokenizer, v::WList; kws...)
     end
 end
 
-TransformerTextEncoder(builder, e::TransformerTextEncoder) = TransformerTextEncoder(
+TransformerTextEncoder(builder, e::AbstractTransformerTextEncoder) = TransformerTextEncoder(
     e.tokenizer, e.vocab, builder(e), e.startsym, e.endsym, e.padsym, e.trunc)
 
 # encoder behavior
