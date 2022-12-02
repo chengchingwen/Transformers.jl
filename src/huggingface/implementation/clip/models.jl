@@ -42,7 +42,7 @@ end
 @inline get_word_emb(emb::HGFCLIPTextEmbeddings, input_ids::AbstractArray{<:Integer}) = emb.token_embedding(input_ids)
 # @inline get_word_emb(emb::HGFCLIPTextEmbeddings, input_embed::AbstractArray{T}) where T = input_embed # TODO: what does this do?
 
-@inline get_position_emb(emb::HGFCLIPTextEmbeddings, inputs_embeds, ::Nothing) = get_position_emb(emb, emb.position_ids)
+@inline get_position_emb(emb::HGFCLIPTextEmbeddings, ::Nothing) = get_position_emb(emb, emb.position_ids .+ 1)
 @inline get_position_emb(emb::HGFCLIPTextEmbeddings, position_ids) = emb.position_embedding(position_ids)
 
 
@@ -75,7 +75,7 @@ function (self::HGFCLIPTextEmbeddings)(
     position_ids::Union{Nothing,AbstractArray{<:Integer}},
 )
     inputs_embeds = get_word_emb(self, input_ids)
-    position_embeds = get_position_emb(self, inputs_embeds, position_ids)
+    position_embeds = get_position_emb(self, position_ids)
     return self(inputs_embeds, position_embeds)
 end
 
