@@ -1,41 +1,209 @@
-"compute the kl divergence with mask where p is already the log(p)"
-logkldivergence(q::Abstract3DTensor{L},
-                logp::Abstract3DTensor{T},
-                mask) where {T, L<:Union{Bool, T}} =
-                    sum(reshape(sum(sum(q .* (log.(q .+ epsilon(T)) .- logp); dims=1) .* mask; dims=2), :) ./ reshape(sum(mask; dims=2), :))
+using Statistics
+using ChainRulesCore
+using Static
+using PrimitiveOneHot
+using NeuralAttentionlib.Masks
+using NeuralAttentionlib: AbstractSequenceMask
 
-function logkldivergence(q, logp, mask)
-    kld = (q .* (log.(q .+ epsilon(eltype(q))) .- logp)) #handle gpu broadcast error
-    sum(kld .* mask) / sum(mask)
+using NNlib
+import Flux.Losses
+import Flux.Losses: crossentropy, logitcrossentropy
+
+Base.has_fast_linear_indexing(::AbstractSequenceMask) = false
+
+lengths(m::GenericSequenceMask) = reshape(sum(m.mask; dims = ntuple(identity, static(ndims(m)) - static(1))), :)
+lengths(m::GenericSequenceMask{2}) = m.mask
+lengths(m::LengthMask) = reshape(sum(m.len; dims = ntuple(identity, static(ndims(m)) - static(3))), :)
+lengths(m::LengthMask{1}) = m.len
+lengths(m::RevLengthMask) = reshape(sum(m.len; dims = ntuple(identity, static(ndims(m)) - static(3))), :)
+lengths(m::RevLengthMask{1}) = m.len
+
+ChainRulesCore.@non_differentiable lengths(m)
+
+_qlogp(q, p, ϵ, m) = m * - Losses.xlogy(q, max(p, ϵ))
+
+_sdiv(a, b) = a / oftype(a, b)
+
+function Losses.crossentropy(agg::Union{typeof(sum), typeof(mean)},
+                             ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask;
+                             ϵ = Losses.epseltype(ŷ))
+    Losses._check_sizes(ŷ, y)
+    losses = sum(Broadcast.instantiate(Broadcast.broadcasted(_qlogp, y, ŷ, ϵ, m));
+                 dims = ntuple(identity, static(ndims(m)) - static(1)), init = zero(eltype(ŷ)))
+    loss = sum(Broadcast.instantiate(Broadcast.broadcasted(_sdiv, reshape(losses, :), lengths(m))))
+    if agg isa typeof(mean)
+        loss /= oftype(loss, length(losses))
+    end
+    return loss
 end
 
-"compute the cross entropy with mask where p is already the log(p)"
-logcrossentropy(q::Abstract3DTensor{L},
-                logp::Abstract3DTensor{T},
-                mask) where {T, L<:Union{Bool, T}} =
-                    -sum(reshape(sum(sum(q .* logp; dims=1) .* mask; dims=2), :) ./ reshape(sum(mask; dims=2), :))
-
-function logcrossentropy(q, logp, mask)
-    ce = q .* logp
-    -sum(ce .* mask) / sum(mask)
+function ∇_qlogp(dy, q, p, ϵ, m)
+    dresult = q / max(p, ϵ)
+    dqlogp = - ifelse(iszero(q), zero(dresult), dresult)
+    return m * (dy * dqlogp)
 end
 
-"compute the kl divergence where p is already the log(p)"
-logkldivergence(q::Abstract3DTensor{L},
-                logp::Abstract3DTensor{T}) where {T, L<:Union{Bool, T}} =
-                    sum(reshape(sum(sum(q .* (log.(q .+ epsilon(T)) .- logp); dims=1); dims=2), :) ./ size(q, 2))
-
-function logkldivergence(q, logp::AbstractArray{T}) where T
-    kld = (q .* (log.(q .+ epsilon(T)) .- logp)) #handle gpu broadcast error
-    sum(kld) / convert(T, size(kld, 2))
+function ChainRulesCore.rrule(::typeof(crossentropy), agg::Union{typeof(sum), typeof(mean)},
+                              ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask;
+                              ϵ = Losses.epseltype(ŷ))
+    Losses._check_sizes(ŷ, y)
+    losses = sum(Broadcast.instantiate(Broadcast.broadcasted(_qlogp, y, ŷ, ϵ, m));
+                 dims = ntuple(identity, static(ndims(m)) - static(1)), init = zero(eltype(ŷ)))
+    ls = lengths(m)
+    loss = sum(Broadcast.instantiate(Broadcast.broadcasted(_sdiv, reshape(losses, :), ls)))
+    if agg isa typeof(mean)
+        loss /= oftype(loss, length(losses))
+    end
+    scale = oftype(loss, agg isa typeof(mean) ? length(ls) : 1)
+    function crossentropy_pullback(Ybar)
+        Ȳ = unthunk(Ybar) / scale
+        dlosses = reshape(_sdiv.(Ȳ, ls), (ntuple(one, static(ndims(m)) - static(1))..., length(ls)))
+        dy = ∇_qlogp.(dlosses, y, ŷ, ϵ, m)
+        return (NoTangent(), NoTangent(), dy, NoTangent(), NoTangent())
+    end
+    return loss, crossentropy_pullback
 end
 
-"compute the cross entropy where p is already the log(p)"
-logcrossentropy(q::Abstract3DTensor{L},
-                logp::Abstract3DTensor{T}) where {T, L<:Union{Bool, T}} =
-                    -sum(reshape(sum(sum(q .* logp; dims=1); dims=2), :) ./ size(q, 2))
+function _bcglog(a, c, cid, ϵ, m)
+    I = CartesianIndex(c, cid)
+    return @inbounds m[I] * -log(max(a[I], ϵ))
+end
 
-function logcrossentropy(q, logp::AbstractArray{T}) where T
-    ce = q .* logp
-    -sum(ce) / convert(T, size(ce, 2))
+function ∇_bcglog!(dy, dl, a, c, cid, ϵ, m)
+    I = CartesianIndex(c, cid)
+    dqlogp = - @inbounds inv(max(a[I], ϵ))
+    lid = @inbounds ifelse(length(I) > size(dl, ndims(dl)), 1, cid[length(cid)])
+    @inbounds dy[I] = m[I] * (dl[lid] * dqlogp)
+end
+
+function Losses.crossentropy(agg::Union{typeof(sum), typeof(mean)},
+                             ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask;
+                             ϵ = Losses.epseltype(ŷ))
+    Losses._check_sizes(ŷ, y)
+    c = reinterpret(Int32, y)
+    losses = sum(Broadcast.instantiate(Broadcast.broadcasted(_bcglog, Ref(ŷ), c, CartesianIndices(c), ϵ, Ref(m)));
+                 dims = ntuple(identity, static(ndims(m)) - static(2)), init = zero(eltype(ŷ)))
+    loss = sum(Broadcast.instantiate(Broadcast.broadcasted(_sdiv, reshape(losses, :), lengths(m))))
+    if agg isa typeof(mean)
+        loss /= oftype(loss, length(losses))
+    end
+    return loss
+end
+
+_z(a, b) = 0
+
+function ChainRulesCore.rrule(::typeof(crossentropy), agg::Union{typeof(sum), typeof(mean)},
+                              ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask;
+                              ϵ = Losses.epseltype(ŷ))
+    Losses._check_sizes(ŷ, y)
+    c = reinterpret(Int32, y)
+    losses = sum(Broadcast.instantiate(Broadcast.broadcasted(_bcglog, Ref(ŷ), c, CartesianIndices(c), ϵ, Ref(m)));
+                 dims = ntuple(identity, static(ndims(m)) - static(2)), init = zero(eltype(ŷ)))
+    ls = lengths(m)
+    loss = sum(Broadcast.instantiate(Broadcast.broadcasted(_sdiv, reshape(losses, :), ls)))
+    if agg isa typeof(mean)
+        loss /= oftype(loss, length(losses))
+    end
+    scale = oftype(loss, agg isa typeof(mean) ? length(ls) : 1)
+    function crossentropy_pullback(Ybar)
+        Ȳ = unthunk(Ybar) / scale
+        dlosses = _sdiv.(Ȳ, ls)
+        dy = similar(ŷ)
+        fill!(dy, 0)
+        mapreduce(identity, _z, Broadcast.instantiate(Broadcast.broadcasted(
+            ∇_bcglog!, Ref(dy), Ref(dlosses), Ref(ŷ), c, CartesianIndices(c), ϵ, Ref(m))); init = 0)
+        return (NoTangent(), NoTangent(), dy, NoTangent(), NoTangent())
+    end
+    return loss, crossentropy_pullback
+end
+
+_qp(q, logp, m) = m * (- q * logp)
+
+function Losses.logitcrossentropy(agg::Union{typeof(sum), typeof(mean)},
+                                  ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask)
+    Losses._check_sizes(ŷ, y)
+    logp = logsoftmax(ŷ; dims = 1)
+    losses = sum(Broadcast.instantiate(Broadcast.broadcasted(_qp, y, logp, m));
+                 dims = ntuple(identity, static(ndims(m)) - static(1)), init = zero(eltype(ŷ)))
+    loss = sum(Broadcast.instantiate(Broadcast.broadcasted(_sdiv, reshape(losses, :), lengths(m))))
+    if agg isa typeof(mean)
+        loss /= oftype(loss, length(losses))
+    end
+    return loss
+end
+
+function ChainRulesCore.rrule(::typeof(logitcrossentropy), agg::Union{typeof(sum), typeof(mean)},
+                              ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask)
+    Losses._check_sizes(ŷ, y)
+    logp = logsoftmax(ŷ; dims = 1)
+    losses = sum(Broadcast.instantiate(Broadcast.broadcasted(_qp, y, logp, m));
+                 dims = ntuple(identity, static(ndims(m)) - static(1)), init = zero(eltype(ŷ)))
+    ls = lengths(m)
+    loss = sum(Broadcast.instantiate(Broadcast.broadcasted(_sdiv, reshape(losses, :), ls)))
+    scale = oftype(loss, agg isa typeof(mean) ? length(ls) : 1)
+    function logitcrossentropy_pullback(Ybar)
+        Ȳ = unthunk(Ybar) / scale
+        dlosses = reshape(_sdiv.(Ȳ, ls), (ntuple(one, static(ndims(m)) - static(1))..., length(ls)))
+        dlogp = _qp.(y, dlosses, m)
+        dy = NNlib.∇logsoftmax_data(dlogp, logp; dims = 1)
+        return (NoTangent(), NoTangent(), dy, NoTangent(), NoTangent())
+    end
+    return loss, logitcrossentropy_pullback
+end
+
+function _bcg(a, c, cid, m)
+    I = CartesianIndex(c, cid)
+    return @inbounds m[I] * - a[I]
+end
+
+function ∇_bcg!(dy, dl, c, cid, m)
+    I = CartesianIndex(c, cid)
+    lid = @inbounds ifelse(length(I) > size(dl, ndims(dl)), 1, cid[length(cid)])
+    @inbounds dy[I] = m[I] * - dl[lid]
+end
+
+function Losses.logitcrossentropy(agg::Union{typeof(sum), typeof(mean)},
+                                  ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask)
+    Losses._check_sizes(ŷ, y)
+    xmax = maximum(ŷ; dims = 1)
+    xdiff = Broadcast.instantiate(Broadcast.broadcasted(-, ŷ, xmax))
+    sexp = sum(Broadcast.instantiate(Broadcast.broadcasted(exp, xdiff)); dims = 1, init = zero(eltype(ŷ)))
+    logp = Broadcast.instantiate(Broadcast.broadcasted(-, xdiff, Broadcast.broadcasted(log, sexp)))
+    c = reinterpret(Int32, y)
+    losses = sum(Broadcast.instantiate(Broadcast.broadcasted(_bcg, Ref(logp), c, CartesianIndices(c), Ref(m)));
+                 dims = ntuple(identity, static(ndims(m)) - static(2)), init = zero(eltype(ŷ)))
+    loss = sum(Broadcast.instantiate(Broadcast.broadcasted(_sdiv, reshape(losses, :), lengths(m))))
+    if agg isa typeof(mean)
+        loss /= oftype(loss, length(losses))
+    end
+    return loss
+end
+
+# https://github.com/FluxML/NNlib.jl/blob/0b64dc11e6ba47707c43cf668663e48a615c85bb/src/softmax.jl#L122
+∇logsoftmax_data(dy, y; dims = 1) = dy .- sum(dy; dims) .* exp.(y)
+
+function ChainRulesCore.rrule(::typeof(logitcrossentropy), agg::Union{typeof(sum), typeof(mean)},
+                              ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask)
+    Losses._check_sizes(ŷ, y)
+    xmax = maximum(ŷ; dims = 1)
+    xdiff = Broadcast.instantiate(Broadcast.broadcasted(-, ŷ, xmax))
+    sexp = sum(Broadcast.instantiate(Broadcast.broadcasted(exp, xdiff)); dims = 1, init = zero(eltype(ŷ)))
+    logp = Broadcast.instantiate(Broadcast.broadcasted(-, xdiff, Broadcast.broadcasted(log, sexp)))
+    c = reinterpret(Int32, y)
+    losses = sum(Broadcast.instantiate(Broadcast.broadcasted(_bcg, Ref(logp), c, CartesianIndices(c), Ref(m)));
+                 dims = ntuple(identity, static(ndims(m)) - static(2)), init = zero(eltype(ŷ)))
+    ls = lengths(m)
+    loss = sum(Broadcast.instantiate(Broadcast.broadcasted(_sdiv, reshape(losses, :), ls)))
+    scale = oftype(loss, agg isa typeof(mean) ? length(ls) : 1)
+    function logitcrossentropy_pullback(Ybar)
+        Ȳ = unthunk(Ybar) / scale
+        dlosses = reshape(_sdiv.(Ȳ, ls), (ntuple(one, static(ndims(m)) - static(1))..., length(ls)))
+        dlogp = similar(ŷ)
+        fill!(dlogp, 0)
+        mapreduce(identity, _z, Broadcast.instantiate(Broadcast.broadcasted(
+            ∇_bcg!, Ref(dlogp), Ref(dlosses), c, CartesianIndices(c), Ref(m))); init = 0)
+        dy = ∇logsoftmax_data(dlogp, logp; dims = 1)
+        return (NoTangent(), NoTangent(), dy, NoTangent(), NoTangent())
+    end
+    return loss, logitcrossentropy_pullback
 end
