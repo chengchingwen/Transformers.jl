@@ -42,7 +42,11 @@ end
 @inline get_word_emb(emb::HGFCLIPTextEmbeddings, input_ids::AbstractArray{<:Integer}) = emb.token_embedding(input_ids)
 # @inline get_word_emb(emb::HGFCLIPTextEmbeddings, input_embed::AbstractArray{T}) where T = input_embed # TODO: what does this do?
 
-@inline get_position_emb(emb::HGFCLIPTextEmbeddings, ::Nothing) = get_position_emb(emb, emb.position_ids .+ 1)
+function get_position_emb(emb::HGFCLIPTextEmbeddings, ::Nothing)
+    batch_size, token_size = size(emb.position_ids)
+    pos_ids = reshape(emb.position_ids, (token_size, batch_size)) # put batch as last dim
+    get_position_emb(emb, pos_ids .+ 1) # add 1 to pos_ids so it doesnot start from 0
+end
 @inline get_position_emb(emb::HGFCLIPTextEmbeddings, position_ids) = emb.position_embedding(position_ids)
 
 

@@ -21,8 +21,7 @@ tkr = Transformers.Basic.TransformerTextEncoder(tkr) do enc
     Pipelines(enc.process[7:end])
 end
 
-e = encode(tkr, "a photo of an astronaut riding a horse on mars")
+e = encode(tkr, ["a photo of an astronaut riding a horse on mars", ""])
 s = reinterpret(Int32, e.input.tok)
-res = embeddings(s) # Wrong size ?
-
-size(res)
+res = embeddings(s)
+size(res) # 768, 77, 2
