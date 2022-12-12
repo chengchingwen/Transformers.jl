@@ -1,7 +1,7 @@
 name = "Transformers"
 uuid = "21ca0261-441d-5938-ace7-c90938fde4d4"
 authors = ["chengchingwen <adgjl5645@hotmail.com>"]
-version = "0.1.24"
+version = "0.1.25"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
@@ -56,7 +56,7 @@ CUDA = "3.10"
 ChainRulesCore = "1.15"
 DataDeps = "0.7"
 DataStructures = "0.18"
-DoubleArrayTries = "0.0.2"
+DoubleArrayTries = "0.0.3"
 Fetch = "0.1.3"
 Flux = "0.13.4"
 FuncPipelines = "0.2.3"
