@@ -4,14 +4,13 @@ using Flux
 using Requires
 using Requires: @init
 
-export Transformer, TransformerDecoder
-export Stack, @nntopo_str, @nntopo
+using NeuralAttentionlib
+
+export Transformer
 
 export dataset, datafile, get_batch, get_vocab
 
 export todevice, enable_gpu
-export Gpt
-export Bert
 
 const Abstract3DTensor{T} = AbstractArray{T, 3}
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
@@ -63,17 +62,12 @@ tocpudevice(x, xs...) = (tocpudevice(x), map(tocpudevice, xs)...)
     return :(cpu(x)::$R)
 end
 
-#implement batchmul, batchtril for flux
-include("./fix/batchedmul.jl")
-include("./fix/batched_tril.jl")
+include("./layers/Layers.jl")
+include("./tokenizer/tokenizer.jl")
 
 include("./basic/Basic.jl")
-include("./stacks/Stacks.jl")
 include("./datasets/Datasets.jl")
 
-include("./pretrain/Pretrain.jl")
-
-include("./tokenizer/tokenizer.jl")
 include("./gpt/GenerativePreTrain.jl")
 include("./bert/BidirectionalEncoder.jl")
 
@@ -81,15 +75,12 @@ include("./huggingface/HuggingFace.jl")
 
 include("cuda/cuda.jl")
 
+using .Layers
 using .Basic
-using .Stacks
 using .Datasets
-using .Pretrain
 using .GenerativePreTrain
 using .BidirectionalEncoder
 
 using .HuggingFace
-
-include("./experimental/experimental.jl")
 
 end # module
