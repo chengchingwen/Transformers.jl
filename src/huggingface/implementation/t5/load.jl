@@ -341,7 +341,7 @@ function load_model(::Type{<:HGFT5ForConditionalGeneration}, cfg,
     else
         vocab_size, dims, factor = cfg[:vocab_size], cfg[:d_model], Float32(cfg[:initializer_factor])
         embedding = getweight(t5_weight_init(vocab_size, dims, factor), Layers.Embed,
-                              state_dict, joinname(prefix, "lm_head", "weight"))
+                              state_dict, joinname(prefix, "lm_head.weight"))
         scale = nothing
     end
     lm_head = Layers.EmbedDecoder(Layers.Embed(scale, embedding))
@@ -514,7 +514,7 @@ end
 function get_state_dict(m::HGFT5ForConditionalGeneration, state_dict = OrderedDict{String, Any}(), prefix = "")
     get_state_dict(m.model, state_dict, prefix)
     embedding = m.lm_head.layer.embed.embeddings
-    state_dict[joinname(prefix, "lm_head", "weight")] = embedding'
+    state_dict[joinname(prefix, "lm_head.weight")] = embedding'
     return state_dict
 end
 
