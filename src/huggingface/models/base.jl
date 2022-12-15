@@ -140,17 +140,40 @@ end
 
 # displaying layer in tree structure
 
-function Base.show(io::IO, x::M; depth=10) where {M<:THModule}
-  print_tree(_printnode, io, x, depth)
-  io
+using Pkg
+pkgversion(m::Module) = _pkgversion(joinpath(dirname(string(first(methods(Base.moduleroot(m).eval)).file)), "..", "Project.toml"))
+function _pkgversion(project)
+    if project !== nothing && isfile(project)
+        toml = Pkg.TOML.parsefile(project)
+        haskey(toml, "version") && return Base.VersionNumber(toml["version"])
+    end
+    return nothing
 end
 
-children(m::THModule) = Tuple(pairs(first(Functors.functor(m))))
-function children(::THModule, x::Pair{Symbol})
-  v = x[2]
-  v isa AbstractArray ? () : children(v)
+if pkgversion(AbstractTrees) < v"0.4"
+    function Base.show(io::IO, x::M; depth=10) where {M<:THModule}
+        print_tree(_printnode, io, x, depth)
+        io
+    end
+    children(m::THModule) = Tuple(pairs(first(Functors.functor(m))))
+    function children(::THModule, x::Pair{Symbol})
+        v = x[2]
+        v isa AbstractArray ? () : children(v)
+    end
+    children(::THModule, x::Pair{Int}) = children(x[2])
+else
+    function Base.show(io::IO, x::M; depth=10) where {M<:THModule}
+        print_tree(_printnode, io, x; maxdepth = depth)
+        io
+    end
+    AbstractTrees.nodevalue(m::THModule) = Base.nameof(typeof(m))
+    children(m::THModule) = Tuple(pairs(first(Functors.functor(m))))
+    function children(x::Pair{Symbol})
+        v = x[2]
+        v isa AbstractArray ? () : children(v)
+    end
+    children(x::Pair{Int}) = children(x[2])
 end
-children(::THModule, x::Pair{Int}) = children(x[2])
 
 _printnode(io, x) = print(io, Base.nameof(typeof(x)))
 function _printnode(io::IO, p::Pair)
