@@ -152,6 +152,9 @@ function Base.show(io::IO, op::T5RPEMultiheadQKVAttenOp)
           ", p = ", op.p, ')')
 end
 
+Layers.no_dropout(op::T5RPEMultiheadQKVAttenOp) =
+    T5RPEMultiheadQKVAttenOp(op.head, op.n_bucket, op.max_distance, op.position_embedding, nothing)
+
 const T5RPEMultiheadQKVAttenOpWithScore{F, E} = WithScore{T5RPEMultiheadQKVAttenOp{F, E}}
 function Functors.functor(::Type{<:T5RPEMultiheadQKVAttenOpWithScore}, op)
     head, n_bucket, max_distance, p = op.head, op.n_bucket, op.max_distance, op.p
@@ -174,13 +177,16 @@ T5RPECausalMultiheadQKVAttenOp(head, n_bucket, max_distance, position_embedding)
 NeuralAttentionlib.get_attention_func(::T5RPECausalMultiheadQKVAttenOp) = t5rpe_multihead_qkv_attention
 NeuralAttentionlib.get_attention_func_args(op::T5RPECausalMultiheadQKVAttenOp, q, k, v, mask = nothing) =
     (op.head, op.n_bucket, op.max_distance, true, q, k, v, op.position_embedding,
-     NeuralAttentionlib.BatchedMask(mask), op.p)
+     NeuralAttentionlib.BatchedMask(mask & NeuralAttentionlib.CausalMask()), op.p)
 
 function Base.show(io::IO, op::T5RPECausalMultiheadQKVAttenOp)
     print(io, "T5RPECausalMultiheadQKVAttenOp(head = ", op.head, ", n_bucket = ", op.n_bucket,
           ", max_distance = ", op.max_distance, ", position_embedding = ", reverse(size(op.position_embedding)),
           ", p = ", op.p, ')')
 end
+
+Layers.no_dropout(op::T5RPECausalMultiheadQKVAttenOp) =
+    T5RPECausalMultiheadQKVAttenOp(op.head, op.n_bucket, op.max_distance, op.position_embedding, nothing)
 
 const T5RPECausalMultiheadQKVAttenOpWithScore{F, E} = WithScore{T5RPECausalMultiheadQKVAttenOp{F, E}}
 function Functors.functor(::Type{<:T5RPECausalMultiheadQKVAttenOpWithScore}, op)
@@ -198,7 +204,22 @@ NeuralAttentionlib.get_attention_func(::T5BiasedMultiheadQKVAttenOp) = t5_multih
 NeuralAttentionlib.get_attention_func_args(op::T5BiasedMultiheadQKVAttenOp, q, k, v, bias, mask = nothing) =
     (op.head, q, k, v, bias, NeuralAttentionlib.BatchedMask(mask), op.p)
 
+Layers.no_dropout(op::T5BiasedMultiheadQKVAttenOp) = T5BiasedMultiheadQKVAttenOp(op.head, nothing)
+
 const T5BiasedMultiheadQKVAttenOpWithScore{F} = WithScore{T5BiasedMultiheadQKVAttenOp{F}}
+
+struct T5BiasedCausalMultiheadQKVAttenOp{F} <: AbstractAttenOp
+    head::Int
+    p::F
+end
+T5BiasedCausalMultiheadQKVAttenOp(head) = T5BiasedCausalMultiheadQKVAttenOp(head, nothing)
+NeuralAttentionlib.get_attention_func(::T5BiasedCausalMultiheadQKVAttenOp) = t5_multihead_qkv_attention
+NeuralAttentionlib.get_attention_func_args(op::T5BiasedCausalMultiheadQKVAttenOp, q, k, v, bias, mask = nothing) =
+    (op.head, q, k, v, bias, NeuralAttentionlib.BatchedMask(mask & NeuralAttentionlib.CausalMask()), op.p)
+
+Layers.no_dropout(op::T5BiasedCausalMultiheadQKVAttenOp) = T5BiasedCausalMultiheadQKVAttenOp(op.head, nothing)
+
+const T5BiasedCausalMultiheadQKVAttenOpWithScore{F} = WithScore{T5BiasedCausalMultiheadQKVAttenOp{F}}
 
 struct T5MultiheadQKVAttenOp{F} <: AbstractAttenOp
     head::Int
@@ -209,6 +230,8 @@ NeuralAttentionlib.get_attention_func(::T5MultiheadQKVAttenOp) = t5_multihead_qk
 NeuralAttentionlib.get_attention_func_args(op::T5MultiheadQKVAttenOp, q, k, v, mask = nothing) =
     (op.head, q, k, v, nothing, NeuralAttentionlib.BatchedMask(mask), op.p)
 
+Layers.no_dropout(op::T5MultiheadQKVAttenOp) = T5MultiheadQKVAttenOp(op.head, nothing)
+
 const T5MultiheadQKVAttenOpWithScore{F} = WithScore{T5MultiheadQKVAttenOp{F}}
 
 Layers.argument_names(
@@ -216,19 +239,24 @@ Layers.argument_names(
             T5RPECausalMultiheadQKVAttenOpWithScore, T5RPECausalMultiheadQKVAttenOp,
             T5MultiheadQKVAttenOpWithScore, T5MultiheadQKVAttenOp}
 ) = (:hidden_state, :attention_mask)
-Layers.argument_names(::T5BiasedMultiheadQKVAttenOpWithScore) = (:hidden_state, :attention_mask, :position_bias)
-Layers.argument_names(::T5BiasedMultiheadQKVAttenOp) = (:hidden_state, :attention_mask, :position_bias)
+Layers.argument_names(
+    ::Union{T5BiasedMultiheadQKVAttenOpWithScore, T5BiasedMultiheadQKVAttenOp,
+            T5BiasedCausalMultiheadQKVAttenOpWithScore, T5BiasedCausalMultiheadQKVAttenOp}
+) = (:hidden_state, :attention_mask, :position_bias)
 
 function Layers.apply_on_namedtuple(
     op::Union{T5RPEMultiheadQKVAttenOpWithScore, T5RPEMultiheadQKVAttenOp,
               T5RPECausalMultiheadQKVAttenOpWithScore, T5RPECausalMultiheadQKVAttenOp,
-              T5MultiheadQKVAttenOpWithScore, T5MultiheadQKVAttenOp}, nt::NamedTuple
+              T5MultiheadQKVAttenOpWithScore, T5MultiheadQKVAttenOp},
+    nt::NamedTuple
 )
     return Layers.apply_attention_op(op, nt)
 end
 
 function Layers.apply_on_namedtuple(
-    op::Union{T5BiasedMultiheadQKVAttenOpWithScore, T5BiasedMultiheadQKVAttenOp}, nt::NamedTuple
+    op::Union{T5BiasedMultiheadQKVAttenOpWithScore, T5BiasedMultiheadQKVAttenOp,
+              T5BiasedCausalMultiheadQKVAttenOpWithScore, T5BiasedCausalMultiheadQKVAttenOp},
+    nt::NamedTuple
 )
     qkv = nt.hidden_state
     qkv isa NTuple{3, Any} ||
@@ -301,19 +329,19 @@ for T in :[
 end
 
 get_model_type(::Val{:t5}) = (
-    :model => HGFT5Model,
-    :forconditionalgeneration => HGFT5ForConditionalGeneration,
-    :encodermodel => HGFT5EncoderModel,
-    :withlmheadmodel => HGFT5ForConditionalGeneration,
+    model = HGFT5Model,
+    forconditionalgeneration = HGFT5ForConditionalGeneration,
+    encodermodel = HGFT5EncoderModel,
+    withlmheadmodel = HGFT5ForConditionalGeneration,
 )
-
-for (name, type) in get_model_type(Val(:t5))
-    @eval get_model_type(::Val{:t5}, ::Val{$(Meta.quot(name))}) = $type
-end
 
 is_seq2seq(::HGFT5Model) = true
 is_seq2seq(::HGFT5ForConditionalGeneration) = true
 
+basemodelkey(::Type{<:HGFT5PreTrainedModel}) = :transformer
+isbasemodel(::Type{<:HGFT5Model}) = true
+isbasemodel(::Type{<:HGFT5ForConditionalGeneration}) = true
+isbasemodel(::Type{<:HGFT5EncoderModel}) = true
 
 function t5_weight_init(din, dout, factor = true)
     function weight_init()
@@ -345,12 +373,12 @@ function load_model(::Type{<:HGFT5ForConditionalGeneration}, cfg,
         scale = nothing
     end
     lm_head = Layers.EmbedDecoder(Layers.Embed(scale, embedding))
-    return HGFT5ForConditionalGeneration(model, Layers.Branch{:logit, (:hidden_state,)}(lm_head))
+    return HGFT5ForConditionalGeneration(model, Layers.Branch{(:logit,), (:hidden_state,)}(lm_head))
 end
 
 function load_model(_type::Type{<:HGFT5EncoderModel}, cfg,
                     state_dict = OrderedDict{String, Any}(), prefix = "")
-    embed = load_model(HGFT5Model, CompositeEmbedding, cfg, state_dict, prefix)
+    embed = load_model(HGFT5Model, CompositeEmbedding, cfg, state_dict, joinname(prefix, "shared"))
     encoder = load_model(HGFT5Model, TransformerBlock, cfg, state_dict, joinname(prefix, "encoder"))
     return HGFT5EncoderModel(embed, encoder)
 end
@@ -380,7 +408,8 @@ t5_collect_outputs(prev, output) = merge(output, Layers.collect_outputs(prev, Ba
 
 function load_model(
     ::Type{<:HGFT5Model}, ::Type{<:Layers.SelfAttention{A}}, cfg, state_dict, prefix
-) where {A <: Union{T5RPEMultiheadQKVAttenOp, T5RPECausalMultiheadQKVAttenOp, T5BiasedMultiheadQKVAttenOp}}
+) where {A <: Union{T5RPEMultiheadQKVAttenOp, T5RPECausalMultiheadQKVAttenOp,
+                    T5BiasedMultiheadQKVAttenOp, T5BiasedCausalMultiheadQKVAttenOp}}
     dims, head, kv_dims = cfg[:d_model], cfg[:num_heads], cfg[:d_kv]
     rpe_nbucket, rpe_max_dist = cfg[:relative_attention_num_buckets], cfg[:relative_attention_max_distance]
     p = Float64(cfg[:dropout_rate]); p = iszero(p) ? nothing : p
@@ -404,7 +433,11 @@ function load_model(
             op = T5RPECausalMultiheadQKVAttenOp(head, rpe_nbucket, rpe_max_dist, rpe_weight, p)
         end
     else
-        op = T5BiasedMultiheadQKVAttenOp(head, p)
+        if A <: T5BiasedMultiheadQKVAttenOp
+            op = T5BiasedMultiheadQKVAttenOp(head, p)
+        else
+            op = T5BiasedCausalMultiheadQKVAttenOp(head, p)
+        end
     end
     return_score && (op = WithScore(op))
     return Layers.SelfAttention(op, qkv_proj, o_proj)
@@ -474,7 +507,7 @@ function load_model(_type::Type{<:HGFT5Model}, ::Type{<:TransformerBlock}, cfg, 
     collect_f = collect_output ? t5_collect_outputs : nothing
     trf = Transformer(Tuple(blocks), collect_f)
     final_ln = load_model(_type, Layers.RMSLayerNorm, cfg, state_dict, joinname(prefix, "final_layer_norm"))
-    return Layers.Chain(trf, final_ln)
+    return Layers.Chain(trf, Layers.DropoutLayer(final_ln, p))
 end
 
 function load_model(_type::Type{<:HGFT5Model}, ::Type{<:TransformerDecoderBlock}, cfg, state_dict, prefix)
@@ -485,7 +518,7 @@ function load_model(_type::Type{<:HGFT5Model}, ::Type{<:TransformerDecoderBlock}
     for i = 1:n
         lprefix = joinname(prefix, :block, i-1, :layer)
         sa_ln = load_model(_type, Layers.RMSLayerNorm, cfg, state_dict, joinname(lprefix, "0.layer_norm"))
-        op_type = isone(i) ? T5RPECausalMultiheadQKVAttenOp : T5BiasedMultiheadQKVAttenOp
+        op_type = isone(i) ? T5RPECausalMultiheadQKVAttenOp : T5BiasedCausalMultiheadQKVAttenOp
         sa = load_model(_type, Layers.SelfAttention{op_type}, cfg, state_dict, joinname(lprefix, "0.SelfAttention"))
         sa = Layers.PreNormResidual(Layers.DropoutLayer(sa, p), sa_ln)
         ca_ln = load_model(_type, Layers.RMSLayerNorm, cfg, state_dict, joinname(lprefix, "1.layer_norm"))
@@ -501,12 +534,12 @@ function load_model(_type::Type{<:HGFT5Model}, ::Type{<:TransformerDecoderBlock}
     collect_f = collect_output ? t5_collect_outputs : nothing
     trf = Transformer(Tuple(blocks), collect_f)
     final_ln = load_model(_type, Layers.RMSLayerNorm, cfg, state_dict, joinname(prefix, "final_layer_norm"))
-    return Layers.Chain(trf, final_ln)
+    return Layers.Chain(trf, Layers.DropoutLayer(final_ln, p))
 end
 
 
 function get_state_dict(m::HGFT5Model, state_dict = OrderedDict{String, Any}(), prefix = "")
-    get_state_dict(HGFT5Model, m.embed.layer, state_dict, joinname(prefix, "shared"))
+    get_state_dict(HGFT5Model, m.embed, state_dict, joinname(prefix, "shared"))
     get_state_dict(HGFT5Model, m.seq2seq, state_dict, prefix)
     return state_dict
 end
