@@ -910,6 +910,7 @@ struct Embed{F, E <: AbstractArray} <: AbstractEmbedding
 end
 @functor Embed (embeddings,)
 
+Embed(embeddings::AbstractArray; scale = nothing) = Embed(scale, embeddings)
 Embed(hidden_size::Int, vocab_size::Int; scale = nothing) = Embed(scale, randn(Float32, hidden_size, vocab_size))
 
 (embed::Embed{Nothing})(x) = NNlib.gather(embed.embeddings, x)
@@ -1094,7 +1095,10 @@ function Base.getproperty(ce::CompositeEmbedding, sym::Symbol)
     return getfield(ce, :embeds)[i].layer
 end
 
-Base.propertynames(ce::CompositeEmbedding) = first.(argument_names.(getfield(ce, :embeds)))
+function Base.propertynames(ce::CompositeEmbedding)
+    names = argument_names.(getfield(ce, :embeds))
+    return (first(first(names)), last.(Base.tail(names))...)
+end
 
 function Base.show(io::IO, ce::CompositeEmbedding)
     print(io, "CompositeEmbedding(")
