@@ -924,21 +924,27 @@ function Base.show(io::IO, embed::Embed)
     print(io, ')')
 end
 
-struct EmbedDecoder{E<:AbstractEmbedding}
+struct EmbedDecoder{E<:AbstractEmbedding, B}
     embed::E
+    bias::B
 end
 @functor EmbedDecoder
 
+EmbedDecoder(embed) = EmbedDecoder(embed, nothing)
+
 function (e::EmbedDecoder{<:Embed})(x)
-    return NeuralAttentionlib.scaled_matmul(e.embed.embeddings', x, e.embed.scale)
+    return bias_and_act(nothing, e.bias, NeuralAttentionlib.scaled_matmul(e.embed.embeddings', x, e.embed.scale))
 end
 function (e::EmbedDecoder{<:Embed{Nothing}})(x)
-    return NeuralAttentionlib.scaled_matmul(e.embed.embeddings', x)
+    return bias_and_act(nothing, e.bias, NeuralAttentionlib.scaled_matmul(e.embed.embeddings', x))
 end
 
 function Base.show(io::IO, e::EmbedDecoder)
     print(io, "EmbedDecoder(")
     show(io, e.embed)
+    if !isnothing(e.bias)
+        print(io, ", bias = true")
+    end
     print(io, ')')
 end
 
