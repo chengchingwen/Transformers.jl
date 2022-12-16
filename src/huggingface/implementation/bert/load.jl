@@ -78,6 +78,23 @@ for T in :[
     end
 end
 
+get_model_type(::Val{:bert}) = (
+    model = HGFBertModel,
+    forpretraining = HGFBertForPreTraining,
+    lmheadmodel = HGFBertLMHeadModel,
+    formaskedlm = HGFBertForMaskedLM,
+    fornextsentenceprediction = HGFBertForNextSentencePrediction,
+    forsequenceclassification = HGFBertForSequenceClassification,
+    # :formultiplechoice => HGFBertForMultipleChoice,
+    fortokenclassification = HGFBertForTokenClassification,
+    forquestionanswering = HGFBertForQuestionAnswering,
+)
+
+basemodelkey(::Type{<:HGFBertPreTrainedModel}) = :bert
+isbasemodel(::Type{<:HGFBertModel}) = true
+isbasemodel(::Type{<:HGFBertPreTrainedModel}) = false
+
+
 function bert_weight_init(din, dout, factor = true)
     function weight_init()
         weight = randn(Float32, dout, din)

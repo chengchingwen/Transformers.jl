@@ -1,5 +1,6 @@
 module Layers
 
+using StructWalk
 using NeuralAttentionlib
 
 export Seq2Seq, Transformer,
@@ -9,5 +10,7 @@ export Seq2Seq, Transformer,
     Embed, EmbedDecoder, FixedLenPositionEmbed, SinCosPositionEmbed
 
 include("./layer.jl")
+include("./structwalk.jl")
+include("./testmode.jl")
 
 end

@@ -13,7 +13,7 @@ using LinearAlgebra
 joinname(prefix, name) = isempty(prefix) ? name : join((prefix, name), '.')
 joinname(prefix, n1, n2...) = joinname(prefix, join((n1, n2...), '.'))
 
-const ObjTyp{T} = Union{T, Type{<:T}}
+haskeystartswith(dict, prefix) = any(startswith("$prefix."), keys(dict))
 
 getweight(init, ::Type, ::Symbol) = init()
 getweight(init,  x, sym::Symbol) = getproperty(x, sym)
@@ -40,6 +40,12 @@ function get_state_dict(m::Layers.Embed, state_dict, prefix)
     return state_dict
 end
 
+get_state_dict(_, m::Layers.FixedLenPositionEmbed, state_dict, prefix) = get_state_dict(m, state_dict, prefix)
+function get_state_dict(m::Layers.FixedLenPositionEmbed, state_dict, prefix)
+    state_dict[joinname(prefix, "weight")] = m.embeddings'
+    return state_dict
+end
+
 get_state_dict(_, m::Layers.Dense, state_dict, prefix) = get_state_dict(m, state_dict, prefix)
 function get_state_dict(m::Layers.Dense, state_dict, prefix)
     state_dict[joinname(prefix, "weight")] = m.W
@@ -47,6 +53,16 @@ function get_state_dict(m::Layers.Dense, state_dict, prefix)
     return state_dict
 end
 
+get_state_dict(_, m::Layers.LayerNorm, state_dict, prefix) = get_state_dict(m, state_dict, prefix)
+function get_state_dict(m::Layers.LayerNorm, state_dict, prefix)
+    state_dict[joinname(prefix, "weight")] = m.α
+    state_dict[joinname(prefix, "bias")] = m.β
+    return state_dict
+end
+
+get_state_dict(p, m::Layers.RenameArgs, state_dict, prefix) = get_state_dict(p, m.layer, state_dict, prefix)
+get_state_dict(p, m::Layers.Branch, state_dict, prefix) = get_state_dict(p, m.layer, state_dict, prefix)
+get_state_dict(p, m::Layers.Parallel, state_dict, prefix) = get_state_dict(p, m.layer, state_dict, prefix)
 get_state_dict(p, m::Layers.DropoutLayer, state_dict, prefix) = get_state_dict(p, m.layer, state_dict, prefix)
 
 # @valsplit load_model(Val(type::Symbol), cfg::AbstractDict, state_dict = OrderedDict{String, Any}(); prefix = "") =

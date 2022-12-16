@@ -70,4 +70,6 @@ end
 
 Base.propertynames(cfg::HGFConfig) = keys(cfg)
 
+getconfigname(::HGFConfig{name}) where name = name
+
 include("auto.jl")

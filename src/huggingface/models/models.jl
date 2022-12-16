@@ -35,38 +35,6 @@ function get_state_dict(state, prefix, x::AbstractArray)
   state[prefix] = x
 end
 
-"""
-  `load_state!(layer, state)`
-
-Load the model parameter from `state` into the `layer`.
-give warning if something appear in `state` but not `layer`.
-"""
-function load_state!(layer, state)
-  for k in keys(state)
-    if hasfield(typeof(layer), k)
-      load_state!(getfield(layer, k),  getfield(state, k))
-    else
-      @warn "$(Base.nameof(typeof(layer))) doesn't have field $k."
-    end
-  end
-  pf = Functors.functor(layer) |> first |> keys
-  rem = setdiff(pf, keys(state))
-  if (!iszero ∘ length)(rem)
-    @warn "Some fields of $(Base.nameof(typeof(layer))) aren't initialized with loaded state: $(join(rem, """, """))"
-  end
-end
-
-function load_state!(weight::A1, state::A2) where {A1<:AbstractArray, A2<:AbstractArray}
-    weight .= state
-end
-
-function load_state!(weight::T, state::S) where {T<:Transpose, S<:StridedView}
-  # weight is probably share weighted
-  if weight != state
-    weight .= state
-  end
-end
-
 include("./utils.jl")
 include("./base.jl")
 
@@ -79,50 +47,50 @@ see all model/task that `bert` support.
 """
 get_model_type
 
-@valsplit get_model_type(Val(model_name::Symbol)) = error("Unknown model type: $model_name")
-@valsplit get_model_type(Val(model_name::Symbol), Val(task::Symbol)) = error("Model $model_name doesn't support this kind of task: $task")
-
-"""
-  `load_model!(model::HGFPreTrainedModel, state)`
-
-Similar to [`load_state!`](@ref) but only work for
-huggingface pre-trained models, this is used for
-handling loading state of different level.
-"""
-function load_model!(model::HGFPreTrainedModel, state)
-  basekey = basemodelkey(model)
-
-  load_to_base = isbasemodel(model)
-  load_from_base = !haskey(state, basekey)
-
-  if load_to_base ⊻ load_from_base # not same level
-    if load_to_base
-      basestate = state[basekey]
-      load_state!(model, basestate)
-    else # load_from_base
-      @warn "load from base: prediction layer not found in state: initialized."
-      model_to_load = basemodel(model)
-      load_state!(model_to_load, state)
+@valsplit get_model_type(Val(model_type::Symbol)) = error("Unknown model type: $model_type")
+function get_model_type(model_type, task::Symbol)
+    task = Symbol(lowercase(String(task)))
+    tasks = get_model_type(model_type)
+    if haskey(tasks, task)
+        getfield(tasks, task)
+    else
+        error("Model $model_type doesn't support this kind of task: $task")
     end
-  else
-    load_state!(model, state)
-  end
 end
 
-"""
-  `load_model(model_type, model_name; config=load_config(model_name))`
+include("./load.jl")
 
-build model with given `model_type` and load state from
-`model_name`.
-"""
-function load_model(::Type{T}, model_name; config = load_config(model_name), kws...) where T
-  model = T(config)
-  state = load_state(model_name; kws...)
-  load_model!(model, state)
-  return model
+load_model(model_name; kws...) = load_model(model_name, :model; kws...)
+function load_model(model_name, task; config = nothing, kws...)
+    if isnothing(config)
+        config = load_config(model_name; kws...)
+    end
+    model_type = getconfigname(config)
+    return load_model(model_type, model_name, task; config, kws...)
 end
-load_model(model_type, model_task, model_name; kws...) =
-    load_model(get_model_type(model_type, model_task), model_name; kws...)
+function load_model(model_type, model_name::AbstractString, task; trainmode = false, config = nothing, kws...)
+    if isnothing(config)
+        config = load_config(model_name; kws...)
+    end
+    state_dict = load_state_dict(model_name; kws...)
+    T = get_model_type(model_type, task)
+    basekey = String(basemodelkey(T))
+    if isbasemodel(T)
+        prefix = haskeystartswith(state_dict, basekey) ? basekey : ""
+    else
+        prefix = ""
+        if !haskeystartswith(state_dict, basekey)
+            new_state_dict = OrderedDict{Any, Any}()
+            for (key, val) in state_dict
+                new_state_dict[joinname(basekey, key)] = val
+            end
+            state_dict = new_state_dict
+        end
+    end
+    model = load_model(T, config, state_dict, prefix)
+    trainmode || (model = Layers.testmode(model))
+    return model
+end
 
 """
   `save_model(model_name, model; path = pwd(), weight_name = PYTORCH_WEIGHTS_NAME)`
