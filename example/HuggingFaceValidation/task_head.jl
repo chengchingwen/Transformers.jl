@@ -1,5 +1,5 @@
 function test_task_head(name, n; max_error = 1e-1, mean_error = 1e-2)
-    global torch, hgf_trf, config, vocab_size
+    global torch, hgf_trf, config, pyconfig, vocab_size
     @info "Validate $name task head"
     @testset "Task Head" begin
         @info "Found task type in confingure file" tasks = config.architectures
@@ -10,7 +10,7 @@ function test_task_head(name, n; max_error = 1e-1, mean_error = 1e-2)
             @info "Loading model with $task_type head in Python"
             hgf_model = @tryrun begin
                 pyauto = hgf_trf[task_type]
-                pyauto.from_pretrained(name)
+                pyauto.from_pretrained(name, config = pyconfig)
             end "Failed to load model in Python"
             @info "Python model loaded successfully"
 

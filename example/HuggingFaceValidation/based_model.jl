@@ -1,16 +1,16 @@
 function test_based_model(name, n; max_error = 1e-2, mean_error = 1e-4)
-    global torch, hgf_trf, vocab_size
+    global torch, hgf_trf, vocab_size, config, pyconfig
     @info "Validate $name based model"
     @testset "Based Model" begin
         @info "Loading based model in Python"
         hgf_model = @tryrun begin
-            hgf_trf.AutoModel.from_pretrained(name)
+            hgf_trf.AutoModel.from_pretrained(name, config = pyconfig)
         end "Failed to load the model in Python"
         @info "Python model loaded successfully"
 
         @info "Loading based model in Julia"
         model = @tryrun begin
-            HuggingFace.load_model(name)
+            HuggingFace.load_model(name; config = config)
         end "Failed to load the model in Julia"
         @info "Julia model loaded successfully"
 

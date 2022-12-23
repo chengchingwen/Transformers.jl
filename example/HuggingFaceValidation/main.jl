@@ -98,8 +98,13 @@ include("whole_model.jl")
     if subject != "none"
         @info "Load configure file in Julia"
         global config = @tryrun begin
-            HuggingFace.load_config(model_name)
+            cfg = HuggingFace.load_config(model_name)
+            HuggingFace.HGFConfig(cfg; layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
         end "Failed to load configure file in Julia, probably unsupported"
+        @info "Load configure file in Python"
+        global pyconfig = @tryrun begin
+            hgf_trf.AutoConfig.from_pretrained(model_name, layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
+        end "Failed to load configure file in Python, probably unsupported"
 
         global vocab_size = if haskey(config, :vocab_size)
             config.vocab_size
