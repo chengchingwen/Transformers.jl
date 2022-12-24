@@ -15,12 +15,27 @@ joinname(prefix, n1, n2...) = joinname(prefix, join((n1, n2...), '.'))
 
 haskeystartswith(dict, prefix) = any(startswith("$prefix."), keys(dict))
 
+zero_init(dims) = () -> zeros(Float32, dims)
+one_init(dims) = () -> ones(Float32, dims)
+function weight_init(din, dout, factor = true)
+    function weight_init_f() # normal(mean = 0, std = factor)
+        weight = randn(Float32, dout, din)
+        if !isone(factor)
+            weight .*= factor
+        end
+        return weight
+    end
+    return weight_init_f
+end
+
+collect32(x) = collect(Float32, x)
+
 getweight(init, ::Type, ::Symbol) = init()
 getweight(init,  x, sym::Symbol) = getproperty(x, sym)
 
-getweight(init, ::Type{<:Array}, state_dict, name) = _getweight(collect, init, state_dict, name)
+getweight(init, ::Type{<:Array}, state_dict, name) = _getweight(collect32, init, state_dict, name)
 getweight(init, ::Type{<:Array}, state_dict::OrderedDict{String}, name) = getweight(init, state_dict, name)
-getweight(init, ::Type{<:Layers.Embed}, state_dict, name) = _getweight(collect ∘ adjoint, init, state_dict, name)
+getweight(init, ::Type{<:Layers.Embed}, state_dict, name) = _getweight(collect32 ∘ adjoint, init, state_dict, name)
 getweight(init, ::Type{<:Layers.Embed}, state_dict::OrderedDict{String}, name) = _getweight(adjoint, init, state_dict, name)
 
 getweight(init, state_dict, name) = _getweight(identity, init, state_dict, name)
@@ -64,6 +79,9 @@ get_state_dict(p, m::Layers.RenameArgs, state_dict, prefix) = get_state_dict(p, 
 get_state_dict(p, m::Layers.Branch, state_dict, prefix) = get_state_dict(p, m.layer, state_dict, prefix)
 get_state_dict(p, m::Layers.Parallel, state_dict, prefix) = get_state_dict(p, m.layer, state_dict, prefix)
 get_state_dict(p, m::Layers.DropoutLayer, state_dict, prefix) = get_state_dict(p, m.layer, state_dict, prefix)
+
+load_model(_type::Type, cfg, state_dict = OrderedDict{String, Any}(), prefix = "") =
+    load_model(_type, cfg, state_dict, prefix)
 
 # @valsplit load_model(Val(type::Symbol), cfg::AbstractDict, state_dict = OrderedDict{String, Any}(); prefix = "") =
 #     error("")
