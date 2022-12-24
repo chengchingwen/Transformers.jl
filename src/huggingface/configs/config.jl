@@ -18,6 +18,7 @@ HGFConfig(name::Symbol, pretrain, overwrite) = HGFConfig{name, typeof(pretrain),
 HGFConfig{name}(pretrain, overwrite = nothing) where name = HGFConfig{name, typeof(pretrain), typeof(overwrite)}(pretrain, overwrite)
 function HGFConfig(cfg::HGFConfig{name}; kws...) where name
     overwrite = deepcopy(getfield(cfg, :overwrite))
+    isnothing(overwrite) && (overwrite = Dict{Symbol, Any}())
     for k in keys(kws)
         overwrite[k] = kws[k]
     end
