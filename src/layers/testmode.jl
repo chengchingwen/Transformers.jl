@@ -6,7 +6,5 @@ StructWalk.constructor(::Type{LayerStyle}, l::Parallel{names}) where names = Par
 
 no_dropout(x) = x
 no_dropout(dp::DropoutLayer) = DropoutLayer(dp.layer, nothing)
-no_dropout(op::MultiheadQKVAttenOp) = MultiheadQKVAttenOp(op.head, nothing)
-no_dropout(op::CausalMultiheadQKVAttenOp) = CausalMultiheadQKVAttenOp(op.head, nothing)
 
 testmode(x) = postwalk(no_dropout, LayerStyle, x)

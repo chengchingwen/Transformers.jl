@@ -5,8 +5,7 @@ using ChainRulesCore
 using Static
 
 using NeuralAttentionlib
-using NeuralAttentionlib: $, AbstractAttenOp, MultiheadQKVAttenOpWithScore,
-    MultiheadQKVAttenOp, CausalMultiheadQKVAttenOp, CausalMultiheadQKVAttenOpWithScore
+using NeuralAttentionlib: $, WithScore, MultiheadQKVAttenOp, CausalMultiheadQKVAttenOp
 
 @static if VERSION < v"1.8"
     macro etotal(ex)
@@ -572,28 +571,6 @@ const PostNormTransformerDecoderBlock{A, LN1, C, LN2, F, LN3} =
 
 #############################################
 
-argument_names(::MultiheadQKVAttenOpWithScore) = (:hidden_state, :attention_mask)
-argument_names(::MultiheadQKVAttenOp) = (:hidden_state, :attention_mask)
-argument_names(::CausalMultiheadQKVAttenOp) = (:hidden_state, :attention_mask)
-argument_names(::CausalMultiheadQKVAttenOpWithScore) = (:hidden_state, :attention_mask)
-
-function apply_attention_op(op, nt::NamedTuple)
-    qkv = nt.hidden_state
-    qkv isa NTuple{3, Any} ||
-        error("Expect hidden_state to be a tuple of 3 arrays, but get $(typeof(qkv)).")
-    mask = get(nt, :attention_mask, nothing)
-    a = op(qkv..., mask)
-    return return_hidden_state(nt, a)
-end
-
-function apply_on_namedtuple(
-    op::Union{MultiheadQKVAttenOpWithScore, MultiheadQKVAttenOp,
-              CausalMultiheadQKVAttenOp, CausalMultiheadQKVAttenOpWithScore},
-    nt::NamedTuple
-)
-    return apply_attention_op(op, nt)
-end
-
 struct SelfAttention{A, QKV, O} <: LayerStruct
     attention_op::A
     qkv_proj::QKV #::NSplit{StaticInt{3}, QKV}
@@ -716,10 +693,9 @@ function SelfAttention(
     head::Int, hidden_size::Int, head_hidden_size::Int;
     dropout = nothing, return_score = false, causal = false,
 )
-    atten_op_constr = causal ?
-        (return_score ? CausalMultiheadQKVAttenOpWithScore : CausalMultiheadQKVAttenOp) :
-        (return_score ? MultiheadQKVAttenOpWithScore : MultiheadQKVAttenOp)
+    atten_op_constr = causal ? CausalMultiheadQKVAttenOp : MultiheadQKVAttenOp
     atten_op = atten_op_constr(head, dropout)
+    return_score && (atten_op = WithScore(atten_op))
     qkv_proj = Flux.Dense(hidden_size, 3head * head_hidden_size)
     o_proj = Flux.Dense(head * head_hidden_size, hidden_size)
     sa = SelfAttention(atten_op, NSplit(static(3), qkv_proj), o_proj)
@@ -732,9 +708,8 @@ function CrossAttention(head::Int, hidden_size::Int; dropout = nothing, return_s
     return CrossAttention(head, hidden_size, head_hidden_size; dropout, return_score)
 end
 function CrossAttention(head::Int, hidden_size::Int, head_hidden_size::Int; dropout = nothing, return_score = false)
-    cross_atten_op = return_score ?
-        MultiheadQKVAttenOpWithScore(head, dropout) :
-        MultiheadQKVAttenOp(head, dropout)
+    cross_atten_op = MultiheadQKVAttenOp(head, dropout)
+    return_score && (cross_atten_op = WithScore(cross_atten_op))
     c_q_proj = Flux.Dense(hidden_size, head * head_hidden_size)
     c_kv_proj = Flux.Dense(hidden_size, 2head * head_hidden_size)
     c_o_proj = Flux.Dense(head * head_hidden_size, hidden_size)

@@ -10,6 +10,7 @@ export Seq2Seq, Transformer,
     Embed, EmbedDecoder, FixedLenPositionEmbed, SinCosPositionEmbed
 
 include("./layer.jl")
+include("./attention_op.jl")
 include("./structwalk.jl")
 include("./testmode.jl")
 
