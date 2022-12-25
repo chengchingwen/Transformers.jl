@@ -968,49 +968,11 @@ struct SinCosPositionEmbed{F} <: AbstractEmbedding
     hidden_size::Int
     normalized::Bool
 end
-SinCosPositionEmbed(hidden_size::Int, normalized::Bool = false) = SinCosPositionEmbed(Base.Fix1(default_position_func, hidden_size), hidden_size, normalized)
+SinCosPositionEmbed(hidden_size::Int, normalized::Bool = false) = SinCosPositionEmbed(
+    NeuralAttentionlib.default_position_func(hidden_size), hidden_size, normalized)
 SinCosPositionEmbed(f, hidden_size::Int) = SinCosPositionEmbed(f, hidden_size, false)
 
-@inline function default_position_func(hidden_size, i)
-    j = 8 * (1 - i)
-    return 1e1 ^ (j / hidden_size)
-end
-
-function sincos_position_embed(f, hidden_size, pos, indices, ::Val{normalized}) where normalized
-    idx = first(Tuple(indices))
-    i = (idx + 1) >> 1
-    w = (pos - 1) * f(i)
-    y = idx & 0x1 > 0 ? sin(w) : cos(w)
-    if normalized
-        return y * inv(sqrt(hidden_size >> 1))
-    else
-        return y
-    end
-end
-
-function compute_position_embedding!(y, embed::SinCosPositionEmbed, x)
-    y .= sincos_position_embed.(embed.f, embed.hidden_size, x, CartesianIndices(y), Val(embed.normalized))
-    return y
-end
-
-function (embed::SinCosPositionEmbed)(x)
-    len = size(x, 2)
-    y = reshape(similar(x, embed.hidden_size, len), Val(ndims(x)))
-    compute_position_embedding!(y, embed, Base.OneTo(len)')
-    return y
-end
-function (embed::SinCosPositionEmbed)(x::AbstractArray{<:Integer})
-    y = similar(x, Float32, embed.hidden_size, size(x)...)
-    compute_position_embedding!(y, embed, reshape(x, 1, size(x)...))
-    return y
-end
-function (embed::SinCosPositionEmbed)(len::Int)
-    y = Matrix{Float32}(undef, embed.hidden_size, len)
-    compute_position_embedding!(y, embed, Base.OneTo(len)')
-    return y
-end
-
-ChainRulesCore.@non_differentiable (embed::SinCosPositionEmbed)(x)
+(embed::SinCosPositionEmbed)(x) = NeuralAttentionlib.get_sincos_position_embeddings(embed.f, embed.hidden_size, embed.normalized, x)
 
 function Base.show(io::IO, embed::SinCosPositionEmbed)
     print(io, "SinCosPositionEmbed(")
