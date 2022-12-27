@@ -1,10 +1,10 @@
 using ..Layers
-using ..Layers: CompositeEmbedding, SelfAttention
+using ..Layers: CompositeEmbedding, SelfAttention, CausalMultiheadQKVAttenOp
 using Functors
 using Static
 
 using NeuralAttentionlib
-using NeuralAttentionlib: WithScore, CausalMultiheadQKVAttenOp
+using NeuralAttentionlib: WithScore
 
 abstract type HGFGPT2PreTrainedModel <: HGFPreTrainedModel end
 
@@ -16,25 +16,14 @@ end
 
 (model::HGFGPT2Model)(nt::NamedTuple) = model.decoder(model.embed(nt))
 
-struct HGFGPT2LMHeadModel{M, L} <: HGFGPT2PreTrainedModel
-    model::M
-    lm_head::L
-end
-@functor HGFGPT2LMHeadModel
-
-(model::HGFGPT2LMHeadModel)(nt::NamedTuple) = model.lm_head(model.model(nt))
+@fluxshow HGFGPT2Model
 
 for T in :[
-    HGFGPT2Model, HGFGPT2LMHeadModel
+    HGFGPT2LMHeadModel,
 ].args
-    @eval function Base.show(io::IO, m::MIME"text/plain", x::$T)
-        if get(io, :typeinfo, nothing) === nothing  # e.g. top level in REPL
-            Flux._big_show(io, x)
-        elseif !get(io, :compact, false)  # e.g. printed inside a Vector, but not a Matrix
-            Flux._layer_show(io, x)
-        else
-            show(io, x)
-        end
+    @eval begin
+        @hgfdefmodel $T HGFGPT2PreTrainedModel
+        @fluxshow $T
     end
 end
 
@@ -71,8 +60,9 @@ end
 function load_model(_type::Type{<:HGFGPT2PreTrainedModel}, ::Type{<:CompositeEmbedding}, cfg, state_dict, prefix)
     vocab_size, dims, max_pos = cfg[:vocab_size], cfg[:n_embd], cfg[:n_positions]
     factor = Float32(cfg[:initializer_range])
-    token_weight = getweight(weight_init(vocab_size, dims, factor), Layers.Embed, state_dict, joinname(prefix, "wte.weight"))
     p = cfg[:embd_pdrop]; p = iszero(p) ? nothing : p
+    token_weight = getweight(weight_init(vocab_size, dims, factor), Layers.Embed,
+                             state_dict, joinname(prefix, "wte.weight"))
     pos_weight = getweight(weight_init(max_pos, dims, factor), Layers.Embed, state_dict, joinname(prefix, "wpe.weight"))
     embed = CompositeEmbedding(
         token = Layers.Embed(token_weight),
@@ -88,8 +78,8 @@ function load_model(_type::Type{<:HGFGPT2PreTrainedModel}, ::Type{<:Layers.Layer
     old_bias_name = joinname(prefix, "beta")
     weight_name = haskey(state_dict, old_weight_name) ? old_weight_name : joinname(prefix, "weight")
     bias_name = haskey(state_dict, old_bias_name) ? old_bias_name : joinname(prefix, "bias")
-    ln_weight = getweight(() -> ones(Float32, dims), Array, state_dict, weight_name)
-    ln_bias = getweight(() -> zeros(Float32, dims), Array, state_dict, bias_name)
+    ln_weight = getweight(one_init(dims), Array, state_dict, weight_name)
+    ln_bias = getweight(zero_init(dims), Array, state_dict, bias_name)
     return Layers.LayerNorm(ln_weight, ln_bias, ln_ϵ)
 end
 

@@ -317,15 +317,7 @@ end
 for T in :[
     HGFT5Model, HGFT5ForConditionalGeneration, HGFT5EncoderModel
 ].args
-    @eval function Base.show(io::IO, m::MIME"text/plain", x::$T)
-        if get(io, :typeinfo, nothing) === nothing  # e.g. top level in REPL
-            Flux._big_show(io, x)
-        elseif !get(io, :compact, false)  # e.g. printed inside a Vector, but not a Matrix
-            Flux._layer_show(io, x)
-        else
-            show(io, x)
-        end
-    end
+    @eval @fluxshow $T
 end
 
 get_model_type(::Val{:t5}) = (
@@ -343,24 +335,14 @@ isbasemodel(::Type{<:HGFT5Model}) = true
 isbasemodel(::Type{<:HGFT5ForConditionalGeneration}) = true
 isbasemodel(::Type{<:HGFT5EncoderModel}) = true
 
-function t5_weight_init(din, dout, factor = true)
-    function weight_init()
-        weight = randn(Float32, dout, din)
-        if !isone(factor)
-            weight .*= factor
-        end
-        return weight
-    end
-    return weight_init
-end
 
-function load_model(_type::Type{<:HGFT5Model}, cfg, state_dict = OrderedDict{String, Any}(), prefix = "")
+function load_model(_type::Type{HGFT5Model}, cfg, state_dict = OrderedDict{String, Any}(), prefix = "")
     embed = load_model(_type, CompositeEmbedding, cfg, state_dict, joinname(prefix, "shared"))
     seq2seq = load_model(_type, Seq2Seq, cfg, state_dict, prefix)
     return HGFT5Model(Layers.Parallel{(:encoder_input, :decoder_input)}(embed), seq2seq)
 end
 
-function load_model(::Type{<:HGFT5ForConditionalGeneration}, cfg,
+function load_model(::Type{HGFT5ForConditionalGeneration}, cfg,
                     state_dict = OrderedDict{String, Any}(), prefix = "")
     model = load_model(HGFT5Model, cfg, state_dict, prefix)
     if cfg[:tie_word_embeddings]
@@ -368,7 +350,7 @@ function load_model(::Type{<:HGFT5ForConditionalGeneration}, cfg,
         scale = convert(eltype(embedding), inv(sqrt(size(embedding, 1))))
     else
         vocab_size, dims, factor = cfg[:vocab_size], cfg[:d_model], Float32(cfg[:initializer_factor])
-        embedding = getweight(t5_weight_init(vocab_size, dims, factor), Layers.Embed,
+        embedding = getweight(weight_init(vocab_size, dims, factor), Layers.Embed,
                               state_dict, joinname(prefix, "lm_head.weight"))
         scale = nothing
     end
@@ -383,23 +365,23 @@ function load_model(_type::Type{<:HGFT5EncoderModel}, cfg,
     return HGFT5EncoderModel(embed, encoder)
 end
 
-function load_model(::Type{<:HGFT5Model}, ::Type{<:CompositeEmbedding}, cfg, state_dict, prefix)
+function load_model(::Type{<:HGFT5PreTrainedModel}, ::Type{<:CompositeEmbedding}, cfg, state_dict, prefix)
     vocab_size, dims, factor = cfg[:vocab_size], cfg[:d_model], Float32(cfg[:initializer_factor])
-    weight = getweight(t5_weight_init(vocab_size, dims, factor), Layers.Embed, state_dict, joinname(prefix, "weight"))
+    weight = getweight(weight_init(vocab_size, dims, factor), Layers.Embed, state_dict, joinname(prefix, "weight"))
     embed = CompositeEmbedding(token = Embed(nothing, weight))
     return embed
 end
 
-function load_model(_type::Type{<:HGFT5Model}, ::Type{<:Seq2Seq}, cfg, state_dict, prefix)
+function load_model(_type::Type{<:HGFT5PreTrainedModel}, ::Type{<:Seq2Seq}, cfg, state_dict, prefix)
     encoder = load_model(_type, TransformerBlock, cfg, state_dict, joinname(prefix, "encoder"))
     decoder = load_model(_type, TransformerDecoderBlock, cfg, state_dict, joinname(prefix, "decoder"))
     return Seq2Seq(encoder, decoder)
 end
 
-function load_model(::Type{<:HGFT5Model}, ::Type{<:Layers.RMSLayerNorm}, cfg, state_dict, prefix)
+function load_model(::Type{<:HGFT5PreTrainedModel}, ::Type{<:Layers.RMSLayerNorm}, cfg, state_dict, prefix)
     dims = cfg[:d_model]
     ln_ϵ = Float32(cfg[:layer_norm_epsilon])
-    ln_init = () -> ones(Float32, dims)
+    ln_init = one_init(dims)
     ln_weight = getweight(ln_init, Array, state_dict, joinname(prefix, "weight"))
     return Layers.RMSLayerNorm(ln_weight, ln_ϵ)
 end
@@ -407,7 +389,7 @@ end
 t5_collect_outputs(prev, output) = merge(output, Layers.collect_outputs(prev, Base.structdiff(output, NamedTuple{(:position_bias,)})))
 
 function load_model(
-    ::Type{<:HGFT5Model}, ::Type{<:Layers.SelfAttention{A}}, cfg, state_dict, prefix
+    ::Type{<:HGFT5PreTrainedModel}, ::Type{<:Layers.SelfAttention{A}}, cfg, state_dict, prefix
 ) where {A <: Union{T5RPEMultiheadQKVAttenOp, T5RPECausalMultiheadQKVAttenOp,
                     T5BiasedMultiheadQKVAttenOp, T5BiasedCausalMultiheadQKVAttenOp}}
     dims, head, kv_dims = cfg[:d_model], cfg[:num_heads], cfg[:d_kv]
@@ -415,9 +397,9 @@ function load_model(
     p = Float64(cfg[:dropout_rate]); p = iszero(p) ? nothing : p
     factor = Float32(cfg[:initializer_factor])
     return_score = cfg[:output_attentions]
-    q_init = t5_weight_init(dims, head * kv_dims, factor / sqrt(dims * kv_dims))
-    kv_init = t5_weight_init(dims, head * kv_dims, factor / sqrt(dims))
-    o_init = t5_weight_init(dims, head * kv_dims, factor / sqrt(head * kv_dims))
+    q_init = weight_init(dims, head * kv_dims, factor / sqrt(dims * kv_dims))
+    kv_init = weight_init(dims, head * kv_dims, factor / sqrt(dims))
+    o_init = weight_init(dims, head * kv_dims, factor / sqrt(head * kv_dims))
     q_weight = getweight(q_init,  Array, state_dict, joinname(prefix, "q.weight"))
     k_weight = getweight(kv_init, Array, state_dict, joinname(prefix, "k.weight"))
     v_weight = getweight(kv_init, Array, state_dict, joinname(prefix, "v.weight"))
@@ -425,7 +407,7 @@ function load_model(
     qkv_proj = Layers.Fork(Layers.Dense(q_weight), Layers.Dense(k_weight), Layers.Dense(v_weight))
     o_proj = Layers.Dense(o_weight)
     if A <: Union{T5RPEMultiheadQKVAttenOp, T5RPECausalMultiheadQKVAttenOp}
-        rpe_weight = getweight(t5_weight_init(rpe_nbucket, head, factor / sqrt(dims)), Layers.Embed,
+        rpe_weight = getweight(weight_init(rpe_nbucket, head, factor / sqrt(dims)), Layers.Embed,
                                state_dict, joinname(prefix, "relative_attention_bias.weight"))
         if A <: T5RPEMultiheadQKVAttenOp
             op = T5RPEMultiheadQKVAttenOp(head, rpe_nbucket, rpe_max_dist, rpe_weight, p)
@@ -443,14 +425,14 @@ function load_model(
     return Layers.SelfAttention(op, qkv_proj, o_proj)
 end
 
-function load_model(::Type{<:HGFT5Model}, ::Type{<:Layers.CrossAttention}, cfg, state_dict, prefix)
+function load_model(::Type{<:HGFT5PreTrainedModel}, ::Type{<:Layers.CrossAttention}, cfg, state_dict, prefix)
     dims, head, kv_dims = cfg[:d_model], cfg[:num_heads], cfg[:d_kv]
     p = Float64(cfg[:dropout_rate]); p = iszero(p) ? nothing : p
     factor = Float32(cfg[:initializer_factor])
     return_score = cfg[:output_attentions]
-    q_init = t5_weight_init(dims, head * kv_dims, factor / sqrt(dims * kv_dims))
-    kv_init = t5_weight_init(dims, head * kv_dims, factor / sqrt(dims))
-    o_init = t5_weight_init(dims, head * kv_dims, factor / sqrt(head * kv_dims))
+    q_init = weight_init(dims, head * kv_dims, factor / sqrt(dims * kv_dims))
+    kv_init = weight_init(dims, head * kv_dims, factor / sqrt(dims))
+    o_init = weight_init(dims, head * kv_dims, factor / sqrt(head * kv_dims))
     q_weight = getweight(q_init,  Array, state_dict, joinname(prefix, "q.weight"))
     k_weight = getweight(kv_init, Array, state_dict, joinname(prefix, "k.weight"))
     v_weight = getweight(kv_init, Array, state_dict, joinname(prefix, "v.weight"))
@@ -464,7 +446,7 @@ function load_model(::Type{<:HGFT5Model}, ::Type{<:Layers.CrossAttention}, cfg, 
 end
 
 function load_model(
-    ::Type{<:HGFT5Model}, ::Type{Layers.Chain{Tuple{Layers.Dense, Layers.Dense}}},
+    ::Type{<:HGFT5PreTrainedModel}, ::Type{Layers.Chain{Tuple{Layers.Dense, Layers.Dense}}},
     cfg, state_dict, prefix
 )
     dims, ff_dims = cfg[:d_model], cfg[:d_ff]
@@ -472,8 +454,8 @@ function load_model(
     p = Float64(cfg[:dropout_rate]); p = iszero(p) ? nothing : p
     isgated = cfg[:is_gated_act]
     act = ACT2FN[Symbol(cfg[:dense_act_fn])]
-    wi_init = t5_weight_init(dims, ff_dims, factor / sqrt(dims))
-    wo_init = t5_weight_init(ff_dims, dims, factor / sqrt(ff_dims))
+    wi_init = weight_init(dims, ff_dims, factor / sqrt(dims))
+    wo_init = weight_init(ff_dims, dims, factor / sqrt(ff_dims))
     if isgated
         wi0_weight = getweight(wi_init, Array, state_dict, joinname(prefix, "wi0.weight"))
         wi1_weight = getweight(wi_init, Array, state_dict, joinname(prefix, "wi1.weight"))
@@ -486,7 +468,7 @@ function load_model(
     return Layers.Chain(Layers.DropoutLayer(wi, p), Layers.Dense(wo_weight))
 end
 
-function load_model(_type::Type{<:HGFT5Model}, ::Type{<:TransformerBlock}, cfg, state_dict, prefix)
+function load_model(_type::Type{<:HGFT5PreTrainedModel}, ::Type{<:TransformerBlock}, cfg, state_dict, prefix)
     n = cfg[:num_layers]
     p = Float64(cfg[:dropout_rate]); p = iszero(p) ? nothing : p
     collect_output = cfg[:output_attentions] || cfg[:output_hidden_states]
@@ -510,7 +492,7 @@ function load_model(_type::Type{<:HGFT5Model}, ::Type{<:TransformerBlock}, cfg, 
     return Layers.Chain(trf, Layers.DropoutLayer(final_ln, p))
 end
 
-function load_model(_type::Type{<:HGFT5Model}, ::Type{<:TransformerDecoderBlock}, cfg, state_dict, prefix)
+function load_model(_type::Type{<:HGFT5PreTrainedModel}, ::Type{<:TransformerDecoderBlock}, cfg, state_dict, prefix)
     n = cfg[:num_layers]
     p = Float64(cfg[:dropout_rate]); p = iszero(p) ? nothing : p
     collect_output = cfg[:output_attentions] || cfg[:output_hidden_states]
@@ -558,9 +540,10 @@ function get_state_dict(m::HGFT5EncoderModel, state_dict = OrderedDict{String, A
     return state_dict
 end
 
-get_state_dict(p::Type{<:HGFT5Model}, m::CompositeEmbedding, state_dict, prefix) = get_state_dict(p, m.token, state_dict, prefix)
+get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::CompositeEmbedding, state_dict, prefix) =
+    get_state_dict(p, m.token, state_dict, prefix)
 
-function get_state_dict(p::Type{<:HGFT5Model}, m::Seq2Seq, state_dict, prefix)
+function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::Seq2Seq, state_dict, prefix)
     get_state_dict(p, m.encoder[1], state_dict, joinname(prefix, "encoder"))
     get_state_dict(p, m.encoder[2], state_dict, joinname(prefix, "encoder.final_layer_norm"))
     get_state_dict(p, m.decoder[1], state_dict, joinname(prefix, "decoder"))
@@ -568,12 +551,12 @@ function get_state_dict(p::Type{<:HGFT5Model}, m::Seq2Seq, state_dict, prefix)
     return state_dict
 end
 
-function get_state_dict(p::Type{<:HGFT5Model}, m::Layers.RMSLayerNorm, state_dict, prefix)
+function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::Layers.RMSLayerNorm, state_dict, prefix)
     state_dict[joinname(prefix, "weight")] = m.α
     return state_dict
 end
 
-function get_state_dict(p::Type{<:HGFT5Model}, m::Layers.SelfAttention, state_dict, prefix)
+function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::Layers.SelfAttention, state_dict, prefix)
     get_state_dict(p, m.qkv_proj.layers[1], state_dict, joinname(prefix, "q"))
     get_state_dict(p, m.qkv_proj.layers[2], state_dict, joinname(prefix, "k"))
     get_state_dict(p, m.qkv_proj.layers[3], state_dict, joinname(prefix, "v"))
@@ -587,7 +570,7 @@ function get_state_dict(p::Type{<:HGFT5Model}, m::Layers.SelfAttention, state_di
     return state_dict
 end
 
-function get_state_dict(p::Type{<:HGFT5Model}, m::Layers.CrossAttention, state_dict, prefix)
+function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::Layers.CrossAttention, state_dict, prefix)
     get_state_dict(p, m.q_proj, state_dict, joinname(prefix, "q"))
     get_state_dict(p, m.kv_proj.layers[1], state_dict, joinname(prefix, "k"))
     get_state_dict(p, m.kv_proj.layers[2], state_dict, joinname(prefix, "v"))
@@ -595,7 +578,7 @@ function get_state_dict(p::Type{<:HGFT5Model}, m::Layers.CrossAttention, state_d
     return state_dict
 end
 
-function get_state_dict(p::Type{<:HGFT5Model}, m::Layers.Chain{<:Tuple{Any, Layers.Dense}}, state_dict, prefix)
+function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::Layers.Chain{<:Tuple{Any, Layers.Dense}}, state_dict, prefix)
     if m[1] isa T5Gated
         get_state_dict(p, m[1].layer.gate, state_dict, joinname(prefix, "wi0"))
         get_state_dict(p, m[1].layer.linear, state_dict, joinname(prefix, "wi1"))
@@ -606,14 +589,14 @@ function get_state_dict(p::Type{<:HGFT5Model}, m::Layers.Chain{<:Tuple{Any, Laye
     return state_dict
 end
 
-function get_state_dict(p::Type{<:HGFT5Model}, m::Transformer, state_dict, prefix)
+function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::Transformer, state_dict, prefix)
     for (i, t) in enumerate(m.blocks)
         get_state_dict(p, t, state_dict, joinname(prefix, :block, i-1, :layer))
     end
     return state_dict
 end
 
-function get_state_dict(p::Type{<:HGFT5Model}, m::TransformerBlock, state_dict, prefix)
+function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::TransformerBlock, state_dict, prefix)
     get_state_dict(p, m.attention.layer, state_dict, joinname(prefix, "0.SelfAttention"))
     get_state_dict(p, m.attention.norm, state_dict, joinname(prefix, "0.layer_norm"))
     get_state_dict(p, m.feedforward.layer, state_dict, joinname(prefix, "1.DenseReluDense"))
@@ -621,7 +604,7 @@ function get_state_dict(p::Type{<:HGFT5Model}, m::TransformerBlock, state_dict, 
     return state_dict
 end
 
-function get_state_dict(p::Type{<:HGFT5Model}, m::TransformerDecoderBlock, state_dict, prefix)
+function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::TransformerDecoderBlock, state_dict, prefix)
     get_state_dict(p, m.attention.layer, state_dict, joinname(prefix, "0.SelfAttention"))
     get_state_dict(p, m.attention.norm, state_dict, joinname(prefix, "0.layer_norm"))
     get_state_dict(p, m.crossattention.layer, state_dict, joinname(prefix, "1.EncDecAttention"))

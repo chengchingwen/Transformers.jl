@@ -82,16 +82,3 @@ get_state_dict(p, m::Layers.DropoutLayer, state_dict, prefix) = get_state_dict(p
 
 load_model(_type::Type, cfg, state_dict = OrderedDict{String, Any}(), prefix = "") =
     load_model(_type, cfg, state_dict, prefix)
-
-# @valsplit load_model(Val(type::Symbol), cfg::AbstractDict, state_dict = OrderedDict{String, Any}(); prefix = "") =
-#     error("")
-
-# function load_model(type::Type, cfg::AbstractDict, state_dict = OrderedDict{String, Any}();
-#                     prefix::String = "")
-#     @nospecialize type
-# end
-
-# function load_model(parent::Type, type::Type, cfg::AbstractDict, state_dict = OrderedDict{String, Any}();
-#                     prefix::String = "")
-#     @nospecialize parent type
-# end

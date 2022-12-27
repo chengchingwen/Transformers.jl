@@ -1,72 +1,12 @@
 using ..Layers
-using ..Layers: CompositeEmbedding, SelfAttention
+using ..Layers: CompositeEmbedding, SelfAttention, CausalMultiheadQKVDotAttenOp, LocalCausalMultiheadQKVDotAttenOp
 using ChainRulesCore
 using Functors
 using Static
 
 using NeuralAttentionlib
 using NeuralAttentionlib
-using NeuralAttentionlib: $, AbstractAttenOp, WithScore, BatchedMask, CausalMask, LocalMask,
-    dot_product_score, masked_score, normalized_score, dropout_score, weighted_sum_mixing,
-    generic_multihead_qkv_attention
-
-dot_attention(mask, p) =
-    dropout_score(p) $ normalized_score(softmax) $
-    masked_score(NeuralAttentionlib.GenericMaskOp(), mask) $ dot_product_score
-
-ChainRulesCore.@non_differentiable dot_attention(arg...)
-
-function multihead_qkv_dot_attention(head, q, k, v, mask = nothing, p = nothing)
-    return generic_multihead_qkv_attention(weighted_sum_mixing, dot_attention(mask, p), head, q, k, v)
-end
-function multihead_qkv_dot_attention(
-    ::typeof(NeuralAttentionlib.score_returning),
-    head, q, k, v, mask = nothing, p = nothing)
-    return generic_multihead_qkv_attention(
-        NeuralAttentionlib.score_returning(weighted_sum_mixing),
-        dot_attention(mask, p), head, q, k, v)
-end
-
-struct CausalMultiheadQKVDotAttenOp{F} <: AbstractAttenOp
-    head::Int
-    p::F
-end
-CausalMultiheadQKVDotAttenOp(head) = CausalMultiheadQKVDotAttenOp(head, nothing)
-NeuralAttentionlib.get_attention_func(::CausalMultiheadQKVDotAttenOp) = multihead_qkv_dot_attention
-NeuralAttentionlib.get_attention_func_args(op::CausalMultiheadQKVDotAttenOp, q, k, v, mask = nothing) =
-    (op.head, q, k, v, BatchedMask(CausalMask() & mask), op.p)
-
-Layers.no_dropout(op::CausalMultiheadQKVDotAttenOp) = CausalMultiheadQKVDotAttenOp(op.head, nothing)
-
-const CausalMultiheadQKVDotAttenOpWithScore{F} = WithScore{CausalMultiheadQKVDotAttenOp{F}}
-
-struct LocalCausalMultiheadQKVDotAttenOp{F} <: AbstractAttenOp
-    size::Int
-    head::Int
-    p::F
-end
-LocalCausalMultiheadQKVDotAttenOp(size, head) = LocalCausalMultiheadQKVDotAttenOp(size, head, nothing)
-NeuralAttentionlib.get_attention_func(::LocalCausalMultiheadQKVDotAttenOp) = multihead_qkv_dot_attention
-NeuralAttentionlib.get_attention_func_args(op::LocalCausalMultiheadQKVDotAttenOp, q, k, v, mask = nothing) =
-    (op.head, q, k, v, BatchedMask(CausalMask() & LocalMask(op.size) & mask), op.p)
-
-Layers.no_dropout(op::LocalCausalMultiheadQKVDotAttenOp) = LocalCausalMultiheadQKVDotAttenOp(op.size, op.head, nothing)
-
-const LocalCausalMultiheadQKVDotAttenOpWithScore{F} = WithScore{LocalCausalMultiheadQKVDotAttenOp{F}}
-
-Layers.argument_names(
-    ::Union{CausalMultiheadQKVDotAttenOpWithScore, CausalMultiheadQKVDotAttenOp,
-            LocalCausalMultiheadQKVDotAttenOpWithScore, LocalCausalMultiheadQKVDotAttenOp}
-) = (:hidden_state, :attention_mask)
-
-function Layers.apply_on_namedtuple(
-    op::Union{
-        CausalMultiheadQKVDotAttenOpWithScore, CausalMultiheadQKVDotAttenOp,
-        LocalCausalMultiheadQKVDotAttenOpWithScore, LocalCausalMultiheadQKVDotAttenOp},
-    nt::NamedTuple
-)
-    return Layers.apply_attention_op(op, nt)
-end
+using NeuralAttentionlib: WithScore
 
 abstract type HGFGPTNeoPreTrainedModel <: HGFPreTrainedModel end
 
@@ -78,30 +18,14 @@ end
 
 (model::HGFGPTNeoModel)(nt::NamedTuple) = model.decoder(model.embed(nt))
 
+@fluxshow HGFGPTNeoModel
+
 for T in :[
     HGFGPTNeoForCausalLM
 ].args
     @eval begin
-        struct $T{M, C} <: HGFGPTNeoPreTrainedModel
-            model::M
-            cls::C
-        end
-        @functor $T
-        (model::$T)(nt::NamedTuple) = model.cls(model.model(nt))
-    end
-end
-
-for T in :[
-    HGFGPTNeoModel, HGFGPTNeoForCausalLM
-].args
-    @eval function Base.show(io::IO, m::MIME"text/plain", x::$T)
-        if get(io, :typeinfo, nothing) === nothing  # e.g. top level in REPL
-            Flux._big_show(io, x)
-        elseif !get(io, :compact, false)  # e.g. printed inside a Vector, but not a Matrix
-            Flux._layer_show(io, x)
-        else
-            show(io, x)
-        end
+        @hgfdefmodel $T HGFGPTNeoPreTrainedModel
+        @fluxshow $T
     end
 end
 
@@ -153,8 +77,8 @@ function load_model(_type::Type{<:HGFGPTNeoPreTrainedModel}, ::Type{<:Layers.Lay
     old_bias_name = joinname(prefix, "beta")
     weight_name = haskey(state_dict, old_weight_name) ? old_weight_name : joinname(prefix, "weight")
     bias_name = haskey(state_dict, old_bias_name) ? old_bias_name : joinname(prefix, "bias")
-    ln_weight = getweight(() -> ones(Float32, dims), Array, state_dict, weight_name)
-    ln_bias = getweight(() -> zeros(Float32, dims), Array, state_dict, bias_name)
+    ln_weight = getweight(one_init(dims), Array, state_dict, weight_name)
+    ln_bias = getweight(zero_init(dims), Array, state_dict, bias_name)
     return Layers.LayerNorm(ln_weight, ln_bias, ln_ϵ)
 end
 

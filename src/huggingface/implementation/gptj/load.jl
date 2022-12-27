@@ -1,63 +1,11 @@
 using ..Layers
-using ..Layers: CompositeEmbedding, SelfAttention
+using ..Layers: CompositeEmbedding, SelfAttention, CausalRoPEMultiheadQKVAttenOp
 using ChainRulesCore
 using Functors
 using Static
 
 using NeuralAttentionlib
-using NeuralAttentionlib: $, AbstractAttenOp, WithScore, with_rotary_position_embedding,
-    scaled_dot_product_score, masked_score, normalized_score, dropout_score, weighted_sum_mixing,
-    generic_multihead_qkv_attention, CausalMask, BatchedMask
-
-rope_attention(dim, mask, p) =
-    dropout_score(p) $
-    normalized_score(softmax) $
-    masked_score(NeuralAttentionlib.GenericMaskOp(), mask) $
-    scaled_dot_product_score $
-    with_rotary_position_embedding(dim)
-
-ChainRulesCore.@non_differentiable rope_attention(arg...)
-
-function rope_multihead_qkv_attention(dim, head, q, k, v, mask = nothing, p = nothing)
-    return generic_multihead_qkv_attention(
-        weighted_sum_mixing, rope_attention(dim, mask, p),
-        head, q, k, v)
-end
-
-function rope_multihead_qkv_attention(
-    ::typeof(NeuralAttentionlib.score_returning),
-    dim, head, q, k, v, mask = nothing, p = nothing
-)
-    return generic_multihead_qkv_attention(
-        NeuralAttentionlib.score_returning(weighted_sum_mixing),
-        rope_attention(dim, mask, p),
-        head, q, k, v, position_embedding)
-end
-
-struct CausalRoPEMultiheadQKVAttenOp{D, F} <: AbstractAttenOp
-    dim::D
-    head::Int
-    p::F
-end
-CausalRoPEMultiheadQKVAttenOp(head::Int) = CausalRoPEMultiheadQKVAttenOp(nothing, head, nothing)
-CausalRoPEMultiheadQKVAttenOp(dim::Int, head::Int) = CausalRoPEMultiheadQKVAttenOp(dim, head, nothing)
-NeuralAttentionlib.get_attention_func(::CausalRoPEMultiheadQKVAttenOp) = rope_multihead_qkv_attention
-NeuralAttentionlib.get_attention_func_args(op::CausalRoPEMultiheadQKVAttenOp, q, k, v, mask = nothing) = (op.dim, op.head, q, k, v, BatchedMask(mask & CausalMask()), op.p)
-
-Layers.no_dropout(op::CausalRoPEMultiheadQKVAttenOp) = CausalRoPEMultiheadQKVAttenOp(op.dim, op.head, nothing)
-
-const CausalRoPEMultiheadQKVAttenOpWithScore{D, F} = WithScore{CausalRoPEMultiheadQKVAttenOp{D, F}}
-
-Layers.argument_names(
-    ::Union{CausalRoPEMultiheadQKVAttenOpWithScore, CausalRoPEMultiheadQKVAttenOp}
-) = (:hidden_state, :attention_mask)
-
-function Layers.apply_on_namedtuple(
-    op::Union{CausalRoPEMultiheadQKVAttenOpWithScore, CausalRoPEMultiheadQKVAttenOp},
-    nt::NamedTuple
-)
-    return Layers.apply_attention_op(op, nt)
-end
+using NeuralAttentionlib: WithScore
 
 struct ParallelPreNormTransformerBlock{A, F, N} <: Layers.AbstractTransformerBlock
     attention::A
@@ -74,6 +22,8 @@ function (b::ParallelPreNormTransformerBlock)(nt::NamedTuple)
     return Layers.return_hidden_state(a, hidden_state)
 end
 
+@fluxshow ParallelPreNormTransformerBlock
+
 abstract type HGFGPTJPreTrainedModel <: HGFPreTrainedModel end
 
 struct HGFGPTJModel{E, DEC} <: HGFGPTJPreTrainedModel
@@ -84,30 +34,14 @@ end
 
 (model::HGFGPTJModel)(nt::NamedTuple) = model.decoder(model.embed(nt))
 
+@fluxshow HGFGPTJModel
+
 for T in :[
     HGFGPTJForCausalLM
 ].args
     @eval begin
-        struct $T{M, C} <: HGFGPTJPreTrainedModel
-            model::M
-            cls::C
-        end
-        @functor $T
-        (model::$T)(nt::NamedTuple) = model.cls(model.model(nt))
-    end
-end
-
-for T in :[
-    ParallelPreNormTransformerBlock, HGFGPTJModel, HGFGPTJForCausalLM
-].args
-    @eval function Base.show(io::IO, m::MIME"text/plain", x::$T)
-        if get(io, :typeinfo, nothing) === nothing  # e.g. top level in REPL
-            Flux._big_show(io, x)
-        elseif !get(io, :compact, false)  # e.g. printed inside a Vector, but not a Matrix
-            Flux._layer_show(io, x)
-        else
-            show(io, x)
-        end
+        @hgfdefmodel $T HGFGPTJPreTrainedModel
+        @fluxshow $T
     end
 end
 
@@ -156,8 +90,8 @@ function load_model(_type::Type{<:HGFGPTJPreTrainedModel}, ::Type{<:Layers.Layer
     old_bias_name = joinname(prefix, "beta")
     weight_name = haskey(state_dict, old_weight_name) ? old_weight_name : joinname(prefix, "weight")
     bias_name = haskey(state_dict, old_bias_name) ? old_bias_name : joinname(prefix, "bias")
-    ln_weight = getweight(() -> ones(Float32, dims), Array, state_dict, weight_name)
-    ln_bias = getweight(() -> zeros(Float32, dims), Array, state_dict, bias_name)
+    ln_weight = getweight(one_init(dims), Array, state_dict, weight_name)
+    ln_bias = getweight(zero_init(dims), Array, state_dict, bias_name)
     return Layers.LayerNorm(ln_weight, ln_bias, ln_ϵ)
 end
 

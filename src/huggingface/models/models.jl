@@ -107,3 +107,28 @@ function save_model(model_name, model; path = pwd(), weight_name = PYTORCH_WEIGH
 end
 
 is_seq2seq(_) = false
+
+macro hgfdefmodel(T, PT)
+    return quote
+        struct $T{M, C} <: $PT
+            model::M
+            cls::C
+        end
+        @functor $T
+        (model::$T)(nt::NamedTuple) = model.cls(model.model(nt))
+    end
+end
+
+macro fluxshow(T)
+    return quote
+        function Base.show(io::IO, m::MIME"text/plain", x::$T)
+            if get(io, :typeinfo, nothing) === nothing  # e.g. top level in REPL
+                Flux._big_show(io, x)
+            elseif !get(io, :compact, false)  # e.g. printed inside a Vector, but not a Matrix
+                Flux._layer_show(io, x)
+            else
+                show(io, x)
+            end
+        end
+    end
+end
