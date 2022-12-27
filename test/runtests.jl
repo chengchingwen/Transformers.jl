@@ -9,25 +9,10 @@ using Flux: gradient
 using CUDA
 
 const tests = [
-    "transformer",
-    "nntopo",
-    "embed",
-    "basic",
-    "gpt",
     "bert",
 ]
 
 Random.seed!(0)
-
-if haskey(ENV, "TEST_TRANSFORMERS_PRETRAIN")
-    push!(tests, "pretrain")
-end
-
-if CUDA.functional()
-    # push!(tests, "cuda")
-else
-    @warn "CUDA unavailable, not testing GPU support"
-end
 
 @testset "Transformers" begin
     for t in tests
