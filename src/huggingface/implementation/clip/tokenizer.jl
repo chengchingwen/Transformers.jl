@@ -34,7 +34,7 @@ function extract_tkr_kwargs(
     unk_token = "<|endoftext|>", bos_token = "<|startoftext|>", eos_token = "<|endoftext|>", pad_token = "<|endoftext|>",
     model_max_length = nothing, kw...
 )
-    text_config = config isa HGFCLIPTextConfig ? config : get_key(config, :text_config, nothing)
+    text_config = config isa HGFConfig{:clip_text} ? config : get_key(config, :text_config, nothing)
     if isnothing(model_max_length)
         model_max_length = isnothing(text_config) ? 77 : get_key(text_config, :max_position_embeddings, 77)
     end
