@@ -1,4 +1,5 @@
-using ..Basic: string_getvalue, check_vocab, TextTokenizer, WList, AbstractTransformerTextEncoder, grouping_sentence
+using ..Basic: string_getvalue, check_vocab, TextTokenizer, WList, AbstractTransformerTextEncoder, grouping_sentence,
+    get_mask_func, get_trunc_pad_func
 using StructWalk
 using FuncPipelines
 using TextEncodeBase
@@ -167,80 +168,54 @@ GPT2TextEncoder(builder, e::GPT2TextEncoder) =
 function gpt_default_preprocess(; startsym = "_start_", sepsym = "_delimiter_", endsym = "_classify_",
                                 padsym = "<pad>", trunc = nothing, fixedsize = false,
                                 trunc_end = :head, pad_end = :head, process = nothing)
-    if fixedsize
-        @assert !isnothing(trunc) "`fixedsize=true` but `trunc` is not set."
-        truncf = trunc_or_pad
-    else
-        truncf = trunc_and_pad
-    end
-
+    truncf = get_trunc_pad_func(padsym, fixedsize, trunc, trunc_end, pad_end)
+    maskf = get_mask_func(trunc, pad_end)
     if isnothing(process)
         process =
             # group input for SequenceTemplate
-            Pipeline{:tok}(grouping_sentence, :tok) |>
+            Pipeline{:token}(grouping_sentence, :token) |>
             # add start & end symbol and merge sentences
-            Pipeline{:tok}(SequenceTemplate(
+            Pipeline{:token}(SequenceTemplate(
                 ConstTerm(startsym), InputTerm{String}(),
                 RepeatedTerm(ConstTerm(sepsym), InputTerm{String}()),
                 ConstTerm(endsym),
-            )(Val(1)), :tok)
+            )(Val(1)), :token)
     end
-
-    return Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
+    return Pipeline{:token}(nestedcall(string_getvalue), 1) |>
         process |>
-        # truncate input that exceed length limit and pad them to have equal length
-        Pipeline{:trunc_tok}(truncf(trunc, padsym, trunc_end, pad_end), :tok) |>
-        # get the truncated length
-        (fixedsize ? PipeVar{:trunc_len}(trunc) : Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok)) |>
-        # set pad end
-        PipeVar{:lpad}(pad_end == :head) |>
         # get mask with specific length
-        Pipeline{:mask}(getmask, (:tok, :trunc_len, :lpad)) |>
+        Pipeline{:attention_mask}(maskf, :token) |>
+        # truncate input that exceed length limit and pad them to have equal length
+        Pipeline{:token}(truncf, :token) |>
         # convert to dense array
-        Pipeline{:tok}(nested2batch, :trunc_tok) |>
-        # input namedtuple
-        Pipeline{:input}(NamedTuple{(:tok,)}∘tuple, :tok) |>
+        Pipeline{:token}(nested2batch, :token) |>
         # return input and mask
-        PipeGet{(:input, :mask)}()
+        PipeGet{(:token, :attention_mask)}()
 end
 
 function gpt2_default_preprocess(; startsym = "<|endoftext|>", endsym = "<|endoftext|>", padsym = "<|endoftext|>",
                                  trunc = nothing, fixedsize = false, trunc_end = :head, pad_end = :head,
                                  process = nothing)
-    if fixedsize
-        @assert !isnothing(trunc) "`fixedsize=true` but `trunc` is not set."
-        truncf = trunc_or_pad
-    else
-        truncf = trunc_and_pad
-    end
-
+    truncf = get_trunc_pad_func(padsym, fixedsize, trunc, trunc_end, pad_end)
+    maskf = get_mask_func(trunc, pad_end)
     if isnothing(process)
         process =
             # group input for SequenceTemplate
-            Pipeline{:tok}(grouping_sentence, :tok) |>
+            Pipeline{:token}(grouping_sentence, :token) |>
             # add start & end symbol and merge sentences
-            Pipeline{:tok}(SequenceTemplate(RepeatedTerm(InputTerm{String}()))(Val(1)), :tok)
+            Pipeline{:token}(SequenceTemplate(RepeatedTerm(InputTerm{String}()))(Val(1)), :token)
     end
 
-    return Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
+    return Pipeline{:token}(nestedcall(string_getvalue), 1) |>
         process |>
-        # truncate input that exceed length limit and pad them to have equal length
-        Pipeline{:trunc_tok}(truncf(trunc, padsym, trunc_end, pad_end), :tok) |>
-        # get the truncated length
-        (fixedsize ?
-         PipeVar{:trunc_len}(trunc) :
-         Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok)
-         ) |>
-        # set pad end
-        PipeVar{:lpad}(pad_end == :head) |>
         # get mask with specific length
-        Pipeline{:mask}(getmask, (:tok, :trunc_len, :lpad)) |>
+        Pipeline{:attention_mask}(maskf, :token) |>
+        # truncate input that exceed length limit and pad them to have equal length
+        Pipeline{:token}(truncf, :token) |>
         # convert to dense array
-        Pipeline{:tok}(nested2batch, :trunc_tok) |>
-        # input namedtuple
-        Pipeline{:input}(NamedTuple{(:tok,)}∘tuple, :tok) |>
+        Pipeline{:token}(nested2batch, :token) |>
         # return input and mask
-        PipeGet{(:input, :mask)}()
+        PipeGet{(:token, :attention_mask)}()
 end
 
 # encoder behavior
@@ -250,9 +225,8 @@ TextEncodeBase.tokenize(e::GPTTextEncoder, x::Vector{<:AbstractString}) = e.toke
 TextEncodeBase.tokenize(e::GPTTextEncoder, x::Vector{<:Vector{<:AbstractString}}) = e.tokenizer(Batch{Batch{Sentence}}(x))
 
 function TextEncodeBase.lookup(e::GPTTextEncoder, x::NamedTuple)
-    onehot_tok = lookup(e, x.input.tok)
-    input = merge(x.input, (tok = onehot_tok,))
-    return merge(x, (input = input,))
+    onehot_tok = lookup(e, x.token)
+    return merge(x, (token = onehot_tok,))
 end
 
 TextEncodeBase.tokenize(e::GPT2TextEncoder, x::AbstractString) = e.tokenizer(Sentence(x))
@@ -260,9 +234,8 @@ TextEncodeBase.tokenize(e::GPT2TextEncoder, x::Vector{<:AbstractString}) = e.tok
 TextEncodeBase.tokenize(e::GPT2TextEncoder, x::Vector{<:Vector{<:AbstractString}}) = e.tokenizer(Batch{Batch{Sentence}}(x))
 
 function TextEncodeBase.lookup(e::GPT2TextEncoder, x::NamedTuple)
-    onehot_tok = lookup(e, x.input.tok)
-    input = merge(x.input, (tok = onehot_tok,))
-    return merge(x, (input = input,))
+    onehot_tok = lookup(e, x.token)
+    return merge(x, (token = onehot_tok,))
 end
 
 # decode

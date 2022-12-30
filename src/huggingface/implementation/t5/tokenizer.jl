@@ -2,7 +2,8 @@ using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall, Batch, Sentence
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm
 using FuncPipelines
-using ..Basic: string_getvalue, grouping_sentence, check_vocab, TextTokenizer, AbstractTransformerTextEncoder, getmask
+using ..Basic: string_getvalue, grouping_sentence, check_vocab, TextTokenizer, AbstractTransformerTextEncoder,
+    get_mask_func, get_trunc_pad_func
 
 struct T5TextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P} <: AbstractTransformerTextEncoder
     tokenizer::T
@@ -36,44 +37,30 @@ T5TextEncoder(builder, e::T5TextEncoder) =
 function t5_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym = "[PAD]",
                                  fixedsize = false, trunc = nothing, trunc_end = :tail, pad_end = :tail,
                                  process = nothing)
-    if fixedsize
-        @assert !isnothing(trunc) "`fixedsize=true` but `trunc` is not set."
-        truncf = trunc_or_pad
-    else
-        truncf = trunc_and_pad
-    end
-
+    truncf = get_trunc_pad_func(padsym, fixedsize, trunc, trunc_end, pad_end)
+    maskf = get_mask_func(trunc, pad_end)
     if isnothing(process)
         process =
             # group input for SequenceTemplate
-            Pipeline{:tok}(grouping_sentence, :tok) |>
+            Pipeline{:token}(grouping_sentence, :token) |>
             # add start & end symbol, compute segment and merge sentences
-            Pipeline{:tok}(
+            Pipeline{:token}(
                 SequenceTemplate(
                     InputTerm{String}(), ConstTerm(endsym),
-                    RepeatedTerm(InputTerm{String}(), ConstTerm(endsym, 2)))(Val(1)), :tok)
+                    RepeatedTerm(InputTerm{String}(), ConstTerm(endsym, 2)))(Val(1)), :token)
     end
 
     # get token and convert to string
-    return Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
+    return Pipeline{:token}(nestedcall(string_getvalue), 1) |>
         process |>
-        # truncate input that exceed length limit and pad them to have equal length
-        Pipeline{:trunc_tok}(truncf(trunc, padsym, trunc_end, pad_end), :tok) |>
-        # get the truncated length
-        (fixedsize ?
-         PipeVar{:trunc_len}(trunc) :
-         Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok)
-         ) |>
-        # set pad end
-        PipeVar{:lpad}(pad_end == :head) |>
         # get mask with specific length
-        Pipeline{:mask}(getmask, (:tok, :trunc_len, :lpad)) |>
+        Pipeline{:attention_mask}(maskf, :token) |>
+        # truncate input that exceed length limit and pad them to have equal length
+        Pipeline{:token}(truncf, :token) |>
         # convert to dense array
-        Pipeline{:tok}(nested2batch, :trunc_tok) |>
-        # input namedtuple
-        Pipeline{:input}(NamedTuple{(:tok,)}∘tuple, :tok) |>
+        Pipeline{:token}(nested2batch, :token) |>
         # return input and mask
-        PipeGet{(:input, :mask)}()
+        PipeGet{(:token, :attention_mask)}()
 end
 
 TextEncodeBase.tokenize(e::T5TextEncoder, x::AbstractString) = e.tokenizer(Sentence(x))
@@ -81,11 +68,9 @@ TextEncodeBase.tokenize(e::T5TextEncoder, x::Vector{<:AbstractString}) = e.token
 TextEncodeBase.tokenize(e::T5TextEncoder, x::Vector{<:Vector{<:AbstractString}}) = e.tokenizer(Batch{Batch{Sentence}}(x))
 
 function TextEncodeBase.lookup(e::T5TextEncoder, x::NamedTuple)
-    onehot_tok = lookup(e, x.input.tok)
-    input = merge(x.input, (tok = onehot_tok,))
-    return merge(x, (input = input,))
+    onehot_tok = lookup(e, x.token)
+    return merge(x, (token = onehot_tok,))
 end
-
 
 tokenizer_type(T::Val{:t5}) = T
 encoder_construct(::Val{:t5}, tokenizer, vocab; kwargs...) = T5TextEncoder(tokenizer, vocab; kwargs...)

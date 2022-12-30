@@ -1,9 +1,10 @@
-using ..Basic: string_getvalue, grouping_sentence, check_vocab, TextTokenizer, AbstractTransformerTextEncoder
+using ..Basic: string_getvalue, grouping_sentence, check_vocab, get_mask_func, get_trunc_pad_func,
+    TextTokenizer, AbstractTransformerTextEncoder
 using ..WordPieceModel
 using ..WordPieceModel: DAT
 using FuncPipelines
 using TextEncodeBase
-using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
+using TextEncodeBase: nested2batch, nestedcall
 using TextEncodeBase: BaseTokenization, WrappedTokenization, MatchTokenization, Splittable,
     ParentStages, TokenStages, SentenceStage, WordStage, Batch, Sentence, getvalue, getmeta
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm
@@ -137,7 +138,6 @@ function _wp_vocab(wp::WordPiece)
     end
     return vocab
 end
-Basic.Vocabulary(wp::WordPiece) = Vocabulary(_wp_vocab(wp), DAT.decode(wp.trie, wp.unki))
 TextEncodeBase.Vocab(wp::WordPiece) = Vocab(_wp_vocab(wp), DAT.decode(wp.trie, wp.unki))
 
 function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process;
@@ -167,51 +167,35 @@ BertTextEncoder(builder, e::BertTextEncoder) =
 function bert_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym = "[PAD]",
                                  fixedsize = false, trunc = nothing, trunc_end = :tail, pad_end = :tail,
                                  process = nothing)
-    if fixedsize
-        @assert !isnothing(trunc) "`fixedsize=true` but `trunc` is not set."
-        truncf = trunc_or_pad
-    else
-        truncf = trunc_and_pad
-    end
-
+    truncf = get_trunc_pad_func(fixedsize, trunc, trunc_end, pad_end)
+    maskf = get_mask_func(trunc, pad_end)
     if isnothing(process)
         process =
             # group input for SequenceTemplate
-            Pipeline{:tok}(grouping_sentence, :tok) |>
+            Pipeline{:token}(grouping_sentence, :token) |>
             # add start & end symbol, compute segment and merge sentences
-            Pipeline{:tok_segment}(
+            Pipeline{:token_segment}(
                 SequenceTemplate(
                     ConstTerm(startsym, 1), InputTerm{String}(1), ConstTerm(endsym, 1),
                     RepeatedTerm(InputTerm{String}(2), ConstTerm(endsym, 2); dynamic_type_id = true)
-                ), :tok
+                ), :token
             ) |>
-            Pipeline{:tok}(nestedcall(first), :tok_segment) |>
-            Pipeline{:segment}(nestedcall(last), :tok_segment)
+            Pipeline{:token}(nestedcall(first), :token_segment) |>
+            Pipeline{:segment}(nestedcall(last), :token_segment)
     end
-
     # get token and convert to string
-    return Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
+    return Pipeline{:token}(nestedcall(string_getvalue), 1) |>
         process |>
+        Pipeline{:attention_mask}(maskf, :token) |>
         # truncate input that exceed length limit and pad them to have equal length
-        Pipeline{:trunc_tok}(truncf(trunc, padsym, trunc_end, pad_end), :tok) |>
-        # get the truncated length
-        (fixedsize ?
-         PipeVar{:trunc_len}(trunc) :
-         Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok)
-         ) |>
-        # set pad end
-        PipeVar{:lpad}(pad_end == :head) |>
-        # get mask with specific length
-        Pipeline{:mask}(getmask, (:tok, :trunc_len, :lpad)) |>
+        Pipeline{:token}(truncf(padsym), :token) |>
         # convert to dense array
-        Pipeline{:tok}(nested2batch, :trunc_tok) |>
+        Pipeline{:token}(nested2batch, :token) |>
         # truncate & pad segment
-        Pipeline{:segment}(truncf(trunc, 1, trunc_end, pad_end), :segment) |>
+        Pipeline{:segment}(truncf(1), :segment) |>
         Pipeline{:segment}(nested2batch, :segment) |>
-        # input namedtuple
-        Pipeline{:input}(NamedTuple{(:tok, :segment)}∘tuple, (:tok, :segment)) |>
         # return input and mask
-        PipeGet{(:input, :mask)}()
+        PipeGet{(:token, :segment, :attention_mask)}()
 end
 
 # encoder behavior
@@ -221,9 +205,8 @@ TextEncodeBase.tokenize(e::BertTextEncoder, x::Vector{<:AbstractString}) = e.tok
 TextEncodeBase.tokenize(e::BertTextEncoder, x::Vector{<:Vector{<:AbstractString}}) = e.tokenizer(Batch{Batch{Sentence}}(x))
 
 function TextEncodeBase.lookup(e::BertTextEncoder, x::NamedTuple)
-    onehot_tok = lookup(e, x.input.tok)
-    input = merge(x.input, (tok = onehot_tok,))
-    return merge(x, (input = input,))
+    onehot_token = lookup(e, x.token)
+    return merge(x, (token = onehot_token,))
 end
 
 # api doc
@@ -257,7 +240,7 @@ julia> e = encode(bertenc, [["this is a sentence", "and another"]])
 (input = (tok = [0 0 … 0 0; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0;;;], segment = [1; 1; … ; 2; 2;;]), mask = [1.0 1.0 … 1.0 1.0;;;])
 
 julia> typeof(e)
-NamedTuple{(:input, :mask), Tuple{NamedTuple{(:tok, :segment), Tuple{OneHotArray{0x00007144, 2, 3, Matrix{OneHot{0x00007144}}}, Matrix{Int64}}}, Array{Float32, 3}}}
+NamedTuple{(:input, :mask), Tuple{NamedTuple{(:token, :segment), Tuple{OneHotArray{0x00007144, 2, 3, Matrix{OneHot{0x00007144}}}, Matrix{Int64}}}, Array{Float32, 3}}}
 
 ```
 """

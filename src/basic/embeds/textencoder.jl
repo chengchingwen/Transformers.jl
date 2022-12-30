@@ -131,20 +131,20 @@ function TransformerTextEncoder(tkr::AbstractTokenizer, v::WList; kws...)
     enc = TransformerTextEncoder(tkr, v, identity; kws...)
     # default processing pipeline
     return TransformerTextEncoder(enc) do e
+        truncf = get_trunc_pad_func(e.padsym, false, e.trunc, :tail, :tail)
+        maskf = get_mask_func(e.trunc, :tail)
         # get token and convert to string
-        Pipeline{:tok}(nestedcall(string_getvalue), 1) |>
+        Pipeline{:token}(nestedcall(string_getvalue), 1) |>
             # add start & end symbol
-            Pipeline{:tok}(with_head_tail(e.startsym, e.endsym), :tok) |>
-            # truncate input that exceed length limit and pad them to have equal length
-            Pipeline{:trunc_tok}(trunc_and_pad(e.trunc, e.padsym), :tok) |>
-            # get the truncated length
-            Pipeline{:trunc_len}(TextEncodeBase.nestedmaxlength, :trunc_tok) |>
+            Pipeline{:token}(with_head_tail(e.startsym, e.endsym), :token) |>
             # get mask with specific length
-            Pipeline{:mask}(getmask, (:tok, :trunc_len)) |>
+            Pipeline{:attention_mask}(maskf, :token) |>
+            # truncate input that exceed length limit and pad them to have equal length
+            Pipeline{:token}(truncf, :token) |>
             # convert to dense array
-            Pipeline{:tok}(nested2batch, :trunc_tok) |>
+            Pipeline{:token}(nested2batch, :trunc_tok) |>
             # return token and mask
-            PipeGet{(:tok, :mask)}()
+            PipeGet{(:token, :attention_mask)}()
     end
 end
 

@@ -7,4 +7,3 @@ using TextEncodeBase
 include("./utils.jl")
 include("./tokenizer.jl")
 include("./textencoder.jl")
-include("./vocab.jl")

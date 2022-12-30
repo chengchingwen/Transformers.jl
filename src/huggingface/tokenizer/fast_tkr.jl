@@ -363,10 +363,10 @@ function extract_post_processor(::Val{:TemplateProcessing}, post_processor_dict,
     single_term = map(extract_term, post_processor_dict["single"])
     pair_term = map(extract_term, post_processor_dict["pair"][length(single_term)+1:end])
     process = Pipelines(
-        Pipeline{:tok}(grouping_sentence, :tok),
-        Pipeline{:tok_segment}(SequenceTemplate(single_term..., RepeatedTerm(pair_term...)), :tok),
-        Pipeline{:tok}(nestedcall(first), :tok_segment) |>
-        Pipeline{:segment}(nestedcall(last), :tok_segment)
+        Pipeline{:token}(grouping_sentence, :token),
+        Pipeline{:token_segment}(SequenceTemplate(single_term..., RepeatedTerm(pair_term...)), :token),
+        Pipeline{:token}(nestedcall(first), :token_segment) |>
+        Pipeline{:segment}(nestedcall(last), :token_segment)
     )
     process_config[:process] = process
     return process_config
@@ -376,14 +376,14 @@ function extract_post_processor(::Val{:BertProcessing}, post_processor_dict, tok
     sepsym, sepid = post_processor_dict["sep"]
     startsym, startid = post_processor_dict["cls"]
     process = Pipelines(
-        Pipeline{:tok}(grouping_sentence, :tok),
-        Pipeline{:tok_segment}(
+        Pipeline{:token}(grouping_sentence, :token),
+        Pipeline{:token_segment}(
             SequenceTemplate(
                 ConstTerm(startsym, 1), InputTerm{String}(1), ConstTerm(sepsym, 1),
                 RepeatedTerm(InputTerm{String}(2), ConstTerm(sepsym, 2))),
-            :tok),
-        Pipeline{:tok}(nestedcall(first), :tok_segment) |>
-        Pipeline{:segment}(nestedcall(last), :tok_segment)
+            :token),
+        Pipeline{:token}(nestedcall(first), :token_segment) |>
+        Pipeline{:segment}(nestedcall(last), :token_segment)
     )
     process_config[:process] = process
     return process_config
@@ -394,14 +394,14 @@ function extract_post_processor(::Val{:RobertaProcessing}, post_processor_dict, 
     sepsym, sepid = post_processor_dict["sep"]
     startsym, startid = post_processor_dict["cls"]
     process = Pipelines(
-        Pipeline{:tok}(grouping_sentence, :tok),
-        Pipeline{:tok_segment}(
+        Pipeline{:token}(grouping_sentence, :token),
+        Pipeline{:token_segment}(
             SequenceTemplate(
                 ConstTerm(startsym), InputTerm{String}(), ConstTerm(sepsym),
                 RepeatedTerm(ConstTerm(sepsym), InputTerm{String}(), ConstTerm(sepsym))),
-            :tok),
-        Pipeline{:tok}(nestedcall(first), :tok_segment) |>
-        Pipeline{:segment}(nestedcall(last), :tok_segment)
+            :token),
+        Pipeline{:token}(nestedcall(first), :token_segment) |>
+        Pipeline{:segment}(nestedcall(last), :token_segment)
     )
     process_config[:process] = process
     return process_config
@@ -409,8 +409,8 @@ end
 
 function extract_post_processor(::Val{:ByteLevel}, post_processor_dict, tokenizer_dict, process_config)
     process = Pipelines(
-        Pipeline{:tok}(grouping_sentence, :tok),
-        Pipeline{:tok}(SequenceTemplate(RepeatedTerm(InputTerm{String}()))(Val(1)), :tok),
+        Pipeline{:token}(grouping_sentence, :token),
+        Pipeline{:token}(SequenceTemplate(RepeatedTerm(InputTerm{String}()))(Val(1)), :token),
     )
     process_config[:process] = process
     return process_config

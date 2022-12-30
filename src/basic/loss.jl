@@ -2,8 +2,7 @@ using Statistics
 using ChainRulesCore
 using Static
 using PrimitiveOneHot
-using NeuralAttentionlib.Masks
-using NeuralAttentionlib: AbstractSequenceMask
+using NeuralAttentionlib: AbstractSequenceMask, GenericSequenceMask, LengthMask, RevLengthMask
 
 using NNlib
 import Flux.Losses
