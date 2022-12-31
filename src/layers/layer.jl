@@ -5,7 +5,7 @@ using ChainRulesCore
 using Static
 
 using NeuralAttentionlib
-using NeuralAttentionlib: $, WithScore, MultiheadQKVAttenOp, CausalMultiheadQKVAttenOp
+using NeuralAttentionlib: $, AbstractAttenOp, WithScore, MultiheadQKVAttenOp, CausalMultiheadQKVAttenOp
 
 @static if VERSION < v"1.8"
     macro etotal(ex)
@@ -696,6 +696,10 @@ function SelfAttention(
     atten_op_constr = causal ? CausalMultiheadQKVAttenOp : MultiheadQKVAttenOp
     atten_op = atten_op_constr(head, dropout)
     return_score && (atten_op = WithScore(atten_op))
+    sa = SelfAttention(atten_op, head, hidden_size, head_hidden_size)
+    return sa
+end
+function SelfAttention(atten_op::AbstractAttenOp, head::Int, hidden_size::Int, head_hidden_size::Int)
     qkv_proj = Flux.Dense(hidden_size, 3head * head_hidden_size)
     o_proj = Flux.Dense(head * head_hidden_size, hidden_size)
     sa = SelfAttention(atten_op, NSplit(static(3), qkv_proj), o_proj)
@@ -710,6 +714,10 @@ end
 function CrossAttention(head::Int, hidden_size::Int, head_hidden_size::Int; dropout = nothing, return_score = false)
     cross_atten_op = MultiheadQKVAttenOp(head, dropout)
     return_score && (cross_atten_op = WithScore(cross_atten_op))
+    ca = CrossAttention(cross_atten_op, head, hidden_size, head_hidden_size)
+    return ca
+end
+function CrossAttention(cross_atten_op::AbstractAttenOp, head::Int, hidden_size::Int, head_hidden_size::Int)
     c_q_proj = Flux.Dense(hidden_size, head * head_hidden_size)
     c_kv_proj = Flux.Dense(hidden_size, 2head * head_hidden_size)
     c_o_proj = Flux.Dense(head * head_hidden_size, hidden_size)
