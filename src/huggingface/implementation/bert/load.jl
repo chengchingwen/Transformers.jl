@@ -47,6 +47,7 @@ end
 @functor HGFBertModel
 
 (model::HGFBertModel)(nt::NamedTuple) = model.pooler(model.encoder(model.embed(nt)))
+(model::HGFBertModel{E, ENC, Nothing})(nt::NamedTuple) where {E, ENC} = model.encoder(model.embed(nt))
 
 @fluxshow HGFBertModel
 
@@ -81,8 +82,9 @@ isbasemodel(::Type{<:HGFBertPreTrainedModel}) = false
 bert_ones_like(x::AbstractArray) = Ones{Int}(Base.tail(size(x)))
 ChainRulesCore.@non_differentiable bert_ones_like(x)
 
-
-function load_model(_type::Type{HGFBertModel}, cfg, state_dict = OrderedDict{String, Any}(), prefix = "")
+load_model(_type::Type{HGFBertModel}, cfg, state_dict, prefix) =
+    load_model(_type, _type, cfg, state_dict, prefix)
+function load_model(_type::Type, ::Type{HGFBertModel}, cfg, state_dict, prefix)
     embed = load_model(_type, CompositeEmbedding, cfg, state_dict, joinname(prefix, "embeddings"))
     encoder = load_model(_type, TransformerBlock,  cfg, state_dict, joinname(prefix, "encoder"))
     dims = cfg[:hidden_size]
@@ -92,17 +94,29 @@ function load_model(_type::Type{HGFBertModel}, cfg, state_dict = OrderedDict{Str
     pooler = BertPooler(Layers.Dense(NNlib.tanh_fast, weight, bias))
     return HGFBertModel(embed, encoder, Layers.Branch{(:pooled,), (:hidden_state,)}(pooler))
 end
+function load_model(
+    _type::Type{<:Union{
+        HGFBertLMHeadModel, HGFBertForMaskedLM,
+        HGFBertForTokenClassification, HGFBertForQuestionAnswering,
+    }},
+    ::Type{HGFBertModel}, cfg, state_dict, prefix)
+    embed = load_model(_type, CompositeEmbedding, cfg, state_dict, joinname(prefix, "embeddings"))
+    encoder = load_model(_type, TransformerBlock,  cfg, state_dict, joinname(prefix, "encoder"))
+    return HGFBertModel(embed, encoder, nothing)
+end
 
-function load_model(_type::Type{HGFBertForPreTraining}, cfg, state_dict = OrderedDict{String, Any}(), prefix = "")
-    bert = load_model(HGFBertLMHeadModel, cfg, state_dict, prefix)
+function load_model(_type::Type{HGFBertForPreTraining}, cfg, state_dict, prefix)
+    bert = load_model(_type, HGFBertLMHeadModel, cfg, state_dict, prefix)
     model, lmhead = bert.model, bert.cls
     seqhead = load_model(HGFBertForNextSentencePrediction, Layers.Dense, cfg, state_dict, prefix)
     cls = Layers.Chain(lmhead, seqhead)
     return HGFBertForPreTraining(model, cls)
 end
 
-function load_model(_type::Type{HGFBertLMHeadModel}, cfg, state_dict = OrderedDict{String, Any}(), prefix = "")
-    model = load_model(HGFBertModel, cfg, state_dict, joinname(prefix, "bert"))
+load_model(_type::Type{HGFBertLMHeadModel}, cfg, state_dict, prefix) =
+    load_model(_type, _type, cfg, state_dict, prefix)
+function load_model(_type::Type, ::Type{HGFBertLMHeadModel}, cfg, state_dict, prefix)
+    model = load_model(_type, HGFBertModel, cfg, state_dict, joinname(prefix, "bert"))
     dims, vocab_size, pad_id = cfg[:hidden_size], cfg[:vocab_size], cfg[:pad_token_id]
     factor = Float32(cfg[:initializer_range])
     act = ACT2FN[Symbol(cfg[:hidden_act])]
@@ -129,25 +143,19 @@ function load_model(_type::Type{HGFBertLMHeadModel}, cfg, state_dict = OrderedDi
     return HGFBertLMHeadModel(model, Layers.Branch{(:logit,), (:hidden_state,)}(lmhead))
 end
 
-function load_model(_type::Type{HGFBertForMaskedLM}, cfg, state_dict = OrderedDict{String, Any}(), prefix = "")
+function load_model(_type::Type{HGFBertForMaskedLM}, cfg, state_dict, prefix)
     bert = load_model(HGFBertLMHeadModel, cfg, state_dict, prefix)
     model, lmhead = bert.model, bert.cls
     return HGFBertForMaskedLM(model, lmhead)
 end
 
-function load_model(
-    _type::Type{HGFBertForNextSentencePrediction}, cfg,
-    state_dict = OrderedDict{String, Any}(), prefix = ""
-)
+function load_model(_type::Type{HGFBertForNextSentencePrediction}, cfg, state_dict, prefix)
     model = load_model(HGFBertModel, cfg, state_dict, joinname(prefix, "bert"))
     cls = load_model(HGFBertForNextSentencePrediction, Layers.Dense, cfg, state_dict, prefix)
     return HGFBertForNextSentencePrediction(model, cls)
 end
 
-function load_model(
-    _type::Type{HGFBertForSequenceClassification}, cfg,
-    state_dict = OrderedDict{String, Any}(), prefix = ""
-)
+function load_model(_type::Type{HGFBertForSequenceClassification}, cfg, state_dict, prefix)
     model = load_model(HGFBertModel, cfg, state_dict, joinname(prefix, "bert"))
     dims, nlabel = cfg[:hidden_size], cfg[:num_labels]
     factor = Float32(cfg[:initializer_range])
@@ -166,11 +174,8 @@ end
 
 # end
 
-function load_model(
-    _type::Type{HGFBertForTokenClassification}, cfg,
-    state_dict = OrderedDict{String, Any}(), prefix = ""
-)
-    model = load_model(HGFBertModel, cfg, state_dict, joinname(prefix, "bert"))
+function load_model(_type::Type{HGFBertForTokenClassification}, cfg, state_dict, prefix)
+    model = load_model(_type, HGFBertModel, cfg, state_dict, joinname(prefix, "bert"))
     dims, nlabel = cfg[:hidden_size], cfg[:num_labels]
     factor = Float32(cfg[:initializer_range])
     weight = getweight(weight_init(dims, nlabel, factor), Array,
@@ -180,11 +185,8 @@ function load_model(
     return HGFBertForTokenClassification(model, cls)
 end
 
-function load_model(
-    _type::Type{HGFBertForQuestionAnswering}, cfg,
-    state_dict = OrderedDict{String, Any}(), prefix = ""
-)
-    model = load_model(HGFBertModel, cfg, state_dict, joinname(prefix, "bert"))
+function load_model(_type::Type{HGFBertForQuestionAnswering}, cfg, state_dict, prefix)
+    model = load_model(_type, HGFBertModel, cfg, state_dict, joinname(prefix, "bert"))
     dims, nlabel = cfg[:hidden_size], cfg[:num_labels]
     factor = Float32(cfg[:initializer_range])
     weight = getweight(weight_init(dims, nlabel, factor), Array,
@@ -290,7 +292,7 @@ function load_model(_type::Type{<:HGFBertPreTrainedModel}, ::Type{<:TransformerB
     n = cfg[:num_hidden_layers]
     p = cfg[:hidden_dropout_prob]; p = iszero(p) ? nothing : p
     collect_output = cfg[:output_attentions] || cfg[:output_hidden_states]
-    (cfg[:is_decoder] || cfg[:add_cross_attention]) && load_error("Decoder Bert is not support.")
+    cfg[:add_cross_attention] && load_error("Decoder Bert is not support.")
     blocks = []
     for i = 1:n
         lprefix = joinname(prefix, :layer, i-1)
@@ -308,15 +310,17 @@ function load_model(_type::Type{<:HGFBertPreTrainedModel}, ::Type{<:TransformerB
     return trf
 end
 
-function get_state_dict(m::HGFBertModel, state_dict = OrderedDict{String, Any}(), prefix = "")
+function get_state_dict(m::HGFBertModel, state_dict, prefix)
     get_state_dict(HGFBertModel, m.embed[1], state_dict, joinname(prefix, "embeddings"))
     get_state_dict(HGFBertModel, m.embed[2], state_dict, joinname(prefix, "embeddings.LayerNorm"))
     get_state_dict(HGFBertModel, m.encoder, state_dict, joinname(prefix, "encoder"))
-    get_state_dict(HGFBertModel, m.pooler.layer.dense, state_dict, joinname(prefix, "pooler.dense"))
+    if !isnothing(m.pooler)
+        get_state_dict(HGFBertModel, m.pooler.layer.dense, state_dict, joinname(prefix, "pooler.dense"))
+    end
     return state_dict
 end
 
-function get_state_dict(m::HGFBertForPreTraining, state_dict = OrderedDict{String, Any}(), prefix = "")
+function get_state_dict(m::HGFBertForPreTraining, state_dict, prefix)
     get_state_dict(m.model, state_dict, joinname(prefix, "bert"))
     get_state_dict(HGFBertModel, m.cls[1].layer[1],
                    state_dict, joinname(prefix, "cls.predictions.transform.dense"))
@@ -326,34 +330,28 @@ function get_state_dict(m::HGFBertForPreTraining, state_dict = OrderedDict{Strin
     return state_dict
 end
 
-function get_state_dict(
-    m::Union{HGFBertLMHeadModel, HGFBertForMaskedLM},
-    state_dict = OrderedDict{String, Any}(), prefix = ""
-)
+function get_state_dict(m::Union{HGFBertLMHeadModel, HGFBertForMaskedLM}, state_dict, prefix)
     get_state_dict(m.model, state_dict, joinname(prefix, "bert"))
-    get_state_dict(HGFBertModel, m.cls[1].layer[1],
+    get_state_dict(HGFBertModel, m.cls.layer[1],
                    state_dict, joinname(prefix, "cls.predictions.transform.dense"))
-    get_state_dict(HGFBertModel, m.cls[1].layer[2], state_dict, joinname(prefix, "cls.predictions.transform.LayerNorm"))
-    get_state_dict(HGFBertModel, m.cls[1].layer[3], state_dict, joinname(prefix, "cls.predictions"))
+    get_state_dict(HGFBertModel, m.cls.layer[2], state_dict, joinname(prefix, "cls.predictions.transform.LayerNorm"))
+    get_state_dict(HGFBertModel, m.cls.layer[3], state_dict, joinname(prefix, "cls.predictions"))
     return state_dict
 end
 
-function get_state_dict(m::HGFBertForNextSentencePrediction, state_dict = OrderedDict{String, Any}(), prefix = "")
+function get_state_dict(m::HGFBertForNextSentencePrediction, state_dict, prefix)
     get_state_dict(m.model, state_dict, joinname(prefix, "bert"))
-    get_state_dict(HGFBertModel, m.cls[2], state_dict, joinname(prefix, "cls.seq_relationship"))
+    get_state_dict(HGFBertModel, m.cls.layer.layer, state_dict, joinname(prefix, "cls.seq_relationship"))
     return state_dict
 end
 
-function get_state_dict(
-    m::Union{HGFBertForSequenceClassification, HGFBertForTokenClassification},
-    state_dict = OrderedDict{String, Any}(), prefix = ""
-)
+function get_state_dict(m::Union{HGFBertForSequenceClassification, HGFBertForTokenClassification}, state_dict, prefix)
     get_state_dict(m.model, state_dict, joinname(prefix, "bert"))
     get_state_dict(HGFBertModel, m.cls, state_dict, joinname(prefix, "classifier"))
     return state_dict
 end
 
-function get_state_dict(m::HGFBertForQuestionAnswering, state_dict = OrderedDict{String, Any}(), prefix = "")
+function get_state_dict(m::HGFBertForQuestionAnswering, state_dict, prefix)
     get_state_dict(m.model, state_dict, joinname(prefix, "bert"))
     get_state_dict(HGFBertModel, m.cls.dense, state_dict, joinname(prefix, "qa_outputs"))
     return state_dict

@@ -336,14 +336,13 @@ isbasemodel(::Type{<:HGFT5ForConditionalGeneration}) = true
 isbasemodel(::Type{<:HGFT5EncoderModel}) = true
 
 
-function load_model(_type::Type{HGFT5Model}, cfg, state_dict = OrderedDict{String, Any}(), prefix = "")
+function load_model(_type::Type{HGFT5Model}, cfg, state_dict, prefix)
     embed = load_model(_type, CompositeEmbedding, cfg, state_dict, joinname(prefix, "shared"))
     seq2seq = load_model(_type, Seq2Seq, cfg, state_dict, prefix)
     return HGFT5Model(Layers.Parallel{(:encoder_input, :decoder_input)}(embed), seq2seq)
 end
 
-function load_model(::Type{HGFT5ForConditionalGeneration}, cfg,
-                    state_dict = OrderedDict{String, Any}(), prefix = "")
+function load_model(::Type{HGFT5ForConditionalGeneration}, cfg, state_dict, prefix)
     model = load_model(HGFT5Model, cfg, state_dict, prefix)
     if cfg[:tie_word_embeddings]
         embedding = model.embed.layer.token.embeddings
@@ -358,8 +357,7 @@ function load_model(::Type{HGFT5ForConditionalGeneration}, cfg,
     return HGFT5ForConditionalGeneration(model, Layers.Branch{(:logit,), (:hidden_state,)}(lm_head))
 end
 
-function load_model(_type::Type{<:HGFT5EncoderModel}, cfg,
-                    state_dict = OrderedDict{String, Any}(), prefix = "")
+function load_model(_type::Type{<:HGFT5EncoderModel}, cfg, state_dict, prefix)
     embed = load_model(HGFT5Model, CompositeEmbedding, cfg, state_dict, joinname(prefix, "shared"))
     encoder = load_model(HGFT5Model, TransformerBlock, cfg, state_dict, joinname(prefix, "encoder"))
     return HGFT5EncoderModel(embed, encoder)
@@ -520,20 +518,20 @@ function load_model(_type::Type{<:HGFT5PreTrainedModel}, ::Type{<:TransformerDec
 end
 
 
-function get_state_dict(m::HGFT5Model, state_dict = OrderedDict{String, Any}(), prefix = "")
+function get_state_dict(m::HGFT5Model, state_dict, prefix)
     get_state_dict(HGFT5Model, m.embed, state_dict, joinname(prefix, "shared"))
     get_state_dict(HGFT5Model, m.seq2seq, state_dict, prefix)
     return state_dict
 end
 
-function get_state_dict(m::HGFT5ForConditionalGeneration, state_dict = OrderedDict{String, Any}(), prefix = "")
+function get_state_dict(m::HGFT5ForConditionalGeneration, state_dict, prefix)
     get_state_dict(m.model, state_dict, prefix)
     embedding = m.lm_head.layer.embed.embeddings
     state_dict[joinname(prefix, "lm_head.weight")] = embedding'
     return state_dict
 end
 
-function get_state_dict(m::HGFT5EncoderModel, state_dict = OrderedDict{String, Any}(), prefix = "")
+function get_state_dict(m::HGFT5EncoderModel, state_dict, prefix)
     get_state_dict(HGFT5Model, m.embed, state_dict, joinname(prefix, "shared"))
     get_state_dict(HGFT5Model, m.encoder[1], state_dict, joinname(prefix, "encoder"))
     get_state_dict(HGFT5Model, m.encoder[2], state_dict, joinname(prefix, "encoder.final_layer_norm"))

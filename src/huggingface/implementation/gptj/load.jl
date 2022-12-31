@@ -150,3 +150,50 @@ function load_model(_type::Type{<:HGFGPTJPreTrainedModel}, ::Type{<:TransformerB
     final_ln = load_model(_type, Layers.LayerNorm, cfg, state_dict, joinname(prefix, "ln_f"))
     return Layers.Chain(trf, final_ln)
 end
+
+function get_state_dict(m::HGFGPTJModel, state_dict, prefix)
+    get_state_dict(HGFGPTJModel, m.embed, state_dict, prefix)
+    get_state_dict(HGFGPTJModel, m.decoder[1], state_dict, prefix)
+    get_state_dict(HGFGPTJModel, m.decoder[2], state_dict, joinname(prefix, "ln_f"))
+    return state_dict
+end
+
+function get_state_dict(m::HGFGPTJForCausalLM, state_dict, prefix)
+    get_state_dict(m.model, state_dict, joinname(prefix, "transformer"))
+    get_state_dict(HGFGPTJModel, m.cls.layer.embed, state_dict, joinname(prefix, "lm_head"))
+    return state_dict
+end
+
+function get_state_dict(p::Type{<:HGFGPTJPreTrainedModel}, m::CompositeEmbedding, state_dict, prefix)
+    get_state_dict(p, m.token, state_dict, joinname(prefix, "wte"))
+    return state_dict
+end
+
+function get_state_dict(p::Type{<:HGFGPTJPreTrainedModel}, m::SelfAttention, state_dict, prefix)
+    get_state_dict(p, m.qkv_proj.layers[1], state_dict, joinname(prefix, "q_proj"))
+    get_state_dict(p, m.qkv_proj.layers[2], state_dict, joinname(prefix, "k_proj"))
+    get_state_dict(p, m.qkv_proj.layers[3], state_dict, joinname(prefix, "v_proj"))
+    get_state_dict(p, m.o_proj, state_dict, joinname(prefix, "out_proj"))
+    return state_dict
+end
+
+function get_state_dict(p::Type{<:HGFGPTJPreTrainedModel}, m::Layers.Chain{<:Tuple{Layers.Dense, Layers.Dense}},
+                        state_dict, prefix)
+    get_state_dict(p, m[1], state_dict, joinname(prefix, "fc_in"))
+    get_state_dict(p, m[2], state_dict, joinname(prefix, "fc_out"))
+    return state_dict
+end
+
+function get_state_dict(p::Type{<:HGFGPTJPreTrainedModel}, m::ParallelPreNormTransformerBlock, state_dict, prefix)
+    get_state_dict(p, m.norm, state_dict, joinname(prefix, "ln_1"))
+    get_state_dict(p, m.attention, state_dict, joinname(prefix, "attn"))
+    get_state_dict(p, m.feedforward, state_dict, joinname(prefix, "mlp"))
+    return state_dict
+end
+
+function get_state_dict(p::Type{<:HGFGPTJPreTrainedModel}, m::Transformer, state_dict, prefix)
+    for (i, t) in enumerate(m.blocks)
+        get_state_dict(p, t, state_dict, joinname(prefix, :h, i-1))
+    end
+    return state_dict
+end

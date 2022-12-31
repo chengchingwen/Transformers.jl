@@ -80,5 +80,8 @@ get_state_dict(p, m::Layers.Branch, state_dict, prefix) = get_state_dict(p, m.la
 get_state_dict(p, m::Layers.Parallel, state_dict, prefix) = get_state_dict(p, m.layer, state_dict, prefix)
 get_state_dict(p, m::Layers.DropoutLayer, state_dict, prefix) = get_state_dict(p, m.layer, state_dict, prefix)
 
-load_model(_type::Type, cfg, state_dict = OrderedDict{String, Any}(), prefix = "") =
-    load_model(_type, cfg, state_dict, prefix)
+load_model(_type::Type, cfg) = load_model(_type, cfg, OrderedDict{String, Any}())
+load_model(_type::Type, cfg, state_dict) = load_model(_type, cfg, state_dict, "")
+
+get_state_dict(m) = get_state_dict(m, OrderedDict{String, Any}())
+get_state_dict(m, state_dict) = get_state_dict(m, state_dict, "")

@@ -48,7 +48,7 @@ see all model/task that `bert` support.
 get_model_type
 
 @valsplit get_model_type(Val(model_type::Symbol)) = error("Unknown model type: $model_type")
-function get_model_type(model_type, task::Symbol)
+function get_model_type(model_type, task::Union{Symbol, String})
     task = Symbol(lowercase(String(task)))
     tasks = get_model_type(model_type)
     if haskey(tasks, task)
@@ -73,6 +73,13 @@ function load_model(model_type, model_name::AbstractString, task; trainmode = fa
         config = load_config(model_name; kws...)
     end
     state_dict = load_state_dict(model_name; kws...)
+    return load_model(model_type, model_name, task, state_dict; trainmode, config, kws...)
+end
+function load_model(model_type, model_name::AbstractString, task, state_dict;
+                    trainmode = false, config = nothing, kws...)
+    if isnothing(config)
+        config = load_config(model_name; kws...)
+    end
     T = get_model_type(model_type, task)
     basekey = String(basemodelkey(T))
     if isbasemodel(T)
