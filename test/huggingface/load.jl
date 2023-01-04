@@ -1,5 +1,6 @@
 @testset "Load" begin
     using Logging
+    using Transformers.HuggingFace
     model_list = Dict([
         :bert => :[
             Model, ForPreTraining, LMHeadModel, ForMaskedLM, ForNextSentencePrediction,
