@@ -142,7 +142,7 @@ function TransformerTextEncoder(tkr::AbstractTokenizer, v::WList; kws...)
             # truncate input that exceed length limit and pad them to have equal length
             Pipeline{:token}(truncf, :token) |>
             # convert to dense array
-            Pipeline{:token}(nested2batch, :trunc_tok) |>
+            Pipeline{:token}(nested2batch, :token) |>
             # return token and mask
             PipeGet{(:token, :attention_mask)}()
     end

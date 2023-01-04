@@ -9,18 +9,20 @@ using Flux: gradient
 using CUDA
 
 const tests = [
-    "bert",
+    "tokenizer",
+    "huggingface",
 ]
 
 Random.seed!(0)
 
 @testset "Transformers" begin
     for t in tests
-        fp = joinpath(@__DIR__, "test_$t.jl")
-        @info "Test $(uppercase(t))"
-        include(fp)
+        name = titlecase(t)
+        @testset "$name" begin
+            @info "Test $name"
+            for f ∈ readdir(joinpath(@__DIR__, t))
+                endswith(f, ".jl") && include(joinpath(@__DIR__, t, f))
+            end
+        end
     end
-
-    @info "Test text encoder"
-    include(joinpath(@__DIR__, "tokenizer/textencoder.jl"))
 end
