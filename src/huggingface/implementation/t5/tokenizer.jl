@@ -74,25 +74,14 @@ end
 
 tokenizer_type(T::Val{:t5}) = T
 encoder_construct(::Val{:t5}, tokenizer, vocab; kwargs...) = T5TextEncoder(tokenizer, vocab; kwargs...)
-# slow_tkr_files(::Val{:t5}) = 
 
-function extract_tkr_kwargs(
-    ::Val{:t5}, config, special_tokens;
-    unk_token = "<unk>", eos_token = "</s>", pad_token = "<pad>",
-    kw...
-)
+function extract_fast_tkr_kwargs(::Val{:t5}, config, special_tokens; eos_token = "</s>", pad_token = "<pad>", kw...)
     if !isnothing(special_tokens)
-        unk_token = get(special_tokens, :unk_token, unk_token)
         eos_token = get(special_tokens, :eos_token, eos_token)
         pad_token = get(special_tokens, :pad_token, pad_token)
     end
-
     kwargs = Dict{Symbol, Any}()
     kwargs[:endsym] = eos_token
     kwargs[:padsym] = pad_token
-
-    slow_tkr_kwargs = Dict{Symbol, Any}()
-    slow_tkr_kwargs[:unk_token] = unk_token
-
-    return kwargs, slow_tkr_kwargs
+    return kwargs
 end

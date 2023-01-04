@@ -33,3 +33,28 @@ empty_then_nothing(::Nothing) = nothing
 empty_then_nothing(x) = isempty(unique!(x)) ? nothing : x
 
 tokenizer_warn(msg) = @warn "$msg, the tokenization result might be slightly different in some cases."
+
+function get_tkr_token(tkr_cfg, special_tokens, name, default)
+    token = nothing
+    if !isnothing(special_tokens)
+        token = get(special_tokens, name, nothing)
+    end
+    if isnothing(token)
+        token = isnothing(tkr_cfg) ? default : get(tkr_cfg, name, default)
+    end
+    return token
+end
+
+function heuristic_extract_fast_tkr_kwargs(config, tkr_cfg, special_tokens)
+    kwargs = Dict{Symbol, Any}()
+    kwargs[:startsym] = get_tkr_token(tkr_cfg, special_tokens, :bos_token, "<s>")
+    kwargs[:endsym] = get_tkr_token(tkr_cfg, special_tokens, :eos_token, "</s>")
+    kwargs[:padsym] = get_tkr_token(tkr_cfg, special_tokens, :pad_token, "<pad>")
+    return kwargs
+end
+
+function heuristic_extract_slow_tkr_kwargs(config, tkr_cfg, special_tokens)
+    slow_tkr_kwargs = Dict{Symbol, Any}()
+    slow_tkr_kwargs[:unk_token] = get_tkr_token(tkr_cfg, special_tokens, :unk_token, "<unk>")
+    return slow_tkr_kwargs
+end
