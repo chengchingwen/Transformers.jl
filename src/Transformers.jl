@@ -15,22 +15,6 @@ export todevice, enable_gpu
 const Abstract3DTensor{T} = AbstractArray{T, 3}
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
 
-const ϵ = Ref(1e-8)
-
-"""
-    set_ϵ(x)
-
-set the ϵ value
-"""
-set_ϵ(x) = (ϵ[] = x; x)
-
-"""
-    epsilon(T)
-
-get the ϵ value in type T
-"""
-epsilon(::Type{T}) where T = convert(T, ϵ[])
-
 using CUDA
 
 """
@@ -64,22 +48,17 @@ end
 
 include("./layers/Layers.jl")
 include("./tokenizer/tokenizer.jl")
+include("./textencoders/TextEncoders.jl")
 
-include("./basic/Basic.jl")
 include("./datasets/Datasets.jl")
-
-include("./gpt/GenerativePreTrain.jl")
-include("./bert/BidirectionalEncoder.jl")
-
 include("./huggingface/HuggingFace.jl")
 
-include("cuda/cuda.jl")
+include("./loss.jl")
+include("./cuda.jl")
 
 using .Layers
-using .Basic
+using .TextEncoders
 using .Datasets
-using .GenerativePreTrain
-using .BidirectionalEncoder
 
 using .HuggingFace
 
