@@ -1,5 +1,3 @@
-using ..Basic: string_getvalue, grouping_sentence, check_vocab, get_mask_func, get_trunc_pad_func,
-    TextTokenizer, AbstractTransformerTextEncoder
 using ..WordPieceModel
 using ..WordPieceModel: DAT
 using FuncPipelines
@@ -196,17 +194,6 @@ function bert_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym 
         Pipeline{:segment}(nested2batch, :segment) |>
         # return input and mask
         PipeGet{(:token, :segment, :attention_mask)}()
-end
-
-# encoder behavior
-
-TextEncodeBase.tokenize(e::BertTextEncoder, x::AbstractString) = e.tokenizer(Sentence(x))
-TextEncodeBase.tokenize(e::BertTextEncoder, x::Vector{<:AbstractString}) = e.tokenizer(Batch{Sentence}(x))
-TextEncodeBase.tokenize(e::BertTextEncoder, x::Vector{<:Vector{<:AbstractString}}) = e.tokenizer(Batch{Batch{Sentence}}(x))
-
-function TextEncodeBase.lookup(e::BertTextEncoder, x::NamedTuple)
-    onehot_token = lookup(e, x.token)
-    return merge(x, (token = onehot_token,))
 end
 
 # api doc

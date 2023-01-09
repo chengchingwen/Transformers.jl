@@ -1,6 +1,5 @@
-using ..Transformers.BidirectionalEncoder
-using ..Transformers.BidirectionalEncoder: WordPiece, WordPieceTokenization,
-    BertUnCasedPreTokenization, BertCasedPreTokenization
+using ..TextEncoders: BertUnCasedPreTokenization, BertCasedPreTokenization, BertTextEncoder
+using ..Transformers.WordPieceModel: WordPiece, WordPieceTokenization
 
 tokenizer_type(T::Val{:bert}) = T
 encoder_construct(::Val{:bert}, tokenizer, vocab; kwargs...) = BertTextEncoder(tokenizer, vocab; kwargs...)

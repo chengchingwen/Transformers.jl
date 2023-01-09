@@ -1,6 +1,7 @@
 import ..Layers
 
 using Flux
+using NNlib
 using Functors
 using DataStructures
 using Pickle.Torch
@@ -9,6 +10,10 @@ using Pickle.Torch: StridedView
 using ValSplit
 
 using LinearAlgebra
+
+abstract type HGFPreTrainedModel end
+
+const ACT2FN = (gelu = gelu, relu = relu, swish = swish, gelu_new = gelu, mish = mish, quick_gelu = gelu, selu = selu)
 
 joinname(prefix, name) = isempty(prefix) ? name : join((prefix, name), '.')
 joinname(prefix, n1, n2...) = joinname(prefix, join((n1, n2...), '.'))

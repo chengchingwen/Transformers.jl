@@ -35,9 +35,6 @@ function get_state_dict(state, prefix, x::AbstractArray)
   state[prefix] = x
 end
 
-include("./utils.jl")
-include("./base.jl")
-
 """
   `get_model_type(::Val{model})`
 

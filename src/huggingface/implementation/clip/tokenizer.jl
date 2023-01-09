@@ -1,33 +1,10 @@
-using ..Transformers.GenerativePreTrain
+using ..TextEncoders: GPT2TextEncoder
 using BytePairEncoding
-using BytePairEncoding: CachedBPE, GPT2Tokenization, gpt2_codemap
 using TextEncodeBase
-using TextEncodeBase: EachMatchTokenization
 
 tokenizer_type(T::Val{:clip}) = T
 encoder_construct(::Val{:clip}, tokenizer, vocab; kwargs...) = encoder_construct(Val{:gpt2}(), tokenizer, vocab; kwargs...)
 slow_tkr_files(::Val{:clip}) = slow_tkr_files(Val{:gpt2}())
-
-# function load_slow_tokenizer(
-#     ::Val{:clip}, vocab_file, merges_file, added_tokens_file = nothing, special_tokens = nothing;
-#     unk_token = "<|endoftext|>"
-# )
-#     vocab_list = reverse_keymap_to_list(JSON.parsefile(vocab_file))
-#     bpe = CachedBPE(BPE(merges_file; endsym = "</w>"))
-#     match_tokens = load_and_add_tokens(added_tokens_file, vocab_list, special_tokens)
-#     if isnothing(match_tokens)
-#         match_tokens = ["<|startoftext|>", "<|endoftext|>"]
-#     else
-#         push!(match_tokens, "<|startoftext|>", "<|endoftext|>")
-#         unique!(match_tokens)
-#     end
-#     base_tokenization = EachMatchTokenization(r"'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+")
-#     base_tokenization = BPETokenization(base_tokenization, bpe)
-#     base_tokenization = CodeNormalizer(base_tokenization, gpt2_codemap())
-#     isnothing(match_tokens) || (base_tokenization = MatchTokenization(base_tokenization, match_tokens))
-#     tokenizer = TextTokenizer(base_tokenization)
-#     return tokenizer, Vocab(vocab_list, unk_token), (;)
-# end
 
 function extract_fast_tkr_kwargs(
     ::Val{:clip}, config, special_tokens;

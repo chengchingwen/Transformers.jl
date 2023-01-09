@@ -4,13 +4,12 @@ using TextEncodeBase
 using TextEncodeBase: CodeNormalizer, ReplaceNormalizer, WordReplaceNormalizer,
     MatchTokenization, EachSplitTokenization, EachMatchTokenization, TokenizerStyle, nestedcall
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm, IndexInputTerm
-using ..BidirectionalEncoder: BertUnCasedPreTokenization, BertCasedPreTokenization
+using ..TextEncoders: BertUnCasedPreTokenization, BertCasedPreTokenization, TextTokenizer, grouping_sentence
 using ..WordPieceModel
 using BytePairEncoding
 using BytePairEncoding: GPT2Tokenization, gpt2_codemap
 using ..UnigramLanguageModel
 using ..UnigramLanguageModel: PrecompiledNormalizer
-using ..Basic: TextTokenizer, grouping_sentence
 
 function extract_added_token(added_token)
     vidx = added_token["id"] + 1
@@ -364,9 +363,7 @@ function extract_post_processor(::Val{:TemplateProcessing}, post_processor_dict,
     pair_term = map(extract_term, post_processor_dict["pair"][length(single_term)+1:end])
     process = Pipelines(
         Pipeline{:token}(grouping_sentence, :token),
-        Pipeline{:token_segment}(SequenceTemplate(single_term..., RepeatedTerm(pair_term...)), :token),
-        Pipeline{:token}(nestedcall(first), :token_segment) |>
-        Pipeline{:segment}(nestedcall(last), :token_segment)
+        Pipeline{(:token, :segment)}(SequenceTemplate(single_term..., RepeatedTerm(pair_term...)), :token),
     )
     process_config[:process] = process
     return process_config
@@ -377,13 +374,11 @@ function extract_post_processor(::Val{:BertProcessing}, post_processor_dict, tok
     startsym, startid = post_processor_dict["cls"]
     process = Pipelines(
         Pipeline{:token}(grouping_sentence, :token),
-        Pipeline{:token_segment}(
+        Pipeline{(:token, :segment)}(
             SequenceTemplate(
                 ConstTerm(startsym, 1), InputTerm{String}(1), ConstTerm(sepsym, 1),
                 RepeatedTerm(InputTerm{String}(2), ConstTerm(sepsym, 2))),
             :token),
-        Pipeline{:token}(nestedcall(first), :token_segment) |>
-        Pipeline{:segment}(nestedcall(last), :token_segment)
     )
     process_config[:process] = process
     return process_config
@@ -395,13 +390,11 @@ function extract_post_processor(::Val{:RobertaProcessing}, post_processor_dict, 
     startsym, startid = post_processor_dict["cls"]
     process = Pipelines(
         Pipeline{:token}(grouping_sentence, :token),
-        Pipeline{:token_segment}(
+        Pipeline{(:token, :segment)}(
             SequenceTemplate(
                 ConstTerm(startsym), InputTerm{String}(), ConstTerm(sepsym),
                 RepeatedTerm(ConstTerm(sepsym), InputTerm{String}(), ConstTerm(sepsym))),
             :token),
-        Pipeline{:token}(nestedcall(first), :token_segment) |>
-        Pipeline{:segment}(nestedcall(last), :token_segment)
     )
     process_config[:process] = process
     return process_config
@@ -432,7 +425,7 @@ function load_fast_tokenizer_components(tokenizer_json)
     return base_tokenization, match_tokens, vocab_list, unk, tokenization_object, process_config
 end
 
-load_fast_tokenizer(type, tokenizer_json, args...) = load_fast_tokenizer(tokenizer_json) # default ignoring type
+load_fast_tokenizer(type, tokenizer_json) = load_fast_tokenizer(tokenizer_json) # default ignoring type
 function load_fast_tokenizer(tokenizer_json)
     base_tokenization, match_tokens, vocab_list, unk, tokenization_object, process_config =
         load_fast_tokenizer_components(tokenizer_json)

@@ -1,5 +1,5 @@
 using ..Transformers
-using ..Basic
+using ..TextEncoders
 using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
@@ -100,7 +100,7 @@ end
 @valsplit slow_tkr_files(Val(type::Symbol)) = error("Don't know what files are need to load slow $type tokenizer.")
 
 function _hgf_preprocess(
-    ; trunc = nothing, fixedsize = false, trunc_end = :tail, pad_end = :tail,
+    ; padsym, trunc = nothing, fixedsize = false, trunc_end = :tail, pad_end = :tail,
     process = nothing, kws...
 )
     truncf = get_trunc_pad_func(fixedsize, trunc, trunc_end, pad_end)
@@ -121,9 +121,14 @@ function _hgf_preprocess(
         Pipeline{:token}(nested2batch, :token)
 end
 
+encoder_construct(_type::Val{type}, tokenizer, vocab; kwargs...) where type =
+    encoder_construct(type, tokenizer, vocab; kwargs...)
 function encoder_construct(type::Symbol, tokenizer, vocab; kwargs...)
     @debug "No encoder_construct handdler registed for $type, using default"
-    return Basic.TransformerTextEncoder(tokenizer, vocab, _hgf_preprocess(; kwargs...); kwargs...)
+    vals = valarg_params(encoder_construct, Tuple{Val, Any, Any}, 1, Symbol)
+    default_f = () -> TransformerTextEncoder(tokenizer, vocab, _hgf_preprocess(; kwargs...); kwargs...)
+    return ValSplit._valswitch(Val(vals), Val(3), Core.kwfunc(encoder_construct), default_f,
+                               kwargs, encoder_construct, type, tokenizer, vocab)
 end
 
 include("utils.jl")

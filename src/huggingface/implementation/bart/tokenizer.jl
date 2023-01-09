@@ -1,4 +1,4 @@
-using ..Transformers.GenerativePreTrain
+using ..TextEncoders: GPT2TextEncoder
 using BytePairEncoding
 using BytePairEncoding: CachedBPE, GPT2Tokenization, gpt2_codemap
 using TextEncodeBase

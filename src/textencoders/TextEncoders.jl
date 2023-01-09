@@ -1,10 +1,18 @@
-using InternedStrings
-using TextEncodeBase: trunc_and_pad, nested2batch, with_head_tail, nestedcall, getvalue
-using TextEncodeBase: WordTokenization
+module TextEncoders
 
-string_getvalue(x::TextEncodeBase.TokenStage) = intern(getvalue(x))::String
+using TextEncodeBase
 
-# abstract type
+using ..WordPieceModel
+using BytePairEncoding
+using ..UnigramLanguageModel
+
+export TransformerTextEncoder, encode, decode
+
+include("bert_tokenizer.jl")
+include("gpt_tokenizer.jl")
+
+include("utils.jl")
+include("tokenizer.jl")
 
 abstract type AbstractTransformerTextEncoder <: AbstractTextEncoder end
 
@@ -19,7 +27,6 @@ function Base.show(io::IO, e::AbstractTransformerTextEncoder)
     print(IOContext(io, :pipeline_display_prefix => "  ╰─ "), ",\n└─ process = ", e.process, "\n)")
 end
 
-# text encoder
 
 """
     struct TransformerTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P} <: AbstractTextEncoder
@@ -153,101 +160,21 @@ TransformerTextEncoder(builder, e::TransformerTextEncoder) = TransformerTextEnco
 
 # encoder behavior
 
-TextEncodeBase.tokenize(e::TransformerTextEncoder, x::AbstractString) = e.tokenizer(Sentence(x))
-TextEncodeBase.tokenize(e::TransformerTextEncoder, x::Vector{<:AbstractString}) =
-    e.tokenizer(Batch{Sentence}(x))
+TextEncodeBase.tokenize(e::AbstractTransformerTextEncoder, x::AbstractString) = e.tokenizer(Sentence(x))
+TextEncodeBase.tokenize(e::AbstractTransformerTextEncoder, x::Vector{<:AbstractString}) = e.tokenizer(Batch{Sentence}(x))
+TextEncodeBase.tokenize(e::AbstractTransformerTextEncoder, x::Vector{<:Vector{<:AbstractString}}) =
+    e.tokenizer(Batch{Batch{Sentence}}(x))
+TextEncodeBase.tokenize(e::AbstractTransformerTextEncoder, x::Vector{<:Vector{<:Vector{<:AbstractString}}}) =
+    e.tokenizer(Batch{Batch{Batch{Sentence}}}(x))
 
-TextEncodeBase.lookup(e::TransformerTextEncoder, x::Tuple) = (lookup(e, x[1]), Base.tail(x)...)
-function TextEncodeBase.lookup(e::TransformerTextEncoder, x::NamedTuple{name}) where name
+TextEncodeBase.lookup(e::AbstractTransformerTextEncoder, x::Tuple) = (lookup(e, x[1]), Base.tail(x)...)
+function TextEncodeBase.lookup(e::AbstractTransformerTextEncoder, x::NamedTuple{name}) where name
     xt = Tuple(x)
     return NamedTuple{name}((lookup(e, xt[1]), Base.tail(xt)...))
 end
 
-# api doc
+include("bert_textencoder.jl")
+include("gpt_textencoder.jl")
+include("t5_textencoder.jl")
 
-"""
-    encode(::TransformerTextEncoder, ::String)
-
-Encode a single sentence with bert text encoder. The default pipeline returning
- `@NamedTuple{tok::OneHotArray{K, 2}, mask::Nothing}`
-
-    encode(::TransformerTextEncoder, ::Vector{String})
-
-Encode a batch of sentences with bert text encoder. The default pipeline returning
- `@NamedTuple{tok::OneHotArray{K, 3}, mask::Array{Float32, 3}}`
-
-See also: [`decode`](@ref)
-
-# Example
-```julia-repl
-julia> textenc = TransformerTextEncoder(split, map(string, 1:10))
-TransformerTextEncoder(
-├─ TextTokenizer(WordTokenization(split_sentences = WordTokenizers.split_sentences, tokenize = split)),
-├─ vocab = Vocab{String, SizedArray}(size = 14, unk = <unk>, unki = 2),
-├─ startsym = <s>,
-├─ endsym = </s>,
-├─ padsym = <pad>,
-└─ process = Pipelines:
-  ╰─ target[tok] := nestedcall(string_getvalue, source)
-  ╰─ target[tok] := with_head_tail(<s>, </s>)(target.tok)
-  ╰─ target[trunc_tok] := trunc_and_pad(nothing, <pad>)(target.tok)
-  ╰─ target[trunc_len] := nestedmaxlength(target.trunc_tok)
-  ╰─ target[mask] := getmask(target.tok, target.trunc_len)
-  ╰─ target[tok] := nested2batch(target.trunc_tok)
-  ╰─ target := (target.tok, target.mask)
-)
-
-julia> e = encode(textenc, ["1 2 3 4 5 6 7", join(rand(1:10 , 9), ' ')])
-(tok = [0 0 … 1 1; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0;;; 0 0 … 0 0; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0], mask = [1.0 1.0 … 0.0 0.0;;; 1.0 1.0 … 1.0 1.0])
-
-julia> typeof(e)
-NamedTuple{(:tok, :mask), Tuple{OneHotArray{0x0000000e, 2, 3, Matrix{OneHot{0x0000000e}}}, Array{Float32, 3}}}
-
-```
-"""
-TextEncodeBase.encode(::TransformerTextEncoder, _)
-
-"""
-    decode(textenc::TransformerTextEncoder, x)
-
-Equivalent to `lookup(textenc.vocab, x)`.
-
-See also: [`encode`](@ref)
-
-# Example
-```julia-repl
-julia> textenc = TransformerTextEncoder(split, map(string, 1:10));
-
-julia> e = encode(textenc, ["1 2 3 4 5 6 7", join(rand(1:10 , 9), ' ')]);
-
-julia> decode(textenc, e.tok)
-11×2 Matrix{String}:
- "<s>"    "<s>"
- "1"      "3"
- "2"      "5"
- "3"      "4"
- "4"      "6"
- "5"      "6"
- "6"      "5"
- "7"      "5"
- "</s>"   "6"
- "<pad>"  "6"
- "<pad>"  "</s>"
-
-julia> lookup(textenc.vocab, e.tok)
-11×2 Matrix{String}:
- "<s>"    "<s>"
- "1"      "3"
- "2"      "5"
- "3"      "4"
- "4"      "6"
- "5"      "6"
- "6"      "5"
- "7"      "5"
- "</s>"   "6"
- "<pad>"  "6"
- "<pad>"  "</s>"
-
-```
-"""
-TextEncodeBase.decode(::TransformerTextEncoder, _)
+end

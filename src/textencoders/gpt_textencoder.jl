@@ -1,5 +1,3 @@
-using ..Basic: string_getvalue, check_vocab, TextTokenizer, WList, AbstractTransformerTextEncoder, grouping_sentence,
-    get_mask_func, get_trunc_pad_func
 using StructWalk
 using FuncPipelines
 using TextEncodeBase
@@ -216,26 +214,6 @@ function gpt2_default_preprocess(; startsym = "<|endoftext|>", endsym = "<|endof
         Pipeline{:token}(nested2batch, :token) |>
         # return input and mask
         PipeGet{(:token, :attention_mask)}()
-end
-
-# encoder behavior
-
-TextEncodeBase.tokenize(e::GPTTextEncoder, x::AbstractString) = e.tokenizer(Sentence(x))
-TextEncodeBase.tokenize(e::GPTTextEncoder, x::Vector{<:AbstractString}) = e.tokenizer(Batch{Sentence}(x))
-TextEncodeBase.tokenize(e::GPTTextEncoder, x::Vector{<:Vector{<:AbstractString}}) = e.tokenizer(Batch{Batch{Sentence}}(x))
-
-function TextEncodeBase.lookup(e::GPTTextEncoder, x::NamedTuple)
-    onehot_tok = lookup(e, x.token)
-    return merge(x, (token = onehot_tok,))
-end
-
-TextEncodeBase.tokenize(e::GPT2TextEncoder, x::AbstractString) = e.tokenizer(Sentence(x))
-TextEncodeBase.tokenize(e::GPT2TextEncoder, x::Vector{<:AbstractString}) = e.tokenizer(Batch{Sentence}(x))
-TextEncodeBase.tokenize(e::GPT2TextEncoder, x::Vector{<:Vector{<:AbstractString}}) = e.tokenizer(Batch{Batch{Sentence}}(x))
-
-function TextEncodeBase.lookup(e::GPT2TextEncoder, x::NamedTuple)
-    onehot_tok = lookup(e, x.token)
-    return merge(x, (token = onehot_tok,))
 end
 
 # decode

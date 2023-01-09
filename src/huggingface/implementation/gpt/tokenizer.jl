@@ -1,7 +1,6 @@
-using ..Transformers.GenerativePreTrain
+using ..TextEncoders: GPTTextEncoder, grouping_sentence
 using FuncPipelines
 using TextEncodeBase: SequenceTemplate, RepeatedTerm, InputTerm
-using ..Basic: grouping_sentence
 
 tokenizer_type(T::Val{Symbol("openai-gpt")}) = T
 function encoder_construct(::Val{Symbol("openai-gpt")}, tokenizer, vocab; process = nothing, kwargs...)
