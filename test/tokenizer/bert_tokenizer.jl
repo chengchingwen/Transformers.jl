@@ -1,5 +1,6 @@
 @testset "Tokenizer" begin
-    using Transformers.BidirectionalEncoder
+    using Transformers.TextEncoders
+    using Transformers.TextEncoders: bert_uncased_tokenizer, bert_cased_tokenizer
     @test bert_uncased_tokenizer(" \tHeLLo!how  \n Are yoU?  ") == ["hello", "!", "how", "are", "you", "?"]
     @test bert_uncased_tokenizer("H\u00E9llo") == ["hello"]
     @test bert_uncased_tokenizer("ah\u535A\u63A8zz") == ["ah", "\u535A", "\u63A8", "zz"]
@@ -15,17 +16,17 @@
     @test !isspace('A')
     @test !isspace('-')
 
-    @test BidirectionalEncoder.isinvalid('\u0005')
-    @test !BidirectionalEncoder.isinvalid('A')
-    @test !BidirectionalEncoder.isinvalid(' ')
-    @test !BidirectionalEncoder.isinvalid('\t')
-    @test !BidirectionalEncoder.isinvalid('\r')
-    @test !BidirectionalEncoder.isinvalid('\U0001F4A9')
+    @test TextEncoders.isinvalid('\u0005')
+    @test !TextEncoders.isinvalid('A')
+    @test !TextEncoders.isinvalid(' ')
+    @test !TextEncoders.isinvalid('\t')
+    @test !TextEncoders.isinvalid('\r')
+    @test !TextEncoders.isinvalid('\U0001F4A9')
 
-    @test BidirectionalEncoder.isbertpunct('-')
-    @test BidirectionalEncoder.isbertpunct('$')
-    @test BidirectionalEncoder.isbertpunct('`')
-    @test BidirectionalEncoder.isbertpunct('.')
-    @test !BidirectionalEncoder.isbertpunct('A')
-    @test !BidirectionalEncoder.isbertpunct(' ')
+    @test TextEncoders.isbertpunct('-')
+    @test TextEncoders.isbertpunct('$')
+    @test TextEncoders.isbertpunct('`')
+    @test TextEncoders.isbertpunct('.')
+    @test !TextEncoders.isbertpunct('A')
+    @test !TextEncoders.isbertpunct(' ')
 end

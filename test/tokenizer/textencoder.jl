@@ -1,7 +1,6 @@
 using Test
 using BSON
-using Transformers.Basic
-using Transformers.BidirectionalEncoder
+using Transformers.TextEncoders
 using NeuralAttentionlib: LengthMask
 import DoubleArrayTries
 

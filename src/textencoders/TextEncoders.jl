@@ -1,12 +1,12 @@
 module TextEncoders
 
 using TextEncodeBase
-
+using TextEncodeBase: WordTokenization, nested2batch, nestedcall, with_head_tail
 using ..WordPieceModel
 using BytePairEncoding
 using ..UnigramLanguageModel
 
-export TransformerTextEncoder, encode, decode
+export TransformerTextEncoder, encode, decode, BertTextEncoder, GPT2TextEncoder, T5TextEncoder
 
 include("bert_tokenizer.jl")
 include("gpt_tokenizer.jl")
