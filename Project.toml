@@ -50,7 +50,7 @@ WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [compat]
-AbstractTrees = "0.3, 0.4"
+AbstractTrees = "0.3, 0.4.3"
 Adapt = "3.3"
 BSON = "0.3.4"
 BytePairEncoding = "0.3"
