@@ -1,5 +1,4 @@
 using Test
-using BSON
 using ZipFile
 using Transformers.TextEncoders
 using NeuralAttentionlib: LengthMask

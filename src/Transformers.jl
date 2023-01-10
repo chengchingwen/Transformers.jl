@@ -1,8 +1,6 @@
 module Transformers
 
 using Flux
-using Requires
-using Requires: @init
 
 using NeuralAttentionlib
 
