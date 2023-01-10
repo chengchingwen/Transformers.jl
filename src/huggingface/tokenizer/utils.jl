@@ -2,7 +2,7 @@ using BytePairEncoding
 
 function load_special_tokens_map(special_tokens_map_json)
     special_tokens = Dict{Symbol, String}()
-    for (k, v) in json_load(special_tokens_map_json)
+    for (k, v) in JSON3.read(read(special_tokens_map_json))
         special_tokens[k] = v isa String ? v : v["content"]
     end
     return special_tokens
@@ -13,7 +13,7 @@ function reverse_keymap_to_list(dict)
     for (k, v) in dict
         v += 1
         @assert !isassigned(vocab_list, v) "Two word has same index: $(k) and $(vocab_list[v])"
-        vocab_list[v] = k
+        vocab_list[v] = String(k)
     end
     @assert all(Base.Fix1(isassigned, vocab_list), eachindex(vocab_list)) "There is a gap in the vocabulary"
     return vocab_list

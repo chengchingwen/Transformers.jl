@@ -11,7 +11,7 @@ function load_slow_tokenizer(
     ::Val{:gpt2}, vocab_file, merges_file, added_tokens_file = nothing, special_tokens = nothing;
     unk_token = "<|endoftext|>"
 )
-    vocab_list = reverse_keymap_to_list(JSON.parsefile(vocab_file))
+    vocab_list = reverse_keymap_to_list(json_load(vocab_file))
     bpe = CachedBPE(BPE(merges_file))
     match_tokens = load_and_add_tokens(added_tokens_file, vocab_list, special_tokens)
     base_tokenization = BPETokenization(GPT2Tokenization(), bpe)
@@ -24,7 +24,7 @@ end
 function extract_fast_tkr_kwargs(
     ::Val{:gpt2}, config, special_tokens;
     bos_token = "<|endoftext|>", eos_token = "<|endoftext|>", pad_token = "<|endoftext|>",
-    model_max_length = get_key(config, :n_positions, 1024), kw...
+    model_max_length = get(config, :n_positions, 1024), kw...
 )
     if !isnothing(special_tokens)
         bos_token = get(special_tokens, :bos_token, bos_token)

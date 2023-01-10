@@ -11,7 +11,7 @@ function extract_fast_tkr_kwargs(
     ::Val{:bart}, config, special_tokens;
     bos_token = "<s>", eos_token = "</s>", pad_token = "<pad>",
     sep_token = "</s>", cls_token = "<s>", mask_token = "<mask>",
-    model_max_length = get_key(config, :max_position_embeddings, 1024), kw...
+    model_max_length = get(config, :max_position_embeddings, 1024), kw...
 )
     if !isnothing(special_tokens)
         bos_token = get(special_tokens, :bos_token, bos_token)

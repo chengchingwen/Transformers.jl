@@ -4,9 +4,8 @@ using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
 using ValSplit
-using JSON
 
-load_tokenizer_config(model_name; kw...) = json_load(hgf_tokenizer_config(model_name; kw...))
+load_tokenizer_config(model_name; kw...) = JSON3.read(read(hgf_tokenizer_config(model_name; kw...)))
 
 function load_tokenizer(model_name; possible_files = nothing, config = nothing, kw...)
     possible_files = ensure_possible_files(possible_files, model_name; kw...)

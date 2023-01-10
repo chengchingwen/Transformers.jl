@@ -20,7 +20,7 @@ end
 function extract_fast_tkr_kwargs(
     ::Val{:bert}, config, special_tokens;
     cls_token = "[CLS]", sep_token = "[SEP]", pad_token = "[PAD]",
-    model_max_length = get_key(config, :max_position_embeddings, 512), kw...
+    model_max_length = get(config, :max_position_embeddings, 512), kw...
 )
     if !isnothing(special_tokens)
         cls_token = get(special_tokens, :cls_token, cls_token)

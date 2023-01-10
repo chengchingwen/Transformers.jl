@@ -28,7 +28,7 @@ end
 extract_and_add_tokens!(::Nothing, _) = nothing
 function extract_and_add_tokens!(added_token_list, vocab_list)
     iszero(length(added_token_list)) && return nothing
-    sort!(added_token_list; by = Base.Fix2(getindex, "id"))
+    added_token_list = sort(added_token_list; by = Base.Fix2(getindex, "id"))
     match_tokens = String[]
     for added_token in added_token_list
         vidx, token, isspecial = extract_added_token(added_token)
@@ -416,7 +416,7 @@ function extract_processor(tokenizer_json)
 end
 
 function load_fast_tokenizer_components(tokenizer_json)
-    tokenizer_dict = JSON.parsefile(tokenizer_json)
+    tokenizer_dict = json_load(tokenizer_json)
     method, tokenization_object, unk, vocab_list = extract_tokenizer_model(tokenizer_dict["model"])
     match_tokens = extract_and_add_tokens!(tokenizer_dict["added_tokens"], vocab_list)
     base_tokenization, match_tokens = extract_base_tokenization(method, match_tokens, tokenizer_dict)

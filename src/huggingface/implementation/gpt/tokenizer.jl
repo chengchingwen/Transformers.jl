@@ -17,7 +17,7 @@ end
 
 function extract_fast_tkr_kwargs(
     ::Val{Symbol("openai-gpt")}, config, special_tokens;
-    model_max_length = get_key(config, :n_positions, 512), kw...
+    model_max_length = get(config, :n_positions, 512), kw...
 )
     kwargs = Dict{Symbol, Any}()
     kwargs[:trunc] = model_max_length
