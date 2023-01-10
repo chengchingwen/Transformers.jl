@@ -7,12 +7,9 @@ using HuggingFaceApi
 export @hgf_str,
     load_config,
     load_model,
-    load_model!,
     load_tokenizer,
     load_state_dict,
-    load_state,
-    save_config,
-    save_model
+    load_hgf_pretrained
 
 include("./utils.jl")
 include("./download.jl")
@@ -25,9 +22,8 @@ include("./implementation/implement.jl")
 """
   `hgf"<model-name>:<item>"`
 
-Get `item` from `model-name`. This will ensure the required
-data are downloaded and registered. `item` can be "config",
-"tokenizer", and model related like "model", or "formaskedlm", etc. Use [`get_model_type`](@ref) to see what
+Get `item` from `model-name`. This will ensure the required data are downloaded. `item` can be "config",
+"tokenizer", and model related like "Model", or "ForMaskedLM", etc. Use [`get_model_type`](@ref) to see what
 model/task are supported.
 """
 macro hgf_str(name)
@@ -39,7 +35,7 @@ end
 
 The underlying function of [`@hgf_str`](@ref).
 """
-function load_hgf_pretrained(name)
+function load_hgf_pretrained(name; kw...)
     name_item = rsplit(name, ':'; limit=2)
     all = length(name_item) == 1
     model_name, item = if all
@@ -47,27 +43,18 @@ function load_hgf_pretrained(name)
     else
         Iterators.map(String, name_item)
     end
+    item = lowercase(item)
 
-    hgf_model_config(model_name)
-    cfg = load_config(model_name)
-
-    item == "config" &&
-        return cfg
+    cfg = load_config(model_name; kw...)
+    item == "config" && return cfg
 
     (item == "tokenizer" || all) &&
-        (tkr = load_tokenizer(model_name; config = cfg))
+        (tkr = load_tokenizer(model_name; config = cfg, kw...))
+    item == "tokenizer" && return tkr
 
-    item == "tokenizer" &&
-        return tkr
-
-    model_type = cfg.model_type
-    model_cons = get_model_type((Val ∘ Symbol)(model_type), (Val ∘ Symbol ∘ lowercase)(item))
-
-    hgf_model_weight(model_name)
-    model = load_model(model_cons, model_name; config=cfg)
+    model = load_model(cfg.model_type, model_name, item; config=cfg, kw...)
 
     if all
-        tkr = load_tokenizer(model_name; config = cfg)
         return tkr, model
     else
         return model

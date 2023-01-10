@@ -44,10 +44,13 @@ see all model/task that `bert` support.
 """
 get_model_type
 
+_symbol(v::Val) = v
+_symbol(v) = Symbol(v)
+
 @valsplit get_model_type(Val(model_type::Symbol)) = error("Unknown model type: $model_type")
 function get_model_type(model_type, task::Union{Symbol, String})
     task = Symbol(lowercase(String(task)))
-    tasks = get_model_type(model_type)
+    tasks = get_model_type(_symbol(model_type))
     if haskey(tasks, task)
         getfield(tasks, task)
     else
