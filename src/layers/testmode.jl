@@ -4,7 +4,9 @@ StructWalk.constructor(::Type{LayerStyle}, l::RenameArgs{new_names, old_names}) 
 StructWalk.constructor(::Type{LayerStyle}, l::Branch{target, names}) where {target, names} = Branch{target, names}
 StructWalk.constructor(::Type{LayerStyle}, l::Parallel{names}) where names = Parallel{names}
 
-no_dropout(x) = x
-no_dropout(dp::DropoutLayer) = DropoutLayer(dp.layer, nothing)
+set_dropout(x, p) = x
+set_dropout(dp::DropoutLayer, p) = DropoutLayer(dp.layer, p)
+
+no_dropout(x) = set_dropout(x, nothing)
 
 testmode(x) = postwalk(no_dropout, LayerStyle, x)

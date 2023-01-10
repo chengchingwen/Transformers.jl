@@ -148,8 +148,8 @@ function Base.show(io::IO, op::T5RPEMultiheadQKVAttenOp)
           ", p = ", op.p, ')')
 end
 
-Layers.no_dropout(op::T5RPEMultiheadQKVAttenOp) =
-    T5RPEMultiheadQKVAttenOp(op.head, op.n_bucket, op.max_distance, op.position_embedding, nothing)
+Layers.set_dropout(op::T5RPEMultiheadQKVAttenOp, p) =
+    T5RPEMultiheadQKVAttenOp(op.head, op.n_bucket, op.max_distance, op.position_embedding, p)
 
 const T5RPEMultiheadQKVAttenOpWithScore{F, E} = WithScore{T5RPEMultiheadQKVAttenOp{F, E}}
 function Functors.functor(::Type{<:T5RPEMultiheadQKVAttenOpWithScore}, op)
@@ -181,8 +181,8 @@ function Base.show(io::IO, op::T5RPECausalMultiheadQKVAttenOp)
           ", p = ", op.p, ')')
 end
 
-Layers.no_dropout(op::T5RPECausalMultiheadQKVAttenOp) =
-    T5RPECausalMultiheadQKVAttenOp(op.head, op.n_bucket, op.max_distance, op.position_embedding, nothing)
+Layers.set_dropout(op::T5RPECausalMultiheadQKVAttenOp, p) =
+    T5RPECausalMultiheadQKVAttenOp(op.head, op.n_bucket, op.max_distance, op.position_embedding, p)
 
 const T5RPECausalMultiheadQKVAttenOpWithScore{F, E} = WithScore{T5RPECausalMultiheadQKVAttenOp{F, E}}
 function Functors.functor(::Type{<:T5RPECausalMultiheadQKVAttenOpWithScore}, op)
@@ -200,7 +200,7 @@ NeuralAttentionlib.get_attention_func(::T5BiasedMultiheadQKVAttenOp) = t5_multih
 NeuralAttentionlib.get_attention_func_args(op::T5BiasedMultiheadQKVAttenOp, q, k, v, bias, mask = nothing) =
     (op.head, q, k, v, bias, NeuralAttentionlib.BatchedMask(mask), op.p)
 
-Layers.no_dropout(op::T5BiasedMultiheadQKVAttenOp) = T5BiasedMultiheadQKVAttenOp(op.head, nothing)
+Layers.set_dropout(op::T5BiasedMultiheadQKVAttenOp, p) = T5BiasedMultiheadQKVAttenOp(op.head, p)
 
 const T5BiasedMultiheadQKVAttenOpWithScore{F} = WithScore{T5BiasedMultiheadQKVAttenOp{F}}
 
@@ -213,7 +213,7 @@ NeuralAttentionlib.get_attention_func(::T5BiasedCausalMultiheadQKVAttenOp) = t5_
 NeuralAttentionlib.get_attention_func_args(op::T5BiasedCausalMultiheadQKVAttenOp, q, k, v, bias, mask = nothing) =
     (op.head, q, k, v, bias, NeuralAttentionlib.BatchedMask(mask & NeuralAttentionlib.CausalMask()), op.p)
 
-Layers.no_dropout(op::T5BiasedCausalMultiheadQKVAttenOp) = T5BiasedCausalMultiheadQKVAttenOp(op.head, nothing)
+Layers.set_dropout(op::T5BiasedCausalMultiheadQKVAttenOp, p) = T5BiasedCausalMultiheadQKVAttenOp(op.head, p)
 
 const T5BiasedCausalMultiheadQKVAttenOpWithScore{F} = WithScore{T5BiasedCausalMultiheadQKVAttenOp{F}}
 
@@ -226,7 +226,7 @@ NeuralAttentionlib.get_attention_func(::T5MultiheadQKVAttenOp) = t5_multihead_qk
 NeuralAttentionlib.get_attention_func_args(op::T5MultiheadQKVAttenOp, q, k, v, mask = nothing) =
     (op.head, q, k, v, nothing, NeuralAttentionlib.BatchedMask(mask), op.p)
 
-Layers.no_dropout(op::T5MultiheadQKVAttenOp) = T5MultiheadQKVAttenOp(op.head, nothing)
+Layers.set_dropout(op::T5MultiheadQKVAttenOp, p) = T5MultiheadQKVAttenOp(op.head, p)
 
 const T5MultiheadQKVAttenOpWithScore{F} = WithScore{T5MultiheadQKVAttenOp{F}}
 

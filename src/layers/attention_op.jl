@@ -6,9 +6,9 @@ using NeuralAttentionlib: $, AbstractAttenOp, MultiheadQKVAttenOpWithScore, Mult
     masked_score, normalized_score, dropout_score, weighted_sum_mixing,
     generic_multihead_qkv_attention, CausalMask, BatchedMask
 
-no_dropout(op::MultiheadQKVAttenOp) = MultiheadQKVAttenOp(op.head, nothing)
-no_dropout(op::CausalMultiheadQKVAttenOp) = CausalMultiheadQKVAttenOp(op.head, nothing)
-no_dropout(op::NeuralAttentionlib.WithScore) = WithScore(no_dropout(getfield(op, :op)))
+set_dropout(op::MultiheadQKVAttenOp, p) = MultiheadQKVAttenOp(op.head, p)
+set_dropout(op::CausalMultiheadQKVAttenOp, p) = CausalMultiheadQKVAttenOp(op.head, p)
+set_dropout(op::NeuralAttentionlib.WithScore, p) = WithScore(set_dropout(getfield(op, :op), p))
 
 function apply_attention_op(op, nt::NamedTuple)
     qkv = nt.hidden_state
@@ -47,7 +47,7 @@ NeuralAttentionlib.get_attention_func(::MultiheadQKVDotAttenOp) = multihead_qkv_
 NeuralAttentionlib.get_attention_func_args(op::MultiheadQKVDotAttenOp, q, k, v, mask = nothing) =
     (op.head, q, k, v, BatchedMask(mask), op.p)
 
-no_dropout(op::MultiheadQKVDotAttenOp) = MultiheadQKVDotAttenOp(op.head, nothing)
+set_dropout(op::MultiheadQKVDotAttenOp, p) = MultiheadQKVDotAttenOp(op.head, p)
 
 const MultiheadQKVDotAttenOpWithScore{F} = WithScore{MultiheadQKVDotAttenOp{F}}
 
@@ -60,7 +60,7 @@ NeuralAttentionlib.get_attention_func(::CausalMultiheadQKVDotAttenOp) = multihea
 NeuralAttentionlib.get_attention_func_args(op::CausalMultiheadQKVDotAttenOp, q, k, v, mask = nothing) =
     (op.head, q, k, v, BatchedMask(CausalMask() & mask), op.p)
 
-no_dropout(op::CausalMultiheadQKVDotAttenOp) = CausalMultiheadQKVDotAttenOp(op.head, nothing)
+set_dropout(op::CausalMultiheadQKVDotAttenOp, p) = CausalMultiheadQKVDotAttenOp(op.head, p)
 
 const CausalMultiheadQKVDotAttenOpWithScore{F} = WithScore{CausalMultiheadQKVDotAttenOp{F}}
 
@@ -76,7 +76,7 @@ NeuralAttentionlib.get_attention_func(::LocalMultiheadQKVAttenOp) = multihead_qk
 NeuralAttentionlib.get_attention_func_args(op::LocalMultiheadQKVAttenOp, q, k, v, mask = nothing) =
     (op.head, q, k, v, BatchedMask(LocalMask(op.size) & mask), op.p)
 
-no_dropout(op::LocalMultiheadQKVAttenOp) = LocalMultiheadQKVAttenOp(op.size, op.head, nothing)
+set_dropout(op::LocalMultiheadQKVAttenOp, p) = LocalMultiheadQKVAttenOp(op.size, op.head, p)
 
 const LocalMultiheadQKVAttenOpWithScore{F} = WithScore{LocalMultiheadQKVAttenOp{F}}
 
@@ -90,7 +90,7 @@ NeuralAttentionlib.get_attention_func(::LocalCausalMultiheadQKVAttenOp) = multih
 NeuralAttentionlib.get_attention_func_args(op::LocalCausalMultiheadQKVAttenOp, q, k, v, mask = nothing) =
     (op.head, q, k, v, BatchedMask(CausalMask() & LocalMask(op.size) & mask), op.p)
 
-no_dropout(op::LocalCausalMultiheadQKVAttenOp) = LocalCausalMultiheadQKVAttenOp(op.size, op.head, nothing)
+set_dropout(op::LocalCausalMultiheadQKVAttenOp, p) = LocalCausalMultiheadQKVAttenOp(op.size, op.head, p)
 
 const LocalCausalMultiheadQKVAttenOpWithScore{F} = WithScore{LocalCausalMultiheadQKVAttenOp{F}}
 
@@ -104,7 +104,7 @@ NeuralAttentionlib.get_attention_func(::LocalMultiheadQKVDotAttenOp) = multihead
 NeuralAttentionlib.get_attention_func_args(op::LocalMultiheadQKVDotAttenOp, q, k, v, mask = nothing) =
     (op.head, q, k, v, BatchedMask(LocalMask(op.size) & mask), op.p)
 
-no_dropout(op::LocalMultiheadQKVDotAttenOp) = LocalMultiheadQKVDotAttenOp(op.size, op.head, nothing)
+set_dropout(op::LocalMultiheadQKVDotAttenOp, p) = LocalMultiheadQKVDotAttenOp(op.size, op.head, p)
 
 const LocalMultiheadQKVDotAttenOpWithScore{F} = WithScore{LocalMultiheadQKVDotAttenOp{F}}
 
@@ -118,7 +118,7 @@ NeuralAttentionlib.get_attention_func(::LocalCausalMultiheadQKVDotAttenOp) = mul
 NeuralAttentionlib.get_attention_func_args(op::LocalCausalMultiheadQKVDotAttenOp, q, k, v, mask = nothing) =
     (op.head, q, k, v, BatchedMask(CausalMask() & LocalMask(op.size) & mask), op.p)
 
-no_dropout(op::LocalCausalMultiheadQKVDotAttenOp) = LocalCausalMultiheadQKVDotAttenOp(op.size, op.head, nothing)
+set_dropout(op::LocalCausalMultiheadQKVDotAttenOp, p) = LocalCausalMultiheadQKVDotAttenOp(op.size, op.head, p)
 
 const LocalCausalMultiheadQKVDotAttenOpWithScore{F} = WithScore{LocalCausalMultiheadQKVDotAttenOp{F}}
 
@@ -158,7 +158,7 @@ RoPEMultiheadQKVAttenOp(dim::Int, head::Int) = RoPEMultiheadQKVAttenOp(dim, head
 NeuralAttentionlib.get_attention_func(::RoPEMultiheadQKVAttenOp) = rope_multihead_qkv_attention
 NeuralAttentionlib.get_attention_func_args(op::RoPEMultiheadQKVAttenOp, q, k, v, mask = nothing) = (op.dim, op.head, q, k, v, BatchedMask(mask), op.p)
 
-no_dropout(op::RoPEMultiheadQKVAttenOp) = RoPEMultiheadQKVAttenOp(op.dim, op.head, nothing)
+set_dropout(op::RoPEMultiheadQKVAttenOp, p) = RoPEMultiheadQKVAttenOp(op.dim, op.head, p)
 
 const RoPEMultiheadQKVAttenOpWithScore{D, F} = WithScore{RoPEMultiheadQKVAttenOp{D, F}}
 
@@ -172,7 +172,7 @@ CausalRoPEMultiheadQKVAttenOp(dim::Int, head::Int) = CausalRoPEMultiheadQKVAtten
 NeuralAttentionlib.get_attention_func(::CausalRoPEMultiheadQKVAttenOp) = rope_multihead_qkv_attention
 NeuralAttentionlib.get_attention_func_args(op::CausalRoPEMultiheadQKVAttenOp, q, k, v, mask = nothing) = (op.dim, op.head, q, k, v, BatchedMask(CausalMask() & mask), op.p)
 
-no_dropout(op::CausalRoPEMultiheadQKVAttenOp) = CausalRoPEMultiheadQKVAttenOp(op.dim, op.head, nothing)
+set_dropout(op::CausalRoPEMultiheadQKVAttenOp, p) = CausalRoPEMultiheadQKVAttenOp(op.dim, op.head, p)
 
 const CausalRoPEMultiheadQKVAttenOpWithScore{D, F} = WithScore{CausalRoPEMultiheadQKVAttenOp{D, F}}
 
