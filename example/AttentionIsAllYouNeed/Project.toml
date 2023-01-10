@@ -1,5 +1,7 @@
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
 WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"

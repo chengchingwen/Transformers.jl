@@ -1,23 +1,31 @@
+using Statistics
 using Flux
 using Flux: gradient, onehot, params
+using Flux.Losses
 import Flux.Optimise: update!
+using ChainRulesCore
 
 using Transformers
-using Transformers.Basic
+using Transformers.Layers
+using Transformers.TextEncoders
 using Transformers.Datasets
 
+import Transformers.NeuralAttentionlib as NAlib
+
+# configuration
 const N = 2
 const V = 10
 const Smooth = 1e-6
 const Batch = 32
 const lr = 1e-4
 
+# text encoder / preprocess
 const startsym = "11"
 const endsym = "12"
 const unksym = "0"
 const labels = [unksym, startsym, endsym, collect(map(string, 1:V))...]
 
-const textenc = Basic.TransformerTextEncoder(split, labels; startsym, endsym, unksym, padsym = unksym)
+const textenc = TransformerTextEncoder(split, labels; startsym, endsym, unksym, padsym = unksym)
 
 function gen_data()
     global V
@@ -28,89 +36,78 @@ end
 function preprocess(data)
     global textenc
     x, t = data
-    x, x_mask = encode(textenc, x)
-    t, t_mask = encode(textenc, t)
-    todevice(x,t,x_mask,t_mask)
+    x_data = encode(textenc, x)
+    t_data = encode(textenc, t)
+    input = (encoder_input = x_data,
+             decoder_input = merge(t_data,
+                                   (cross_attention_mask = NAlib.AttenMask(
+                                       t_data.attention_mask, x_data.attention_mask),)))
+    return todevice(input)
 end
 
-function train!()
-    global Batch
-    println("start training")
-    model = (embed=embed, encoder=encoder, decoder=decoder)
-    for i = 1:320*7
-        data = batched([gen_data() for i = 1:Batch])
-        x, t, x_mask, t_mask = preprocess(data)
-        grad = gradient(ps) do
-            l = loss(model, x, t, x_mask, t_mask)
-            l
-        end
-        i%8 == 0 && @show loss(model, x, t, x_mask, t_mask)
-        update!(opt, ps, grad)
-    end
-end
+# model definition
+const hidden_dim = 512
+const head_num = 8
+const head_dim = 64
+const ffn_dim = 2048
 
-const embed = todevice(Embed(512, length(textenc.vocab); scale=inv(sqrt(512))))
+const token_embed = todevice(Embed(hidden_dim, length(textenc.vocab); scale = inv(sqrt(hidden_dim))))
+const embed = Layers.CompositeEmbedding(token = token_embed, pos = SinCosPositionEmbed(hidden_dim))
+const embed_decode = EmbedDecoder(token_embed)
+const encoder = todevice(Transformer(TransformerBlock       , N, head_num, hidden_dim, head_dim, ffn_dim))
+const decoder = todevice(Transformer(TransformerDecoderBlock, N, head_num, hidden_dim, head_dim, ffn_dim))
+const seq2seq = Seq2Seq(encoder, decoder)
+const trf_model = Layers.Chain(
+    Layers.Parallel{(:encoder_input, :decoder_input)}(
+        Layers.Chain(embed, todevice(Dropout(0.1)))),
+    seq2seq,
+    Layers.Branch{(:logits,)}(embed_decode),
+)
 
-const encoder = todevice(Stack(
-    @nntopo(e → pe:(e, pe) → x → x → $N),
-    PositionEmbedding(512),
-    (e, pe) -> e .+ pe,
-    Dropout(0.1),
-    [Transformer(512, 8, 64, 2048) for i = 1:N]...
-))
-
-const decoder = todevice(Stack(
-    @nntopo((e, m, mask):e → pe:(e, pe) → t → (t:(t, m, mask) → t:(t, m, mask)) → $N:t → c),
-    PositionEmbedding(512),
-    (e, pe) -> e .+ pe,
-    Dropout(0.1),
-    [TransformerDecoder(512, 8, 64, 2048) for i = 1:N]...,
-    Positionwise(Dense(512, length(textenc.vocab)), logsoftmax)
-))
-
-const ps = params(embed, encoder, decoder)
+const ps = params(trf_model)
 const opt = ADAM(lr)
 
 function smooth(et)
     global Smooth
-    sm = fill!(similar(et, Float32), Smooth/size(embed, 2))
+    sm = fill!(similar(et, Float32), Smooth/length(textenc.vocab))
     p = sm .* (1 .+ -et)
     label = p .+ et .* (1 - convert(Float32, Smooth))
-    label
+    return label
 end
-Flux.@nograd smooth
+ChainRulesCore.@non_differentiable smooth(et)
 
-function loss(m, src, trg, src_mask, trg_mask)
-    #label smoothing
+function shift_decode_loss(logits, trg, trg_mask)
     label = @view smooth(trg)[:, 2:end, :]
+    return logitcrossentropy(mean, @view(logits[:, 1:end-1, :]), label, trg_mask - 1)
+end
 
-    if isnothing(src_mask) || isnothing(trg_mask)
-        mask = nothing
-    else
-        mask = getmask(src_mask, trg_mask)
-    end
-
-    enc = m.encoder(m.embed(src))
-    dec = m.decoder(m.embed(trg), enc, mask)
-
-    if isnothing(mask)
-        loss = logkldivergence(label, dec[:, 1:end-1, :])
-    else
-        loss = logkldivergence(label, dec[:, 1:end-1, :], trg_mask[:, 1:end-1, :])
+function train!()
+    global Batch, trf_model
+    println("start training")
+    for i = 1:320*7
+        data = batched([gen_data() for i = 1:Batch])
+        input = preprocess(data)
+        grad = gradient(ps) do
+            nt = trf_model(input)
+            shift_decode_loss(nt.logits, input.decoder_input.token, input.decoder_input.attention_mask)
+        end
+        i%8 == 0 && @show shift_decode_loss(trf_model(input).logits,
+                                            input.decoder_input.token, input.decoder_input.attention_mask)
+        update!(opt, ps, grad)
     end
 end
 
 function translate(x::AbstractString)
-    ix = todevice(encode(textenc, x).tok)
+    ix = todevice(encode(textenc, x).token)
     seq = [startsym]
 
-    src = embed(ix)
-    enc = encoder(src)
+    src = embed((token = ix,))
+    enc = encoder(src).hidden_state
 
     len = size(ix, 2)
     for i = 1:2len
-        trg = embed(todevice(lookup(textenc, seq)))
-        dec = decoder(trg, enc, nothing)
+        trg = embed((token = todevice(lookup(textenc, seq)),))
+        dec = embed_decode(decoder(merge(trg, (memory = enc,))).hidden_state)
         ntok = decode(textenc, argmax(@view(dec[:, end])))
         push!(seq, ntok)
         ntok == endsym && break
