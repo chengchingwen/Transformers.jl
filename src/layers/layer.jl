@@ -959,7 +959,7 @@ SinCosPositionEmbed(f, hidden_size::Int) = SinCosPositionEmbed(f, hidden_size, f
 
 function Base.show(io::IO, embed::SinCosPositionEmbed)
     print(io, "SinCosPositionEmbed(")
-    if embed.f isa Base.Fix1{typeof(default_position_func)}
+    if embed.f isa Base.Fix1{typeof(NeuralAttentionlib.default_position_func)}
         print(io, "default_position_func(", embed.f.x, ')')
     else
         show(io, embed.f)
