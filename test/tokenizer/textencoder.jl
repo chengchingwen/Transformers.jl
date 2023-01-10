@@ -1,5 +1,6 @@
 using Test
 using BSON
+using ZipFile
 using Transformers.TextEncoders
 using NeuralAttentionlib: LengthMask
 import DoubleArrayTries
@@ -61,8 +62,10 @@ import DoubleArrayTries
     end
 
     @testset "Bert" begin
-        wordpiece = Transformers.WordPieceModel.WordPiece(readlines(joinpath(@__DIR__, "vocab.txt")))
+        z = ZipFile.Reader(joinpath(@__DIR__, "vocab.zip"))
+        wordpiece = Transformers.WordPieceModel.WordPiece(readlines(z.files[1]))
         bertenc = BertTextEncoder(bert_cased_tokenizer, wordpiece; trunc=15)
+        close(z)
         d1 = "Peter Piper picked a peck of pickled peppers"
         s1 = ["[CLS]", "Peter", "Piper", "picked", "a", "p", "##eck", "of", "pick", "##led", "pepper", "##s", "[SEP]"]
         d2 = "Fuzzy Wuzzy was a bear"
