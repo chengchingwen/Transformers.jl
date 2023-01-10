@@ -1,4 +1,4 @@
-using WordTokenizers
+import WordTokenizers
 
 """
 The function in the origin gpt code
@@ -25,4 +25,4 @@ end
 
 An alternative for origin tokenizer (spacy tokenizer) used in gpt model.
 """
-gpt_tokenizer(x) = toktok_tokenize(text_standardize(x))
+gpt_tokenizer(x) = WordTokenizers.toktok_tokenize(text_standardize(x))

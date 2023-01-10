@@ -72,7 +72,7 @@ skip 1. convert to unicode
 6. split each token with punct and punct remain
 
 =#
-function tokenise(input, ::Val{lower}) where lower
+function _bert_tokenise(input, ::Val{lower}) where lower
   ts = TokenBuffer(lower ? normalize(lowercase(input), :NFD) : input)
   while !isdone(ts)
     (lower && catemn(ts)) ||
@@ -92,11 +92,11 @@ end
 
 google bert tokenizer which do lower case on input before tokenization.
 """
-bert_uncased_tokenizer(input) = tokenise(input, Val(true))
+bert_uncased_tokenizer(input) = _bert_tokenise(input, Val(true))
 
 """
     bert_cased_tokenizer(input)
 
 google bert tokenizer which remain the case during tokenization. Recommended for multi-lingual data.
 """
-bert_cased_tokenizer(input) = tokenise(input, Val(false))
+bert_cased_tokenizer(input) = _bert_tokenise(input, Val(false))

@@ -1,7 +1,7 @@
 module TextEncoders
 
 using TextEncodeBase
-using TextEncodeBase: WordTokenization, nested2batch, nestedcall, with_head_tail
+using TextEncodeBase: WordTokenization, nested2batch, nestedcall, with_head_tail, tokenize
 using ..WordPieceModel
 using BytePairEncoding
 using ..UnigramLanguageModel
