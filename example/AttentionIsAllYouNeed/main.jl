@@ -27,4 +27,8 @@ enable_gpu(args["gpu"])
 
 const task = args["task"]
 
+# common utilities
+include(joinpath(@__DIR__, "common.jl"))
+
+# task sepcific code
 include(joinpath(@__DIR__, task, "train.jl"))
