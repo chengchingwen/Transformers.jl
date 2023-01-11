@@ -23,9 +23,9 @@ enable gpu for `todevice`, disable with `enable_gpu(false)`.
 function enable_gpu(t::Bool=true)
     if t
         CUDA.functional() || error("CUDA not functional")
-        @eval todevice(args...) = togpudevice(args...)
+        @eval todevice(args...; kws...) = togpudevice(args...; kws...)
     else
-        @eval todevice(args...) = tocpudevice(args...)
+        @eval todevice(args...; kws...) = tocpudevice(args...; kws...)
     end
 end
 
@@ -34,14 +34,26 @@ end
 
 move data to device, only when gpu is enable with `enable_gpu`, basically equal `Flux.gpu` except `AbstractArray{Int}` become `CuArray{Int}`. Otherwise equal `Flux.cpu`
 """
-todevice(args...) = tocpudevice(args...)
+todevice(args...; kws...) = tocpudevice(args...; kws...)
 
-tocpudevice(x) = cpu(x)
-tocpudevice(x, xs...) = (tocpudevice(x), map(tocpudevice, xs)...)
+# https://github.com/FluxML/Flux.jl/blob/79971741ed8454cdf6a66515799a0c4b864f564a/src/functor.jl#L174
+_tocpudevice(x, cache) = Flux.fmap(
+    x -> Flux.adapt(Flux.FluxCPUAdaptor(), x),
+    x; exclude = Flux._isleaf, cache)
 
-@generated function tocpudevice(x::T) where T <: AbstractArray
+function tocpudevice(x; cache = IdDict())
+    # equivalent to Flux.cpu(x)
+    return _tocpudevice(x, cache)
+end
+function tocpudevice(x, xs...; cache = IdDict())
+    return (tocpudevice(x; cache), map(xi->tocpudevice(xi; cache), xs)...)
+end
+tocpudevice(x::Tuple; cache = IdDict()) = tocpudevice(x...; cache)
+tocpudevice(x::NamedTuple{name}; cache = IdDict()) where name = NamedTuple{name}(tocpudevice(values(x)...; cache))
+
+@generated function tocpudevice(x::T; cache = IdDict()) where {T <: Union{AbstractArray, NeuralAttentionlib.AbstractMask}}
     R = Core.Compiler.return_type(Flux.adapt, Tuple{Type{Array}, x})
-    return :(cpu(x)::$R)
+    return :(_tocpudevice(x, cache)::$R)
 end
 
 include("./layers/Layers.jl")
