@@ -6,9 +6,8 @@ using NeuralAttentionlib
 
 export Transformer
 
-export dataset, datafile, get_batch, get_vocab
-
 export todevice, enable_gpu
+export Layers, TextEncoders, HuggingFace
 
 const Abstract3DTensor{T} = AbstractArray{T, 3}
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N

@@ -6,7 +6,8 @@ using ..WordPieceModel
 using BytePairEncoding
 using ..UnigramLanguageModel
 
-export TransformerTextEncoder, lookup, encode, decode, BertTextEncoder, GPT2TextEncoder, T5TextEncoder
+export lookup, encode, decode, Vocab, OneHot,
+    TransformerTextEncoder, BertTextEncoder, GPT2TextEncoder, T5TextEncoder
 
 include("bert_tokenizer.jl")
 include("gpt_tokenizer.jl")
