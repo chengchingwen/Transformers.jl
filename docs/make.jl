@@ -1,27 +1,26 @@
-using Documenter, Transformers
+using Transformers
+using Documenter
 
-using Transformers.Basic
-using Transformers.Basic: MultiheadAttention
-using Transformers.Pretrain
-using Transformers.Stacks
-using Transformers.GenerativePreTrain
-using Transformers.BidirectionalEncoder
+DocMeta.setdocmeta!(Transformers, :DocTestSetup, :(using Transformers); recursive=true)
 
-makedocs(sitename="Transformers.jl",
-         pages = Any[
-           "Home" => "index.md",
-           "Tutorial" => "tutorial.md",
-           "Basic" => "basic.md",
-           "Stacks" => "stacks.md",
-           "Pretrain" => "pretrain.md",
-           "Models" => [
-             "GPT" => "gpt.md",
-             "BERT" => "bert.md",
-           ],
-           "Datasets" => "datasets.md"
-         ],
-         )
+makedocs(;
+    modules=[Transformers],
+    authors="chengchingwen and contributors",
+    repo="https://github.com/chengchingwen/Transformers.jl/blob/{commit}{path}#{line}",
+    sitename="Transformers.jl",
+    format=Documenter.HTML(;
+        prettyurls=get(ENV, "CI", "false") == "true",
+        canonical="https://chengchingwen.github.io/Transformers.jl",
+        assets=String[],
+    ),
+    pages=[
+        "Home" => "index.md",
+        "Tutorial" => "tutorial.md",
+        "Basic" => "basic.md",
+        "Datasets" => "datasets.md"
+    ],
+)
 
-deploydocs(
-    repo = "github.com/chengchingwen/Transformers.jl.git",
+deploydocs(;
+    repo="github.com/chengchingwen/Transformers.jl",
 )
