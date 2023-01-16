@@ -61,7 +61,7 @@
     # First value in the intermediate results is the embedding
     @test result_with_hs.hidden_states[1] ≈ emb_123
     
-    # First value in the intermediate results is the first encoder layer's output with causal mask
+    # Second value in the intermediate results is the first encoder layer's output with causal mask
     result_enc_layer = encoder_layer(emb_123; causal_attention_mask=NeuralAttentionlib.CausalMask())
     @test result_enc_layer[1] ≈ result_with_hs.hidden_states[2]
     

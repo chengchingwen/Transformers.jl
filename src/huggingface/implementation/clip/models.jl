@@ -99,7 +99,7 @@ Evaluate the forward of HGFCLIPTextEmbeddings given `input_ids` and `position_id
 ```julia-repl
 julia> clip_config = Transformers.load_config("openai/clip-vit-large-patch14")
 julia> embeddings = Transformers.HuggingFace.HGFCLIPTextEmbeddings(clip_config.text_config)
-julia> embeddings(input_ids, position_ids)
+julia> embeddings(ones(Int32, 77, 1), ones(Int32, 77, 1))
 ```
 """
 function (self::HGFCLIPTextEmbeddings)(
@@ -119,7 +119,7 @@ Evaluate the forward of HGFCLIPTextEmbeddings given `input_ids`.
 ```julia-repl
 julia> clip_config = Transformers.load_config("openai/clip-vit-large-patch14")
 julia> embeddings = Transformers.HuggingFace.HGFCLIPTextEmbeddings(clip_config.text_config)
-julia> embeddings(input_ids)
+julia> embeddings(ones(Int32, 77, 1))
 ```
 """
 (self::HGFCLIPTextEmbeddings)(input_ids; position_ids=nothing) = self(input_ids, position_ids)
@@ -131,6 +131,8 @@ struct HGFCLIPMLP{F1<:FakeTHLinear, F2<:FakeTHLinear, A<:Any} <: THModule
     fc2::F2
     activation_fn::A
 end
+
+Functors.functor(::Type{<:HGFCLIPMLP}, mlp) = (fc1=mlp.fc1, fc2=mlp.fc2), y->HGFCLIPMLP(y..., mlp.activation_fn)
 
 """
     HGFCLIPMLP(config::HGFCLIPTextConfig)
@@ -187,6 +189,8 @@ struct HGFCLIPAttention <: THModule
     v_proj::FakeTHLinear
     out_proj::FakeTHLinear
 end
+
+Functors.functor(::Type{<:HGFCLIPAttention}, attn) = (q_proj=attn.q_proj, k_proj=attn.k_proj, v_proj=attn.v_proj, out_proj=attn.out_proj), y->HGFCLIPAttention(attn.num_heads, attn.dropout, y...)
 
 """
     HGFCLIPAttention(config::HGFCLIPTextConfig)
@@ -264,6 +268,8 @@ struct HGFCLIPEncoderLayer <: THModule
     self_attn::HGFCLIPAttention
 end
 
+@functor HGFCLIPEncoderLayer
+
 """
     HGFCLIPEncoderLayer(config::HGFCLIPTextConfig)
 Create HGFCLIPEncoderLayer from HGFCLIPTextConfig config.
@@ -330,6 +336,9 @@ struct HGFCLIPEncoder{T<:FakeTHModuleList} <: THModule
     config::HGFCLIPTextConfig
     layers::T
 end
+
+Functors.functor(::Type{<:HGFCLIPEncoder}, enc) = (layers=enc.layers, ), y->HGFCLIPEncoder(enc.config, y...)
+
 """
     HGFCLIPEncoder(config::HGFCLIPTextConfig)
 Create HGFCLIPEncoder from a HGFCLIPTextConfig config.
@@ -407,6 +416,9 @@ struct HGFCLIPTextTransformer <: THModule
     encoder::HGFCLIPEncoder
     final_layer_norm::FakeTHLayerNorm
 end
+
+Functors.functor(::Type{<:HGFCLIPTextTransformer}, m) = (embeddings=m.embeddings, encoder=m.encoder, final_layer_norm=m.final_layer_norm), y->HGFCLIPTextTransformer(m.config, y...)
+
 """
     HGFCLIPTextTransformer(config::HGFCLIPTextConfig)
 Create HGFCLIPTextTransformer from HGFCLIPTextConfig config.
@@ -468,6 +480,9 @@ abstract type HGFCLIPPreTrainedModel <: HGFPreTrainedModel end
 struct HGFCLIPTextModel{E<:HGFCLIPTextTransformer} <: HGFCLIPPreTrainedModel
     text_model::E
 end
+
+@functor HGFCLIPTextModel
+
 """
     HGFCLIPTextModel(config::HGFCLIPTextConfig)
 Create HGFCLIPTextModel from HGFCLIPTextConfig config.
