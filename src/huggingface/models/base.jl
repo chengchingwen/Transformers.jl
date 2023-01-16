@@ -6,7 +6,20 @@ using Flux: @adjoint, pullback
 using AbstractTrees
 import AbstractTrees: children
 
-const ACT2FN = (gelu = gelu, relu = relu, swish = swish, gelu_new = gelu, mish = mish, quick_gelu = gelu, selu = selu)
+"""
+    quick_gelu(x)
+
+Applies GELU approximation that is fast but somewhat inaccurate. See: https://github.com/hendrycks/GELUs
+
+Implementation in HuggingFace
+https://github.com/huggingface/transformers/blob/9e56aff58a742b48fc8edea8d28d5b80330efbcc/src/transformers/activations.py#L69
+
+"""
+function quick_gelu(x)
+  x * sigmoid_fast(1.702f0 * x)
+end
+
+const ACT2FN = (gelu = gelu, relu = relu, swish = swish, gelu_new = gelu, mish = mish, quick_gelu = quick_gelu, selu = selu)
 
 abstract type THModule end
 abstract type HGFPreTrainedModel <: THModule end

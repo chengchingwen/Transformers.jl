@@ -15,6 +15,7 @@ const tests = [
     "basic",
     "gpt",
     "bert",
+    "clip",
 ]
 
 Random.seed!(0)
