@@ -5,7 +5,7 @@ using ChainRulesCore
 using Static
 
 using NeuralAttentionlib
-using NeuralAttentionlib: $, AbstractAttenOp, WithScore, MultiheadQKVAttenOp, CausalMultiheadQKVAttenOp
+using NeuralAttentionlib: $, AbstractAttenOp, MultiheadQKVAttenOp, CausalMultiheadQKVAttenOp
 
 @static if VERSION < v"1.8"
     macro etotal(ex)
@@ -133,7 +133,7 @@ function (layer::LayerStruct)(arg, args...)
     names = argument_names(layer)
     input = tuple(arg, args...)
     length(names) != length(input) && error(
-        "$(typeof(layer)) should take $(length(names)) arguments but only get $(length(input))"
+        "layer should take $(length(names)) arguments $names but only get $(length(input)).\n$(typeof(layer))"
     )
     return layer(NamedTuple{names}(input))
 end
@@ -695,13 +695,13 @@ function SelfAttention(
 )
     atten_op_constr = causal ? CausalMultiheadQKVAttenOp : MultiheadQKVAttenOp
     atten_op = atten_op_constr(head, dropout)
-    return_score && (atten_op = WithScore(atten_op))
+    return_score && (atten_op = NeuralAttentionlib.WithScore(atten_op))
     sa = SelfAttention(atten_op, head, hidden_size, head_hidden_size)
     return sa
 end
 function SelfAttention(atten_op::AbstractAttenOp, head::Int, hidden_size::Int, head_hidden_size::Int)
-    qkv_proj = Flux.Dense(hidden_size, 3head * head_hidden_size)
-    o_proj = Flux.Dense(head * head_hidden_size, hidden_size)
+    qkv_proj = Dense(hidden_size, 3head * head_hidden_size)
+    o_proj = Dense(head * head_hidden_size, hidden_size)
     sa = SelfAttention(atten_op, NSplit(static(3), qkv_proj), o_proj)
     return sa
 end
@@ -713,14 +713,14 @@ function CrossAttention(head::Int, hidden_size::Int; dropout = nothing, return_s
 end
 function CrossAttention(head::Int, hidden_size::Int, head_hidden_size::Int; dropout = nothing, return_score = false)
     cross_atten_op = MultiheadQKVAttenOp(head, dropout)
-    return_score && (cross_atten_op = WithScore(cross_atten_op))
+    return_score && (cross_atten_op = NeuralAttentionlib.WithScore(cross_atten_op))
     ca = CrossAttention(cross_atten_op, head, hidden_size, head_hidden_size)
     return ca
 end
 function CrossAttention(cross_atten_op::AbstractAttenOp, head::Int, hidden_size::Int, head_hidden_size::Int)
-    c_q_proj = Flux.Dense(hidden_size, head * head_hidden_size)
-    c_kv_proj = Flux.Dense(hidden_size, 2head * head_hidden_size)
-    c_o_proj = Flux.Dense(head * head_hidden_size, hidden_size)
+    c_q_proj = Dense(hidden_size, head * head_hidden_size)
+    c_kv_proj = Dense(hidden_size, 2head * head_hidden_size)
+    c_o_proj = Dense(head * head_hidden_size, hidden_size)
     ca = CrossAttention(cross_atten_op, c_q_proj, NSplit(static(2), c_kv_proj), c_o_proj)
     return ca
 end
@@ -750,14 +750,14 @@ function PostNormTransformerBlock(
     attention_dropout = nothing, dropout = nothing, return_score = false,
 )
     sa = SelfAttention(head, hidden_size, head_hidden_size; dropout = attention_dropout, return_score)
-    ff1 = Flux.Dense(hidden_size, intermediate_size, act)
-    ff2 = Flux.Dense(intermediate_size, hidden_size)
+    ff1 = Dense(act, hidden_size, intermediate_size)
+    ff2 = Dense(intermediate_size, hidden_size)
     return TransformerBlock(
         PostNormResidual(
             DropoutLayer(sa, dropout),
             LayerNorm(hidden_size)),
         PostNormResidual(
-            DropoutLayer(Flux.Chain(ff1, ff2), dropout),
+            DropoutLayer(Chain(ff1, ff2), dropout),
             LayerNorm(hidden_size)))
 end
 
@@ -772,14 +772,14 @@ function PreNormTransformerBlock(
     attention_dropout = nothing, dropout = nothing, return_score = false,
 )
     sa = SelfAttention(head, hidden_size, head_hidden_size; dropout = attention_dropout, return_score)
-    ff1 = Flux.Dense(hidden_size, intermediate_size, act)
-    ff2 = Flux.Dense(intermediate_size, hidden_size)
+    ff1 = Dense(act, hidden_size, intermediate_size)
+    ff2 = Dense(intermediate_size, hidden_size)
     return TransformerBlock(
         PreNormResidual(
             DropoutLayer(sa, dropout),
             LayerNorm(hidden_size)),
         PreNormResidual(
-            DropoutLayer(Flux.Chain(ff1, ff2), dropout),
+            DropoutLayer(Chain(ff1, ff2), dropout),
             LayerNorm(hidden_size)))
 end
 
@@ -820,8 +820,8 @@ function PostNormTransformerDecoderBlock(
     sa = SelfAttention(head, hidden_size, head_hidden_size;
                        dropout = attention_dropout, causal = true, return_score = return_self_attention_score)
     ca = CrossAttention(head, hidden_size, head_hidden_size; dropout = cross_attention_dropout, return_score)
-    ff1 = Flux.Dense(hidden_size, intermediate_size, act)
-    ff2 = Flux.Dense(intermediate_size, hidden_size)
+    ff1 = Dense(act, hidden_size, intermediate_size)
+    ff2 = Dense(intermediate_size, hidden_size)
     return TransformerDecoderBlock(
         PostNormResidual(
             DropoutLayer(sa, dropout),
@@ -830,7 +830,7 @@ function PostNormTransformerDecoderBlock(
             DropoutLayer(ca, dropout),
             LayerNorm(hidden_size)),
         PostNormResidual(
-            DropoutLayer(Flux.Chain(ff1, ff2), dropout),
+            DropoutLayer(Chain(ff1, ff2), dropout),
             LayerNorm(hidden_size)))
 end
 
@@ -851,8 +851,8 @@ function PreNormTransformerDecoderBlock(
     sa = SelfAttention(head, hidden_size, head_hidden_size;
                        dropout = attention_dropout, causal = true, return_score = return_self_attention_score)
     ca = CrossAttention(head, hidden_size, head_hidden_size; dropout = cross_attention_dropout, return_score)
-    ff1 = Flux.Dense(hidden_size, intermediate_size, act)
-    ff2 = Flux.Dense(intermediate_size, hidden_size)
+    ff1 = Dense(act, hidden_size, intermediate_size)
+    ff2 = Dense(intermediate_size, hidden_size)
     return TransformerDecoderBlock(
         PreNormResidual(
             DropoutLayer(sa, dropout),
@@ -861,7 +861,7 @@ function PreNormTransformerDecoderBlock(
             DropoutLayer(ca, dropout),
             LayerNorm(hidden_size)),
         PreNormResidual(
-            DropoutLayer(Flux.Chain(ff1, ff2), dropout),
+            DropoutLayer(Chain(ff1, ff2), dropout),
             LayerNorm(hidden_size)))
 end
 
