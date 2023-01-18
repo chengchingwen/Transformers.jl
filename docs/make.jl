@@ -15,9 +15,10 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Get Started" => "getstarted.md",
         "Tutorial" => "tutorial.md",
-        "Basic" => "basic.md",
-        "Datasets" => "datasets.md"
+        "Layers" => "layers.md",
+        "ChangeLogs" => "changelog.md"
     ],
 )
 

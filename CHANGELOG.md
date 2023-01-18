@@ -173,7 +173,7 @@ Since we want to make it possible to finetune a pretrained model on new dataset/
 ## Behavior Changes
 
 * All text encoder (including `HuggingFace` one) process function returned `NamedTuple`: Some field name changed,
- `tok` => `token`, `mask` => `attention_mask`.
+   `tok` => `token`, `mask` => `attention_mask`.
 * Most layer/model from Transformers.jl would be taking and returning `NamedTuple`.
-* For `HuggingFace` model: The api changed, all input is basically `NamedTuple`. The returned `NamedTuple` field name
- from the forward method is also changed.
+* For `HuggingFace` model: All input is basically `NamedTuple`. The returned `NamedTuple` field name from the forward
+   method is also changed.
