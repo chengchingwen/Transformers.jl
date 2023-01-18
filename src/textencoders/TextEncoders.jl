@@ -6,8 +6,12 @@ using ..WordPieceModel
 using BytePairEncoding
 using ..UnigramLanguageModel
 
+using NeuralAttentionlib: AttenMask, LengthMask, RevLengthMask, GenericSequenceMask
+
 export lookup, encode, decode, Vocab, OneHot,
     TransformerTextEncoder, BertTextEncoder, GPT2TextEncoder, T5TextEncoder
+
+
 
 include("bert_tokenizer.jl")
 include("gpt_tokenizer.jl")
@@ -172,6 +176,14 @@ TextEncodeBase.lookup(e::AbstractTransformerTextEncoder, x::Tuple) = (lookup(e, 
 function TextEncodeBase.lookup(e::AbstractTransformerTextEncoder, x::NamedTuple{name}) where name
     xt = Tuple(x)
     return NamedTuple{name}((lookup(e, xt[1]), Base.tail(xt)...))
+end
+
+## encoder-decoder encoding
+function TextEncodeBase.encode(e::AbstractTransformerTextEncoder, src, trg)
+    psrc = encode(e, src)
+    ptrg = encode(e, trg)
+    cross_attention_mask = AttenMask(ptrg.attention_mask, psrc.attention_mask)
+    return (encoder_input = psrc, decoder_input = merge(ptrg, (; cross_attention_mask)))
 end
 
 include("bert_textencoder.jl")
