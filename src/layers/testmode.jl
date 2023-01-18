@@ -5,11 +5,35 @@ StructWalk.constructor(::Type{LayerStyle}, l::RenameArgs{new_names, old_names}) 
 StructWalk.constructor(::Type{LayerStyle}, l::Branch{target, names}) where {target, names} = Branch{target, names}
 StructWalk.constructor(::Type{LayerStyle}, l::Parallel{names}) where names = Parallel{names}
 
-set_dropout(x, p) = x
+no_dropout_overload(x) = methods(set_dropout, Tuple{typeof(x), Any}).ms[].sig.types[2] >: Any
+
+set_dropout(x, p) = postwalk(LayerStyle, x) do xi
+    no_dropout_overload(xi) ? xi : set_dropout(xi, p)
+end
 set_dropout(dp::DropoutLayer, p) = DropoutLayer(dp.layer, p)
 set_dropout(dp::Flux.Dropout, p) = Flux.Dropout(p, dp.dims, dp.active, dp.rng)
+set_dropout(dp::Flux.Dropout, ::Nothing) = Flux.Dropout(dp.p, dp.dims, false, dp.rng)
 
 no_dropout(x) = set_dropout(x, nothing)
-no_dropout(dp::Flux.Dropout) = Flux.Dropout(dp.p, dp.dims, false, dp.rng)
 
-testmode(x) = postwalk(no_dropout, LayerStyle, x)
+"""
+    testmode(model)
+
+Creating a new model sharing all parameters with `model` but used for testing. Currently this is just
+ [`no_dropout`](@ref).
+"""
+testmode(x) = no_dropout(x)
+
+"""
+    set_dropout(model, p)
+
+Creating a new model sharing all parameters with `model` but set all dropout probability to `p`.
+"""
+set_dropout
+
+"""
+    no_dropout(model)
+
+Creating a new model sharing all parameters with `model` but disable all dropout.
+"""
+no_dropout
