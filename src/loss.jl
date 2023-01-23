@@ -10,25 +10,15 @@ import Flux.Losses: crossentropy, logitcrossentropy
 
 using Base.Broadcast: broadcasted, instantiate
 
-Base.has_fast_linear_indexing(::AbstractSequenceMask) = false
+Refm(m, dest) = Ref(Broadcast.preprocess(dest, m))
 
 _tn(m, s) = ntuple(identity, static(ndims(m)) - s)
 _tn1(m) = _tn(m, static(1))
 _tn2(m) = _tn(m, static(2))
-_tn3(m) = _tn(m, static(3))
 
-lengths(m::GenericSequenceMask) = reshape(sum(m.mask; dims = _tn1(m)), :)
-lengths(m::GenericSequenceMask{2}) = m.mask
-lengths(m::LengthMask) = reshape(sum(m.len; dims = _tn3(m)), :)
-lengths(m::LengthMask{1}) = m.len
-lengths(m::RevLengthMask) = reshape(sum(m.len; dims = _tn3(m)), :)
-lengths(m::RevLengthMask{1}) = m.len
+_qlogp(q, p, ϵ, m) = @fastmath m * - Losses.xlogy(q, max(p, ϵ))
 
-ChainRulesCore.@non_differentiable lengths(m)
-
-_qlogp(q, p, ϵ, m) = m * - Losses.xlogy(q, max(p, ϵ))
-
-_sdiv(a, b) = a / oftype(a, b)
+_sdiv(a, b) = @fastmath a / oftype(a, b)
 
 Losses.crossentropy(ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask; ϵ = Losses.epseltype(ŷ)) =
     Losses.crossentropy(mean, ŷ, y, m; ϵ)
@@ -36,8 +26,9 @@ function Losses.crossentropy(agg::Union{typeof(sum), typeof(mean)},
                              ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask;
                              ϵ = Losses.epseltype(ŷ))
     Losses._check_sizes(ŷ, y)
-    losses = sum(instantiate(broadcasted(_qlogp, y, ŷ, ϵ, m)); dims = _tn1(m), init = zero(eltype(ŷ)))
-    loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), lengths(m))))
+    M = Broadcast.preprocess(ŷ, m)
+    losses = sum(instantiate(broadcasted(_qlogp, y, ŷ, ϵ, M)); dims = _tn1(m), init = zero(eltype(ŷ)))
+    loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), Masks.lengths(m))))
     if agg isa typeof(mean)
         loss /= oftype(loss, length(losses))
     end
@@ -45,17 +36,18 @@ function Losses.crossentropy(agg::Union{typeof(sum), typeof(mean)},
 end
 
 function ∇_qlogp(dy, q, p, ϵ, m)
-    dresult = q / max(p, ϵ)
+    dresult = @fastmath q / max(p, ϵ)
     dqlogp = - ifelse(iszero(q), zero(dresult), dresult)
-    return m * (dy * dqlogp)
+    return @fastmath m * (dy * dqlogp)
 end
 
 function ChainRulesCore.rrule(::typeof(crossentropy), agg::Union{typeof(sum), typeof(mean)},
                               ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask;
                               ϵ = Losses.epseltype(ŷ))
     Losses._check_sizes(ŷ, y)
-    losses = sum(instantiate(broadcasted(_qlogp, y, ŷ, ϵ, m)); dims = _tn1(m), init = zero(eltype(ŷ)))
-    ls = lengths(m)
+    M = Broadcast.preprocess(ŷ, m)
+    losses = sum(instantiate(broadcasted(_qlogp, y, ŷ, ϵ, M)); dims = _tn1(m), init = zero(eltype(ŷ)))
+    ls = Masks.lengths(m)
     loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), ls)))
     if agg isa typeof(mean)
         loss /= oftype(loss, length(losses))
@@ -72,14 +64,14 @@ end
 
 function _bcglog(a, c, cid, ϵ, m)
     I = CartesianIndex(c, cid)
-    return @inbounds m[I] * -log(max(a[I], ϵ))
+    return @fastmath @inbounds m[I] * -log(max(a[I], ϵ))
 end
 
 function ∇_bcglog!(dy, dl, a, c, cid, ϵ, m)
     I = CartesianIndex(c, cid)
-    dqlogp = - @inbounds inv(max(a[I], ϵ))
-    lid = @inbounds ifelse(length(I) > size(dl, ndims(dl)), 1, cid[length(cid)])
-    @inbounds dy[I] = m[I] * (dl[lid] * dqlogp)
+    dqlogp = @fastmath - @inbounds inv(max(a[I], ϵ))
+    lid = @inbounds cid[length(cid)]
+    @fastmath @inbounds dy[I] = m[I] * (dl[lid] * dqlogp)
 end
 
 Losses.crossentropy(ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask; ϵ = Losses.epseltype(ŷ)) =
@@ -89,9 +81,10 @@ function Losses.crossentropy(agg::Union{typeof(sum), typeof(mean)},
                              ϵ = Losses.epseltype(ŷ))
     Losses._check_sizes(ŷ, y)
     c = reinterpret(Int32, y)
-    losses = sum(instantiate(broadcasted(_bcglog, Ref(ŷ), c, CartesianIndices(c), ϵ, Ref(m)));
+    refm = Refm(m, ŷ)
+    losses = sum(instantiate(broadcasted(_bcglog, Ref(ŷ), c, CartesianIndices(c), ϵ, refm));
                  dims = _tn2(m), init = zero(eltype(ŷ)))
-    loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), lengths(m))))
+    loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), Masks.lengths(m))))
     if agg isa typeof(mean)
         loss /= oftype(loss, length(losses))
     end
@@ -105,9 +98,10 @@ function ChainRulesCore.rrule(::typeof(crossentropy), agg::Union{typeof(sum), ty
                               ϵ = Losses.epseltype(ŷ))
     Losses._check_sizes(ŷ, y)
     c = reinterpret(Int32, y)
-    losses = sum(instantiate(broadcasted(_bcglog, Ref(ŷ), c, CartesianIndices(c), ϵ, Ref(m)));
+    refm = Refm(m, ŷ)
+    losses = sum(instantiate(broadcasted(_bcglog, Ref(ŷ), c, CartesianIndices(c), ϵ, refm));
                  dims = _tn2(m), init = zero(eltype(ŷ)))
-    ls = lengths(m)
+    ls = Masks.lengths(m)
     loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), ls)))
     if agg isa typeof(mean)
         loss /= oftype(loss, length(losses))
@@ -118,13 +112,13 @@ function ChainRulesCore.rrule(::typeof(crossentropy), agg::Union{typeof(sum), ty
         dlosses = _sdiv.(Ȳ, ls)
         dy = fill!(similar(ŷ), 0)
         mapreduce(identity, _z, instantiate(broadcasted(
-            ∇_bcglog!, Ref(dy), Ref(dlosses), Ref(ŷ), c, CartesianIndices(c), ϵ, Ref(m))); init = 0)
+            ∇_bcglog!, Ref(dy), Ref(dlosses), Ref(ŷ), c, CartesianIndices(c), ϵ, refm)); init = 0)
         return (NoTangent(), NoTangent(), dy, NoTangent(), NoTangent())
     end
     return loss, crossentropy_pullback
 end
 
-_qp(q, logp, m) = m * (- q * logp)
+_qp(q, logp, m) = @fastmath m * (- q * logp)
 
 Losses.logitcrossentropy(ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask) =
     Losses.logitcrossentropy(mean, ŷ, y, m)
@@ -132,8 +126,9 @@ function Losses.logitcrossentropy(agg::Union{typeof(sum), typeof(mean)},
                                   ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask)
     Losses._check_sizes(ŷ, y)
     logp = logsoftmax(ŷ; dims = 1)
-    losses = sum(instantiate(broadcasted(_qp, y, logp, m)); dims = _tn1(m), init = zero(eltype(ŷ)))
-    loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), lengths(m))))
+    M = Broadcast.preprocess(ŷ, m)
+    losses = sum(instantiate(broadcasted(_qp, y, logp, M)); dims = _tn1(m), init = zero(eltype(ŷ)))
+    loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), Masks.lengths(m))))
     if agg isa typeof(mean)
         loss /= oftype(loss, length(losses))
     end
@@ -144,8 +139,9 @@ function ChainRulesCore.rrule(::typeof(logitcrossentropy), agg::Union{typeof(sum
                               ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask)
     Losses._check_sizes(ŷ, y)
     logp = logsoftmax(ŷ; dims = 1)
-    losses = sum(instantiate(broadcasted(_qp, y, logp, m)); dims = _tn1(m), init = zero(eltype(ŷ)))
-    ls = lengths(m)
+    M = Broadcast.preprocess(ŷ, m)
+    losses = sum(instantiate(broadcasted(_qp, y, logp, M)); dims = _tn1(m), init = zero(eltype(ŷ)))
+    ls = Masks.lengths(m)
     loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), ls)))
     scale = oftype(loss, agg isa typeof(mean) ? length(ls) : 1)
     function logitcrossentropy_pullback(Ybar)
@@ -160,14 +156,17 @@ end
 
 function _bcg(a, c, cid, m)
     I = CartesianIndex(c, cid)
-    return @inbounds m[I] * - a[I]
+    return @fastmath @inbounds m[I] * - a[I]
 end
 
 function ∇_bcg!(dy, dl, c, cid, m)
     I = CartesianIndex(c, cid)
-    lid = @inbounds ifelse(length(I) > size(dl, ndims(dl)), 1, cid[length(cid)])
-    @inbounds dy[I] = m[I] * - dl[lid]
+    lid = @inbounds cid[length(cid)]
+    @fastmath @inbounds dy[I] = m[I] * - dl[lid]
 end
+
+_exp(x) = Base.FastMath.exp_fast(x)
+Base.has_fast_linear_indexing(::Broadcast.Broadcasted{<:Union{Nothing, Broadcast.BroadcastStyle}, A, typeof(_exp)}) where {A} = false
 
 Losses.logitcrossentropy(ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask) =
     Losses.logitcrossentropy(mean, ŷ, y, m)
@@ -175,13 +174,14 @@ function Losses.logitcrossentropy(agg::Union{typeof(sum), typeof(mean)},
                                   ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask)
     Losses._check_sizes(ŷ, y)
     xmax = maximum(ŷ; dims = 1)
-    xdiff = instantiate(broadcasted(-, ŷ, xmax))
-    sexp = sum(instantiate(broadcasted(exp, xdiff)); dims = 1, init = zero(eltype(ŷ)))
-    logp = instantiate(broadcasted(-, xdiff, broadcasted(log, sexp)))
+    xdiff = instantiate(broadcasted(Base.FastMath.sub_fast, ŷ, xmax))
+    sexp = sum(instantiate(broadcasted(_exp, xdiff)); dims = 1, init = zero(eltype(ŷ)))
+    logp = instantiate(broadcasted(Base.FastMath.sub_fast, xdiff, broadcasted(Base.FastMath.log_fast, sexp)))
     c = reinterpret(Int32, y)
-    losses = sum(instantiate(broadcasted(_bcg, Ref(logp), c, CartesianIndices(c), Ref(m)));
+    refm = Refm(m, ŷ)
+    losses = sum(instantiate(broadcasted(_bcg, Ref(logp), c, CartesianIndices(c), refm));
                  dims = _tn2(m), init = zero(eltype(ŷ)))
-    loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), lengths(m))))
+    loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), Masks.lengths(m))))
     if agg isa typeof(mean)
         loss /= oftype(loss, length(losses))
     end
@@ -189,19 +189,20 @@ function Losses.logitcrossentropy(agg::Union{typeof(sum), typeof(mean)},
 end
 
 # https://github.com/FluxML/NNlib.jl/blob/0b64dc11e6ba47707c43cf668663e48a615c85bb/src/softmax.jl#L122
-∇logsoftmax_data!(dy, y; dims = 1) = dy .-= sum(dy; dims) .* exp.(y)
+∇logsoftmax_data!(dy, y; dims = 1) = @fastmath dy .-= sum(dy; dims) .* exp.(y)
 
 function ChainRulesCore.rrule(::typeof(logitcrossentropy), agg::Union{typeof(sum), typeof(mean)},
                               ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask)
     Losses._check_sizes(ŷ, y)
     xmax = maximum(ŷ; dims = 1)
-    xdiff = instantiate(broadcasted(-, ŷ, xmax))
-    sexp = sum(instantiate(broadcasted(exp, xdiff)); dims = 1, init = zero(eltype(ŷ)))
-    logp = instantiate(broadcasted(-, xdiff, broadcasted(log, sexp)))
+    xdiff = instantiate(broadcasted(Base.FastMath.sub_fast, ŷ, xmax))
+    sexp = sum(instantiate(broadcasted(_exp, xdiff)); dims = 1, init = zero(eltype(ŷ)))
+    logp = instantiate(broadcasted(Base.FastMath.sub_fast, xdiff, broadcasted(Base.FastMath.log_fast, sexp)))
     c = reinterpret(Int32, y)
-    losses = sum(instantiate(broadcasted(_bcg, Ref(logp), c, CartesianIndices(c), Ref(m)));
+    refm = Refm(m, ŷ)
+    losses = sum(instantiate(broadcasted(_bcg, Ref(logp), c, CartesianIndices(c), refm));
                  dims = _tn2(m), init = zero(eltype(ŷ)))
-    ls = lengths(m)
+    ls = Masks.lengths(m)
     loss = sum(instantiate(broadcasted(_sdiv, reshape(losses, :), ls)))
     scale = oftype(loss, agg isa typeof(mean) ? length(ls) : 1)
     function logitcrossentropy_pullback(Ybar)
@@ -209,7 +210,7 @@ function ChainRulesCore.rrule(::typeof(logitcrossentropy), agg::Union{typeof(sum
         dlosses = reshape(_sdiv.(Ȳ, ls), (ntuple(one, static(ndims(m)) - static(1))..., length(ls)))
         dlogp = fill!(similar(ŷ), 0)
         mapreduce(identity, _z, instantiate(broadcasted(
-            ∇_bcg!, Ref(dlogp), Ref(dlosses), c, CartesianIndices(c), Ref(m))); init = 0)
+            ∇_bcg!, Ref(dlogp), Ref(dlosses), c, CartesianIndices(c), refm)); init = 0)
         dy = ∇logsoftmax_data!(dlogp, logp; dims = 1)
         return (NoTangent(), NoTangent(), dy, NoTangent(), NoTangent())
     end
