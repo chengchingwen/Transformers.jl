@@ -7,9 +7,9 @@ using NeuralAttentionlib
 export Transformer
 
 export todevice, enable_gpu
-export Layers, TextEncoders, HuggingFace
+export Layers, TextEncoders, HuggingFace,
+    Masks
 
-const Abstract3DTensor{T} = AbstractArray{T, 3}
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
 
 using CUDA
@@ -29,9 +29,9 @@ function enable_gpu(t::Bool=true)
 end
 
 """
-  todevice(x)
+    todevice(x)
 
-move data to device, only when gpu is enable with `enable_gpu`, basically equal `Flux.gpu` except `AbstractArray{Int}` become `CuArray{Int}`. Otherwise equal `Flux.cpu`
+Move data to device, only when gpu is enable with `enable_gpu`, basically equal `Flux.gpu`. Otherwise just `Flux.cpu`.
 """
 todevice(args...; kws...) = tocpudevice(args...; kws...)
 

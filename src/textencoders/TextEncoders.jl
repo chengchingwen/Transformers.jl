@@ -1,5 +1,6 @@
 module TextEncoders
 
+using PrimitiveOneHot
 using TextEncodeBase
 using TextEncodeBase: WordTokenization, nested2batch, nestedcall, with_head_tail, tokenize
 using ..WordPieceModel
@@ -8,7 +9,7 @@ using ..UnigramLanguageModel
 
 using NeuralAttentionlib: AttenMask, LengthMask, RevLengthMask, GenericSequenceMask
 
-export lookup, encode, decode, Vocab, OneHot,
+export lookup, encode, decode, Vocab, OneHot, OneHotArray,
     TransformerTextEncoder, BertTextEncoder, GPT2TextEncoder, T5TextEncoder
 
 
