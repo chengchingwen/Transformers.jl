@@ -91,7 +91,7 @@ For constructing the transformer decoder in the encoder-decoder architecture:
 ```julia
 trf_dec_blocks_ws = Transformer(Layers.TransformerDecoderBlock,
     num_layer, relu, num_head, hidden_size, head_hidden_size, intermediate_size;
-	return_score = true)
+    return_score = true)
 ```
 
 ```julia-repl
@@ -110,8 +110,72 @@ julia> size(z.cross_attention_score) # (key length, query length, head, batch si
 
 ## Preprocessing Text
 
-Text processing functionalities are in the `TextEncoders` module.
+Text processing functionalities are in the `TextEncoders` module. The `TransformerTextEncoder` take a tokenize function
+ and a list of `String` as the vocabulary. If the tokenize function is omitted, it would use `WordTokenizers.tokenize`
+ as the default. Here we create a text encoder that split on every `Char` and only know 4 characters.
 
+```julia
+using Transformers.TextEncoders
+
+char_tenc = TransformerTextEncoder(Base.Fix2(split, ""), map(string, ['A', 'T', 'C', 'G']))
+```
+
+```julia-repl
+julia> char_tenc
+TransformerTextEncoder(
+├─ TextTokenizer(WordTokenization(split_sentences = WordTokenizers.split_sentences, tokenize = Base.Fix2{typeof(split), String}(split, ""))),
+├─ vocab = Vocab{String, SizedArray}(size = 8, unk = <unk>, unki = 6),
+├─ startsym = <s>,
+├─ endsym = </s>,
+├─ padsym = <pad>,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := TextEncodeBase.with_head_tail(<s>, </s>)(target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(nothing))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(nothing, <pad>, tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token, target.attention_mask)
+)
+
+julia> data = encode(char_tenc, "ATCG")
+(token = Bool[0 1 … 0 0; 0 0 … 0 0; … ; 1 0 … 0 0; 0 0 … 0 1], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[6]))
+
+julia> data.token
+8x6 OneHotArray{8, 2, Vector{OneHot{0x00000008}}}:
+ 0  1  0  0  0  0
+ 0  0  1  0  0  0
+ 0  0  0  1  0  0
+ 0  0  0  0  1  0
+ 0  0  0  0  0  0
+ 0  0  0  0  0  0
+ 1  0  0  0  0  0
+ 0  0  0  0  0  1
+
+julia> decode(char_tenc, data.token)
+6-element Vector{String}:
+ "<s>"
+ "A"
+ "T"
+ "C"
+ "G"
+ "</s>"
+
+julia> data2 = encode(char_tenc, ["ATCG", "AAAXXXX"])
+(token = [0 1 … 0 0; 0 0 … 0 0; … ; 1 0 … 0 0; 0 0 … 0 0;;; 0 1 … 0 0; 0 0 … 0 0; … ; 1 0 … 0 0; 0 0 … 0 1], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[6, 9]))
+
+julia> decode(char_tenc, data2.token)
+9×2 Matrix{String}:
+ "<s>"    "<s>"
+ "A"      "A"
+ "T"      "A"
+ "C"      "A"
+ "G"      "<unk>"
+ "</s>"   "<unk>"
+ "<pad>"  "<unk>"
+ "<pad>"  "<unk>"
+ "<pad>"  "</s>"
+
+```
 
 ## Using (HuggingFace) Pre-trained Models
 

@@ -20,6 +20,8 @@ Pages = [
   "getstarted.md",
   "tutorial.md",
   "layers.md",
+  "textencoders.md",
+  "huggingface.md",
 ]
 Depth = 3
 ```

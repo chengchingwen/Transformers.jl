@@ -18,7 +18,9 @@ makedocs(;
         "Get Started" => "getstarted.md",
         "Tutorial" => "tutorial.md",
         "Layers" => "layers.md",
-        "ChangeLogs" => "changelog.md"
+        "TextEncoders" => "textencoders.md",
+        "HuggingFace" => "huggingface.md",
+        "ChangeLogs" => "changelog.md",
     ],
 )
 
