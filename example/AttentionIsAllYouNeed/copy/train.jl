@@ -9,7 +9,7 @@ const lr = 1e-4
 const startsym = "11"
 const endsym = "12"
 const unksym = "0"
-const labels = [unksym, startsym, endsym, collect(map(string, 1:V))...]
+const labels = [unksym, startsym, endsym, map(string, 1:V)...]
 
 const textenc = TransformerTextEncoder(split, labels; startsym, endsym, unksym, padsym = unksym)
 

@@ -10,18 +10,10 @@ using Transformers.Layers
 using Transformers.TextEncoders
 using Transformers.Datasets
 
-import Transformers.NeuralAttentionlib as NAlib
-
-
 function preprocess(data)
     global textenc
     x, t = data
-    x_data = encode(textenc, x)
-    t_data = encode(textenc, t)
-    input = (encoder_input = x_data,
-             decoder_input = merge(t_data,
-                                   (cross_attention_mask = NAlib.AttenMask(
-                                       t_data.attention_mask, x_data.attention_mask),)))
+    input = encode(textenc, x, t)
     return todevice(input)
 end
 
