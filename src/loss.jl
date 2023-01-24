@@ -10,6 +10,10 @@ import Flux.Losses: crossentropy, logitcrossentropy
 
 using Base.Broadcast: broadcasted, instantiate
 
+if VERSION < v"1.7"
+    Base.has_fast_linear_indexing(::Ref) = true
+end
+
 Refm(m, dest) = Ref(Broadcast.preprocess(dest, m))
 
 _tn(m, s) = ntuple(identity, static(ndims(m)) - s)
