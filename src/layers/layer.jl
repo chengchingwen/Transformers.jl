@@ -123,6 +123,8 @@ function argument_names(layer::LayerStruct)
     end
 end
 
+ChainRulesCore.@non_differentiable argument_names(m)
+
 function return_namedtuple(f, nt, hidden_state)
     nt = Base.structdiff(nt, NamedTuple{argument_names(f)})
     return return_hidden_state(nt, hidden_state)
