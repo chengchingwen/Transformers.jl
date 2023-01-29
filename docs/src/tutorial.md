@@ -44,11 +44,14 @@ Embedding_k(word) = WordEmbedding_k(word) + PE(pos\_of\_word, k)
 
 ## Transformers.jl
 
-Now we know how the transformer model looks like, let's take a look at the Transformers.jl. The package is build on top of a famous deep learning framework in Julia, [Flux.jl](https://github.com/FluxML/Flux.jl/).
+Now we know how the transformer model looks like, let's take a look at the Transformers.jl.
 
 ### Example
 
-_The example code can be found in the [example folder](https://github.com/chengchingwen/Transformers.jl/tree/master/example/AttentionIsAllYouNeed)._
+!!! info
+    This tutorial is just for demonstrating how the Transformer model looks like, not for using in real task.
+     The example code can be found in the
+	 [example folder](https://github.com/chengchingwen/Transformers.jl/tree/master/example/AttentionIsAllYouNeed).
 
 To best illustrate the usage of Transformers.jl, we will start with building a two layer Transformer model on a sequence copy task. Before we start, we need to install all the package we need:
 
@@ -91,9 +94,9 @@ sample_data() = (d = join(map(string, rand(1:10, 10)), ' '); (d,d))
 
 @show sample = sample_data()
 # encode single sentence
-@show encoded_sample_1 = encode(textenc, sample[1]) 
+@show encoded_sample_1 = encode(textenc, sample[1])
 # encode for both encoder and decoder input
-@show encoded_sample = encode(textenc, sample[1], sample[2]) 
+@show encoded_sample = encode(textenc, sample[1], sample[2])
 ```
 
 ```
@@ -101,7 +104,6 @@ sample = sample_data() = ("5 1 10 10 7 3 3 4 9 6", "5 1 10 10 7 3 3 4 9 6")
 encoded_sample_1 = encode(textenc, sample[1]) = (token = Bool[0 0 0 0 0 0 0 0 0 0 0 0; 1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 1 0 0 0; 0 1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0; 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 0 0; 0 0 0 1 1 0 0 0 0 0 0 0], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[12]))
 encoded_sample = encode(textenc, sample[1], sample[2]) = (encoder_input = (token = Bool[0 0 0 0 0 0 0 0 0 0 0 0; 1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 1 0 0 0; 0 1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0; 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 0 0; 0 0 0 1 1 0 0 0 0 0 0 0], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[12])), decoder_input = (token = Bool[0 0 0 0 0 0 0 0 0 0 0 0; 1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 1 0 0 0; 0 1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0; 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 0 0; 0 0 0 1 1 0 0 0 0 0 0 0], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[12]), cross_attention_mask = NeuralAttentionlib.BiLengthMask{1, Vector{Int32}}(Int32[12], Int32[12])))
 ```
-
 
 ### Defining the model
 
@@ -184,8 +186,8 @@ function loss(input)
     return ce_loss
 end
 
-#collect all the parameters
-ps = params(word_embed, encoder_trf, decoder_trf)
+# collect all the parameters
+ps = Flux.params(word_embed, encoder_trf, decoder_trf)
 opt = ADAM(1e-4)
 
 # function for created batched data
