@@ -1,6 +1,7 @@
 module TextEncoders
 
 using PrimitiveOneHot
+using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: WordTokenization, nested2batch, nestedcall, with_head_tail, tokenize
 using ..WordPieceModel
@@ -11,7 +12,6 @@ using NeuralAttentionlib: AttenMask, LengthMask, RevLengthMask, GenericSequenceM
 
 export lookup, encode, decode, Vocab, OneHot, OneHotArray,
     TransformerTextEncoder, BertTextEncoder, GPT2TextEncoder, T5TextEncoder
-
 
 
 include("bert_tokenizer.jl")
@@ -33,75 +33,9 @@ function Base.show(io::IO, e::AbstractTransformerTextEncoder)
     print(IOContext(io, :pipeline_display_prefix => "  ╰─ "), ",\n└─ process = ", e.process, "\n)")
 end
 
-
-"""
-    struct TransformerTextEncoder{T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P} <: AbstractTextEncoder
-        tokenizer::T
-        vocab::V
-        process::P
-        startsym::String
-        endsym::String
-        padsym::String
-        trunc::Union{Nothing, Int}
-    end
-
-The text encoder for general transformers. Taking a tokenizer, vocabulary, and a processing function, configured with
- a start symbol, an end symbol, a padding symbol, and a maximum length.
-
-    TransformerTextEncoder(tokenze, vocab, process; trunc = nothing,
-                           startsym = "<s>", endsym = "</s>", unksym = "<unk>", padsym = "<pad>")
-
-`tokenize` can be any tokenize function from `WordTokenizers`. `vocab` is either a list of word or a `Vocab`.
- `process` can be omitted, then a predefined processing pipeline will be used.
-
-    TransformerTextEncoder(f, e::TransformerTextEncoder)
-
-Take a text encoder and create a new text encoder with same configuration except the processing function.
- `f` is a function that take the encoder and return a new process function. This is useful for changing part of
- the procssing function.
-
-# Example
-```julia-repl
-julia> textenc = TransformerTextEncoder(labels; startsym, endsym, unksym,
-                                        padsym = unksym, trunc = 100)
-TransformerTextEncoder(
-├─ TextTokenizer(default),
-├─ vocab = Vocab{String, SizedArray}(size = 37678, unk = </unk>, unki = 1),
-├─ startsym = <s>,
-├─ endsym = </s>,
-├─ padsym = </unk>,
-├─ trunc = 100,
-└─ process = Pipelines:
-  ╰─ target[tok] := nestedcall(string_getvalue, source)
-  ╰─ target[tok] := with_head_tail(<s>, </s>)(target.tok)
-  ╰─ target[trunc_tok] := trunc_and_pad(100, </unk>)(target.tok)
-  ╰─ target[trunc_len] := nestedmaxlength(target.trunc_tok)
-  ╰─ target[mask] := getmask(target.tok, target.trunc_len)
-  ╰─ target[tok] := nested2batch(target.trunc_tok)
-  ╰─ target := (target.tok, target.mask)
-)
-
-julia> Basic.TransformerTextEncoder(textenc) do enc
-           Pipelines(enc.process[1:4]) |> PipeGet{(:trunc_tok, :trunc_len)}()
-       end
-TransformerTextEncoder(
-├─ TextTokenizer(default),
-├─ vocab = Vocab{String, SizedArray}(size = 37678, unk = </unk>, unki = 1),
-├─ startsym = <s>,
-├─ endsym = </s>,
-├─ padsym = </unk>,
-├─ trunc = 100,
-└─ process = Pipelines:
-  ╰─ target[tok] := nestedcall(string_getvalue, source)
-  ╰─ target[tok] := with_head_tail(<s>, </s>)(target.tok)
-  ╰─ target[trunc_tok] := trunc_and_pad(100, </unk>)(target.tok)
-  ╰─ target[trunc_len] := nestedmaxlength(target.trunc_tok)
-  ╰─ target := (target.trunc_tok, target.trunc_len)
-)
-
-```
-"""
-struct TransformerTextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P} <: AbstractTransformerTextEncoder
+struct TransformerTextEncoder{
+    T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P
+} <: AbstractTransformerTextEncoder
     tokenizer::T
     vocab::V
     process::P
@@ -187,8 +121,128 @@ function TextEncodeBase.encode(e::AbstractTransformerTextEncoder, src, trg)
     return (encoder_input = psrc, decoder_input = merge(ptrg, (; cross_attention_mask)))
 end
 
+# decoder behavior
+function TextEncodeBase.decode(e::AbstractTransformerTextEncoder,
+                               i::Union{Integer, OneHotArray, AbstractArray{<:Integer}})
+    return TextEncodeBase.decode_indices(e, i)
+end
+
+function TextEncodeBase.decode(e::AbstractTransformerTextEncoder, x::AbstractArray)
+    amax = reshape(argmax(x; dims=1), Base.tail(size(x)))
+    i = selectdim(reinterpret(reshape, Int, amax), 1, 1)
+    return decode(e, i)
+end
+
+
 include("bert_textencoder.jl")
 include("gpt_textencoder.jl")
 include("t5_textencoder.jl")
+
+
+"""
+    struct TransformerTextEncoder{
+        T<:AbstractTokenizer, V<:AbstractVocabulary{String}, P
+    } <: AbstractTransformerTextEncoder
+        tokenizer::T
+        vocab::V
+        process::P
+        startsym::String
+        endsym::String
+        padsym::String
+        trunc::Union{Nothing, Int}
+    end
+
+The text encoder for general transformers. Taking a tokenizer, vocabulary, and a processing function, configured with
+ a start symbol, an end symbol, a padding symbol, and a maximum length.
+
+    TransformerTextEncoder(tokenze, vocab, process; trunc = nothing,
+                           startsym = "<s>", endsym = "</s>", unksym = "<unk>", padsym = "<pad>")
+
+`tokenize` can be any tokenize function from `WordTokenizers`. `vocab` is either a list of word or a `Vocab`.
+ `process` can be omitted, then a predefined processing pipeline will be used. When `vocab` is a list, those
+ special symbol (e.g. `padsym`) would be added to the word list.
+
+    TransformerTextEncoder(f, e::TransformerTextEncoder)
+
+Take a text encoder and create a new text encoder with same configuration except the processing function.
+ `f` is a function that take the encoder and return a new process function. This is useful for changing part of
+ the procssing function.
+
+# Example
+```julia-repl
+julia> textenc = TransformerTextEncoder(labels; startsym, endsym, unksym,
+                                        padsym = unksym, trunc = 100)
+TransformerTextEncoder(
+├─ TextTokenizer(default),
+├─ vocab = Vocab{String, SizedArray}(size = 37678, unk = </unk>, unki = 1),
+├─ startsym = <s>,
+├─ endsym = </s>,
+├─ padsym = </unk>,
+├─ trunc = 100,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := TextEncodeBase.with_head_tail(<s>, </s>)(target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(10))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(10, <pad>, tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token, target.attention_mask)
+)
+
+julia> TransformerTextEncoder(ans) do enc
+           enc.process[1] |> TextEncoders.Pipelines(enc.process[4:5]) |> TextEncoders.PipeGet{(:token,)}()
+       end
+TransformerTextEncoder(
+├─ TextTokenizer(default),
+├─ vocab = Vocab{String, SizedArray}(size = 37678, unk = </unk>, unki = 1),
+├─ startsym = <s>,
+├─ endsym = </s>,
+├─ padsym = </unk>,
+├─ trunc = 100,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(10, <pad>, tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token)
+)
+
+```
+"""
+TransformerTextEncoder
+
+"""
+    encode(e::AbstractTransformerTextEncoder, input::Union{
+        String,                         # single sentence
+        Vector{String},                 # batch of sentences
+        Vector{Vector{String}},         # batch of multi-segment sentences
+        Vector{Vector{Vector{String}}}  # batch of multi-sample multi-segment sentences
+    })
+
+Tokenize the `input` and apply the processing function on the tokenized result. The `input` can be either a single
+ `String` (1 sample) or a nested vector of `String` up to depth 3 (batch of samples). How batch input is transformed
+ is defined by the bound processing function. The result of the processing function (first if return tuple) would be
+ converted into one-hot encoding with the bound vocabulary.
+
+    encode(e::AbstractTransformerTextEncoder, src, trg)
+
+Apply `encode` on `src` and `trg` and build the cross attention mask. This is just a convenient function for doing
+ encoder-decoder tasks. Return a `@NamedTuple{encoder_input, decoder_input}` where `encoder_input` is just
+ `encode(e, src)` and `decoder_input` is `encode(e, trg)` + the cross attention mask.
+"""
+TextEncodeBase.encode(e::AbstractTransformerTextEncoder, x)
+
+"""
+    decode(e::AbstractTransformerTextEncoder, x::Union{
+        Integer,
+        OneHotArray,
+        AbstractArray{<:Integer}
+    })
+
+Decode the one-hot encoding or indices into `String` (or `Array{String}`) from the bound vocabulary.
+
+    decode(e::AbstractTransformerTextEncoder, x::AbstractArray)
+
+Perform `argmax(x; dims = 1)` and then `decode`. `x` should be `collect`ed beforehand if it's on GPU.
+"""
+TextEncodeBase.decode(e::AbstractTransformerTextEncoder, x)
 
 end

@@ -23,6 +23,8 @@ struct GPTTokenization <: BaseTokenization end
 
 TextEncodeBase.splitting(::GPTTokenization, s::SentenceStage) = gpt_tokenizer(getvalue(s))
 
+Base.show(io::IO, ::GPTTokenization) = print(io, nameof(gpt_tokenizer))
+
 ## bpe tokenization and gpt2 tokenizer
 
 using BytePairEncoding
@@ -43,6 +45,11 @@ end
 
 ## gpt2 encoder
 
+"""
+    GPT2TextEncoder
+
+The text encoder for GPT2 model (ByteLevel BytePairEncoding tokenization).
+"""
 struct GPT2TextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P, C<:CodeMap} <: AbstractTransformerTextEncoder
     tokenizer::T
     vocab::V
@@ -218,11 +225,100 @@ end
 
 # decode
 
-function TextEncodeBase.decode(e::GPT2TextEncoder, x)
+function TextEncodeBase.decode(e::GPT2TextEncoder, i::Union{Integer, OneHotArray, AbstractArray{<:Integer}})
     uc = CodeUnMap(e.codemap)
-    return TextEncodeBase.nestedcall(uc, TextEncodeBase.decode_indices(e, x))
+    return TextEncodeBase.nestedcall(uc, TextEncodeBase.decode_indices(e, i))
 end
 
-# pretty print
+# api doc
 
-Base.show(io::IO, ::GPTTokenization) = print(io, nameof(gpt_tokenizer))
+"""
+    encode(::GPT2TextEncoder, ::String)
+
+Encode a single sentence with gpt2 text encoder. The default pipeline returning
+ `@NamedTuple{token::OneHotArray{K, 1}, attention_mask::RevLengthMask{1, Vector{Int32}}}`.
+
+    encode(::GPT2TextEncoder, ::Vector{String})
+
+Encode a batch of sentences with gpt2 text encoder. The default pipeline returning
+ `@NamedTuple{token::OneHotArray{K, 2}, attention_mask::RevLengthMask{1, Vector{Int32}}}`.
+
+    encode(::GPT2TextEncoder, ::Vector{Vector{String}})
+
+Encode a batch of segments with gpt2 text encoder. Segments would be concatenate together as batch of sentences.
+ The default pipeline returning `@NamedTuple{token::OneHotArray{K, 2}, attention_mask::RevLengthMask{1, Vector{Int32}}}`.
+
+    encode(::GPT2TextEncoder, ::Vector{Vector{Vector{String}}})
+
+Encode a batch of multi-sample segments with gpt2 text encoder. The number of sample per data need to be the same.
+ (e.g. `length(batch[1]) == length(batch[2])`). The default pipeline returning
+ `@NamedTuple{token::OneHotArray{K, 3}, attention_mask::RevLengthMask{2, Matrix{Int32}}}`.
+ *notice*: If you want each sample to be independent to each other, this need to be reshaped before feeding to
+ transformer layer or make sure the attention is not taking the `end-1` dimension as another length dimension.
+
+See also: [`decode`](@ref), `RevLengthMask`
+
+# Example
+```julia-repl
+julia> gpt2enc = HuggingFace.load_tokenizer("gpt2")
+GPT2TextEncoder(
+├─ TextTokenizer(MatchTokenization(CodeNormalizer(BPETokenization(GPT2Tokenization, bpe = CachedBPE(BPE(50000 merges))), codemap = CodeMap{UInt8 => UInt16}(3 code-ranges)), 1 patterns)),
+├─ vocab = Vocab{String, SizedArray}(size = 50257, unk = <unk>, unki = 0),
+├─ codemap = CodeMap{UInt8 => UInt16}(3 code-ranges),
+├─ startsym = <|endoftext|>,
+├─ endsym = <|endoftext|>,
+├─ padsym = <|endoftext|>,
+├─ trunc = 1024,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
+  ╰─ target[token] := SequenceTemplate{String}((Input:<type=1>)...)(Val{1}(), target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.RevLengthMask ∘ Transformers.TextEncoders.getlengths(1024))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(1024, <|endoftext|>, head, head)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token, target.attention_mask)
+)
+
+julia> e = encode(gpt2enc, [["this is a sentence", "and another"]])
+(token = [0 0 … 0 0; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0;;;], attention_mask = NeuralAttentionlib.RevLengthMask{1, Vector{Int32}}(Int32[6]))
+
+julia> typeof(e)
+NamedTuple{(:token, :attention_mask), Tuple{OneHotArray{0x0000c451, 2, 3, Matrix{OneHot{0x0000c451}}}, NeuralAttentionlib.RevLengthMask{1, Vector{Int32}}}}
+
+```
+"""
+TextEncodeBase.encode(::GPT2TextEncoder, _)
+
+"""
+    decode(bertenc::GPT2TextEncoder, x)
+
+Convert indices back to string with gpt2 vocabulary. This would also map the bytes back to the normal code ranges,
+ so the string is not directly the one in the vocabulary.
+
+See also: [`encode`](@ref)
+
+# Example
+```julia-repl
+julia> token = encode(gpt2enc, [["this is a sentence", "and another"]]).token;
+
+julia> decode(gpt2enc, token)
+6×1 Matrix{String}:
+ "this"
+ " is"
+ " a"
+ " sentence"
+ "and"
+ " another"
+
+julia> TextEncodeBase.decode_indices(gpt2enc, token)
+6×1 Matrix{String}:
+ "this"
+ "Ġis"
+ "Ġa"
+ "Ġsentence"
+ "and"
+ "Ġanother"
+
+```
+"""
+TextEncodeBase.decode(::GPT2TextEncoder, _)

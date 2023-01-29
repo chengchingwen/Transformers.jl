@@ -9,11 +9,7 @@ function isinvalid(c)
   c == Char(0) || c == Char(0xfffd) || iscntrl(c)
 end
 
-"""
-    invalid(ts)
-
-ignore invalid characters such like U+0000, U+fffd, and Control characters
-"""
+# ignore invalid characters such like U+0000, U+fffd, and Control characters
 function invalid(ts)
   isinvalid(ts[]) || return false
   ts.idx += 1
@@ -30,11 +26,7 @@ ischinese(c) =
   Char(0xf900)  ≤ c ≤ Char(0xfaff)  ||
   Char(0x2f800) ≤ c ≤ Char(0x2fa1f)
 
-"""
-    chinese(ts)
-
-separate on chinese characters
-"""
+# separate on chinese characters
 function chinese(ts)
   ischinese(ts[]) || return false
   flush!(ts, string(ts[]))
@@ -87,16 +79,15 @@ end
 
 
 """
-
     bert_uncased_tokenizer(input)
 
-google bert tokenizer which do lower case on input before tokenization.
+Google bert tokenizer which do lower case on input before tokenization.
 """
 bert_uncased_tokenizer(input) = _bert_tokenise(input, Val(true))
 
 """
     bert_cased_tokenizer(input)
 
-google bert tokenizer which remain the case during tokenization. Recommended for multi-lingual data.
+Google bert tokenizer which remain the case during tokenization. Recommended for multi-lingual data.
 """
 bert_cased_tokenizer(input) = _bert_tokenise(input, Val(false))

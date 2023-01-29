@@ -1,10 +1,10 @@
 import WordTokenizers
 
 """
-The function in the origin gpt code
+    text_standardize(text)
 
-fixes some issues the spacy tokenizer had on books corpus
-also does some whitespace standardization
+The function in the origin gpt code. Fixes some issues the spacy tokenizer had on books corpus also does
+ some whitespace standardization.
 """
 function text_standardize(text)
     text = lowercase(text)

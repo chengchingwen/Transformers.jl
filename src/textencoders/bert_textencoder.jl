@@ -18,81 +18,15 @@ TextEncodeBase.splitting(::BertUnCasedPreTokenization, s::SentenceStage) = bert_
 
 const BertTokenization = Union{BertCasedPreTokenization, BertUnCasedPreTokenization}
 
+Base.show(io::IO, ::BertCasedPreTokenization) = print(io, nameof(bert_cased_tokenizer))
+Base.show(io::IO, ::BertUnCasedPreTokenization) = print(io, nameof(bert_uncased_tokenizer))
+
 # encoder
 
 """
-    struct BertTextEncoder{T<:AbstractTokenizer,
-                           V<:AbstractVocabulary{String},
-                           P} <: AbstractTextEncoder
-      tokenizer::T
-      vocab::V
-      process::P
-      startsym::String
-      endsym::String
-      trunc::Union{Nothing, Int}
-    end
+    BertTextEncoder
 
-The text encoder for Bert model. Taking a tokenizer, vocabulary, and a processing function, configured with
- a start symbol, an end symbol, and a maximum length.
-
-    BertTextEncoder(bert_tokenizer, wordpiece, process;
-                    startsym = "[CLS]", endsym = "[SEP]", trunc = nothing)
-
-There are two tokenizer supported (`bert_cased_tokenizer` and `bert_uncased_tokenizer`).
- `process` can be omitted, then a predefined processing pipeline will be used.
-
-
-    BertTextEncoder(f, bertenc::BertTextEncoder)
-
-Take a bert text encoder and create a new bert text encoder with same configuration except the processing function.
- `f` is a function that take the encoder and return a new process function. This is useful for changing part of
- the procssing function.
-
-# Example
-
-```julia-repl
-julia> wordpiece = pretrain"bert-cased_L-12_H-768_A-12:wordpiece"
-[ Info: loading pretrain bert model: cased_L-12_H-768_A-12.tfbson wordpiece
-WordPiece(vocab_size=28996, unk=[UNK], max_char=200)
-
-julia> bertenc = BertTextEncoder(bert_cased_tokenizer, wordpiece; trunc=5)
-BertTextEncoder(
-├─ TextTokenizer(WordPieceTokenization(bert_cased_tokenizer, WordPiece(vocab_size=28996, unk=[UNK], max_char=200))),
-├─ vocab = Vocab{String, SizedArray}(size = 28996, unk = [UNK], unki = 101),
-├─ startsym = [CLS],
-├─ endsym = [SEP],
-├─ trunc = 5,
-└─ process = Pipelines:
-  ╰─ target[tok] := nestedcall(string_getvalue, source)
-  ╰─ target[tok] := with_firsthead_tail([CLS], [SEP])(target.tok)
-  ╰─ target[(tok, segment)] := segment_and_concat(target.tok)
-  ╰─ target[trunc_tok] := trunc_and_pad(5, [UNK])(target.tok)
-  ╰─ target[trunc_len] := nestedmaxlength(target.trunc_tok)
-  ╰─ target[mask] := getmask(target.tok, target.trunc_len)
-  ╰─ target[tok] := nested2batch(target.trunc_tok)
-  ╰─ target[segment] := (nested2batch ∘ trunc_and_pad(5, 1))(target.segment)
-  ╰─ target[input] := (NamedTuple{(:tok, :segment)} ∘ tuple)(target.tok, target.segment)
-  ╰─ target := (target.input, target.mask)
-)
-
-# take the first 3 pipeline and get the result
-julia> BertTextEncoder(bertenc) do enc
-           Pipelines(enc.process[1:3]) |> PipeGet{(:tok, :segment)}()
-       end
-BertTextEncoder(
-├─ TextTokenizer(WordPieceTokenization(bert_cased_tokenizer, WordPiece(vocab_size=28996, unk=[UNK], max_char=200))),
-├─ vocab = Vocab{String, SizedArray}(size = 28996, unk = [UNK], unki = 101),
-├─ startsym = [CLS],
-├─ endsym = [SEP],
-├─ trunc = 5,
-└─ process = Pipelines:
-  ╰─ target[tok] := nestedcall(string_getvalue, source)
-  ╰─ target[tok] := with_firsthead_tail([CLS], [SEP])(target.tok)
-  ╰─ target[(tok, segment)] := segment_and_concat(target.tok)
-  ╰─ target := (target.tok, target.segment)
-)
-
-```
+The text encoder for Bert model (WordPiece tokenization).
 """
 struct BertTextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P} <: AbstractTransformerTextEncoder
     tokenizer::T
@@ -202,32 +136,56 @@ end
     encode(::BertTextEncoder, ::String)
 
 Encode a single sentence with bert text encoder. The default pipeline returning
- `@NamedTuple{input::@NamedTuple{tok::OneHotArray{K, 2}, segment::Vector{Int}}, mask::Nothing}`
+ `@NamedTuple{token::OneHotArray{K, 1}, segment::Vector{Int}, attention_mask::LengthMask{1, Vector{Int32}}}`.
 
     encode(::BertTextEncoder, ::Vector{String})
 
 Encode a batch of sentences with bert text encoder. The default pipeline returning
- `@NamedTuple{input::@NamedTuple{tok::OneHotArray{K, 3}, segment::Matrix{Int}}, mask::Array{Float32, 3}}`
+ `@NamedTuple{token::OneHotArray{K, 2}, segment::Matrix{Int}, attention_mask::LengthMask{1, Vector{Int32}}}`.
 
     encode(::BertTextEncoder, ::Vector{Vector{String}})
 
-Encode a batch of segments with bert text encoder. The default pipeline returning
- `@NamedTuple{input::@NamedTuple{tok::OneHotArray{K, 3}, segment::Matrix{Int}}, mask::Array{Float32, 3}}`
+Encode a batch of segments with bert text encoder. Segments would be concatenate together as batch of sentences with
+ separation token and correct indicator in `segment`. The default pipeline returning
+ `@NamedTuple{token::OneHotArray{K, 2}, segment::Matrix{Int}, attention_mask::LengthMask{1, Vector{Int32}}}`.
 
-See also: [`decode`](@ref)
+    encode(::BertTextEncoder, ::Vector{Vector{Vector{String}}})
+
+Encode a batch of multi-sample segments with bert text encoder. The number of sample per data need to be the same.
+ (e.g. `length(batch[1]) == length(batch[2])`). The default pipeline returning
+ `@NamedTuple{token::OneHotArray{K, 3}, segment::Array{Int, 3}, attention_mask::LengthMask{2, Matrix{Int32}}}`.
+ *notice*: If you want each sample to be independent to each other, this need to be reshaped before feeding to
+ transformer layer or make sure the attention is not taking the `end-1` dimension as another length dimension.
+
+See also: [`decode`](@ref), `LengthMask`
 
 # Example
 ```julia-repl
-julia> wordpiece = pretrain"bert-cased_L-12_H-768_A-12:wordpiece";
-[ Info: loading pretrain bert model: cased_L-12_H-768_A-12.tfbson wordpiece
-
-julia> bertenc = BertTextEncoder(bert_cased_tokenizer, wordpiece);
+julia> bertenc = HuggingFace.load_tokenizer("bert-base-cased")
+BertTextEncoder(
+├─ TextTokenizer(MatchTokenization(WordPieceTokenization(bert_cased_tokenizer, WordPiece(vocab_size = 28996, unk = [UNK], max_char = 100)), 5 patterns)),
+├─ vocab = Vocab{String, SizedArray}(size = 28996, unk = [UNK], unki = 101),
+├─ startsym = [CLS],
+├─ endsym = [SEP],
+├─ padsym = [PAD],
+├─ trunc = 512,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
+  ╰─ target[(token, segment)] := SequenceTemplate{String}([CLS]:<type=1> Input[1]:<type=1> [SEP]:<type=1> (Input[2]:<type=2> [SEP]:<type=2>)...)(target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(512))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(512, [PAD], tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target[segment] := TextEncodeBase.trunc_and_pad(512, 1, tail, tail)(target.segment)
+  ╰─ target[segment] := TextEncodeBase.nested2batch(target.segment)
+  ╰─ target := (target.token, target.segment, target.attention_mask)
+)
 
 julia> e = encode(bertenc, [["this is a sentence", "and another"]])
-(input = (tok = [0 0 … 0 0; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0;;;], segment = [1; 1; … ; 2; 2;;]), mask = [1.0 1.0 … 1.0 1.0;;;])
+(token = [0 0 … 0 0; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0;;;], segment = [1; 1; … ; 2; 2;;], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[9]))
 
 julia> typeof(e)
-NamedTuple{(:input, :mask), Tuple{NamedTuple{(:token, :segment), Tuple{OneHotArray{0x00007144, 2, 3, Matrix{OneHot{0x00007144}}}, Matrix{Int64}}}, Array{Float32, 3}}}
+NamedTuple{(:token, :segment, :attention_mask), Tuple{OneHotArray{0x00007144, 2, 3, Matrix{OneHot{0x00007144}}}, Matrix{Int64}, NeuralAttentionlib.LengthMask{1, Vector{Int32}}}}
 
 ```
 """
@@ -236,27 +194,15 @@ TextEncodeBase.encode(::BertTextEncoder, _)
 """
     decode(bertenc::BertTextEncoder, x)
 
-Equivalent to `lookup(bertenc.vocab, x)`.
+Convert indices back to string with bert vocabulary.
 
 See also: [`encode`](@ref)
 
 # Example
 ```julia-repl
-julia> tok = encode(bertenc, [["this is a sentence", "and another"]]).input.tok;
+julia> token = encode(bertenc, [["this is a sentence", "and another"]]).token;
 
-julia> decode(bertenc, tok)
-9×1 Matrix{String}:
- "[CLS]"
- "this"
- "is"
- "a"
- "sentence"
- "[SEP]"
- "and"
- "another"
- "[SEP]"
-
-julia> lookup(bertenc.vocab, tok)
+julia> decode(bertenc, token)
 9×1 Matrix{String}:
  "[CLS]"
  "this"
@@ -271,9 +217,3 @@ julia> lookup(bertenc.vocab, tok)
 ```
 """
 TextEncodeBase.decode(::BertTextEncoder, _)
-
-# pretty print
-
-Base.show(io::IO, ::BertCasedPreTokenization) = print(io, nameof(bert_cased_tokenizer))
-Base.show(io::IO, ::BertUnCasedPreTokenization) = print(io, nameof(bert_uncased_tokenizer))
-Base.show(io::IO, wp::WordPieceTokenization) = print(io, "WordPieceTokenization(", wp.base, ", ", wp.wordpiece, ')')

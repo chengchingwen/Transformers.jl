@@ -3,6 +3,12 @@ using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall, Bat
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm
 using FuncPipelines
 
+
+"""
+    T5TextEncoder
+
+The text encoder for T5 model (SentencePiece tokenization).
+"""
 struct T5TextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P} <: AbstractTransformerTextEncoder
     tokenizer::T
     vocab::V
@@ -60,3 +66,88 @@ function t5_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym = 
         # return input and mask
         PipeGet{(:token, :attention_mask)}()
 end
+
+# api doc
+
+"""
+    encode(::T5TextEncoder, ::String)
+
+Encode a single sentence with t5 text encoder. The default pipeline returning
+ `@NamedTuple{token::OneHotArray{K, 1}, attention_mask::LengthMask{1, Vector{Int32}}}`.
+
+    encode(::T5TextEncoder, ::Vector{String})
+
+Encode a batch of sentences with t5 text encoder. The default pipeline returning
+ `@NamedTuple{token::OneHotArray{K, 2}, attention_mask::LengthMask{1, Vector{Int32}}}`.
+
+    encode(::T5TextEncoder, ::Vector{Vector{String}})
+
+Encode a batch of segments with t5 text encoder. Segments would be concatenate together as batch of sentences with a
+ separation token. The default pipeline returning
+ `@NamedTuple{token::OneHotArray{K, 2}, attention_mask::LengthMask{1, Vector{Int32}}}`.
+
+    encode(::T5TextEncoder, ::Vector{Vector{Vector{String}}})
+
+Encode a batch of multi-sample segments with t5 text encoder. The number of sample per data need to be the same.
+ (e.g. `length(batch[1]) == length(batch[2])`). The default pipeline returning
+ `@NamedTuple{token::OneHotArray{K, 3}, attention_mask::LengthMask{2, Matrix{Int32}}}`.
+ *notice*: If you want each sample to be independent to each other, this need to be reshaped before feeding to
+ transformer layer or make sure the attention is not taking the `end-1` dimension as another length dimension.
+
+See also: [`decode`](@ref), `LengthMask`
+
+# Example
+```julia-repl
+julia> t5enc = HuggingFace.load_tokenizer("t5")
+T5TextEncoder(
+├─ TextTokenizer(MatchTokenization(PrecompiledNormalizer(WordReplaceNormalizer(UnigramTokenization(EachSplitTokenization(splitter = isspace), unigram = Unigram(vocab_size = 32100, unk = <unk>)), pattern = r"^(?!▁)(.*)\$" => s"▁\1"), precompiled
+= PrecompiledNorm(...)), 103 patterns)),
+├─ vocab = Vocab{String, SizedArray}(size = 32100, unk = <unk>, unki = 3),
+├─ endsym = </s>,
+├─ padsym = <pad>,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
+  ╰─ target[(token, segment)] := SequenceTemplate{String}(Input[1]:<type=1> </s>:<type=1> (Input[2]:<type=1> </s>:<type=1>)...)(target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(nothing))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(nothing, <pad>, tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token, target.attention_mask)
+)
+
+julia> e = encode(t5enc, [["this is a sentence", "and another"]])
+(token = [0 0 … 0 0; 0 0 … 0 1; … ; 0 0 … 0 0; 0 0 … 0 0;;;], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[9]))
+
+julia> typeof(e)
+NamedTuple{(:token, :attention_mask), Tuple{OneHotArray{0x00007d64, 2, 3, Matrix{OneHot{0x00007d64}}}, NeuralAttentionlib.LengthMask{1, Vector{Int32}}}}
+
+```
+"""
+TextEncodeBase.encode(::T5TextEncoder, _)
+
+"""
+    decode(bertenc::T5TextEncoder, x)
+
+Convert indices back to string with t5 vocabulary.
+
+See also: [`encode`](@ref)
+
+# Example
+```julia-repl
+julia> token = encode(t5enc, [["this is a sentence", "and another"]]).token;
+
+julia> decode(t5enc, token)
+9×1 Matrix{String}:
+ "▁this"
+ "▁is"
+ "▁"
+ "a"
+ "▁sentence"
+ "</s>"
+ "▁and"
+ "▁another"
+ "</s>"
+
+```
+"""
+TextEncodeBase.decode(::T5TextEncoder, _)
