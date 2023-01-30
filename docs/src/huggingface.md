@@ -6,5 +6,5 @@ Module for loading pre-trained model from HuggingFace.
 
 ```@autodocs
 Modules = [Transformers.HuggingFace]
-Order = [:type, :function]
+Order = [:macro, :type, :function]
 ```

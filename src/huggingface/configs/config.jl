@@ -74,3 +74,30 @@ Base.propertynames(cfg::HGFConfig) = keys(cfg)
 getconfigname(::HGFConfig{name}) where name = name
 
 include("auto.jl")
+
+# api doc
+
+"""
+    HGFConfig{model_type}
+
+The type for holding the configuration for huggingface model `model_type`.
+
+    HGFConfig(base_cfg::HGFConfig; kwargs...)
+
+Return a new `HGFConfig` object for the same `model_type` with fields updated with `kwargs`.
+
+# Example
+
+```julia-repl
+julia> bertcfg = load_config("bert-base-cased");
+
+julia> bertcfg.num_labels
+2
+
+julia> mycfg = HuggingFace.HGFConfig(bertcfg; num_labels = 3);
+
+julia> mycfg.num_labels
+3
+```
+"""
+HGFConfig

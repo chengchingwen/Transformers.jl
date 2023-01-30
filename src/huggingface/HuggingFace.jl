@@ -20,11 +20,11 @@ include("./tokenizer/tokenizer.jl")
 include("./implementation/implement.jl")
 
 """
-  `hgf"<model-name>:<item>"`
+    `hgf"<model-name>:<item>"`
 
 Get `item` from `model-name`. This will ensure the required data are downloaded. `item` can be "config",
-"tokenizer", and model related like "Model", or "ForMaskedLM", etc. Use [`get_model_type`](@ref) to see what
-model/task are supported.
+ "tokenizer", and model related like "Model", or "ForMaskedLM", etc. Use [`get_model_type`](@ref) to see what
+ model/task are supported.
 """
 macro hgf_str(name)
   :(load_hgf_pretrained($(esc(name))))

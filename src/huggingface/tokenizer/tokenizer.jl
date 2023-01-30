@@ -133,3 +133,38 @@ end
 include("utils.jl")
 include("slow_tkr.jl")
 include("fast_tkr.jl")
+
+# api doc
+
+"""
+    load_tokenizer(model_name; config = nothing, local_files_only = false, cache = true)
+
+Load the text encoder of `model_name` from huggingface hub. By default, this function would check if `model_name`
+ exists on huggingface hub, download all required files for this text encoder (and cache these files if `cache` is
+ set), and then load and return the text encoder. If `local_files_only = false`, it would check whether all cached
+ files are up-to-date and update if not (and thus require network access every time it is called). By setting
+ `local_files_only = true`, it would try to find the files from the cache directly and error out if not found.
+ For managing the caches, see the `HuggingFaceApi.jl` package.
+
+# Example
+
+```julia-repl
+julia> load_tokenizer("t5-small")
+T5TextEncoder(
+├─ TextTokenizer(MatchTokenization(PrecompiledNormalizer(WordReplaceNormalizer(UnigramTokenization(EachSplitTokenization(splitter = isspace), unigram = Unigram(vocab_size = 32100, unk = <unk>)), pattern = r"^(?!▁)(.*)\$" => s"▁\1"), precompiled = PrecompiledNorm(...)), 103 patterns)),
+├─ vocab = Vocab{String, SizedArray}(size = 32100, unk = <unk>, unki = 3),
+├─ endsym = </s>,
+├─ padsym = <pad>,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
+  ╰─ target[(token, segment)] := SequenceTemplate{String}(Input[1]:<type=1> </s>:<type=1> (Input[2]:<type=1> </s>:<type=1>)...)(target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(nothing))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(nothing, <pad>, tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token, target.attention_mask)
+)
+
+```
+"""
+load_tokenizer
