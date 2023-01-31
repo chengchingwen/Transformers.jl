@@ -12,7 +12,7 @@ import Flux.Optimise: update!
 const Epoch = 2
 const Batch = 4
 const mrpc = GLUE.MRPC()
-const labels = Basic.Vocab([get_labels(mrpc)...])
+const labels = Vocab([get_labels(mrpc)...])
 
 function preprocess(batch)
     global labels

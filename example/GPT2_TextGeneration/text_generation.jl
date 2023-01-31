@@ -2,18 +2,10 @@ using Flux
 using StatsBase
 using TextEncodeBase
 using Transformers
-using Transformers.Basic
-using Transformers.GenerativePreTrain
-using Transformers.Pretrain
 using Transformers.HuggingFace
 
-const textenc = GPT2TextEncoder(hgf"gpt2:tokenizer") do e
-    GenerativePreTrain.gpt2_default_preprocess(
-        ; trunc = e.trunc, startsym = e.startsym, endsym = nothing, padsym = e.padsym,
-        trunc_end = :head, pad_end = :head,
-    )
-end
-const model = todevice(hgf"gpt2:lmheadmodel")
+const textenc = hgf"gpt2:tokenizer"
+const model = hgf"gpt2:lmheadmodel"
 
 function temp_softmax(logits; temperature=1.2)
     return softmax(logits ./ temperature)
@@ -27,27 +19,26 @@ function top_k_sample(probs; k=10)
 end
 
 function generate_text(context=""; max_length=50)
-    tokens = TextEncodeBase.tokenize(textenc, [context])
+    encoded = encode(textenc, context).token
+    ids = encoded.onehots
+    ends_id = lookup(textenc.vocab, textenc.endsym)
     for i in 1:max_length
-        data = lookup(textenc, TextEncodeBase.process(textenc, tokens))
-        outputs = model(data.input.tok; output_attentions=false,
-                        output_hidden_states=false,
-                        use_cache=false)
-        logits = @view outputs.logits[:, end, 1]
+        input = (; token = encoded)
+        outputs = model(input)
+        logits = @view outputs.logit[:, end, 1]
         probs = temp_softmax(logits)
-        new_token = lookup(textenc.vocab, top_k_sample(probs)[1])
-        push!(tokens[], TextEncodeBase.Token(new_token))
-        new_token == "<|endoftext|>" && break
+        new_id = top_k_sample(probs)[1]
+        push!(ids, new_id)
+        new_id == ends_id && break
     end
-    return map(TextEncodeBase.getvalue, tokens[])
+    return decode(textenc, encoded)
 end
 
 function generate(prompt, max_length)
     text_token = generate_text(prompt; max_length=max_length)
-    ids = lookup(textenc.vocab, text_token)
-    gen_text = join(TextEncodeBase.decode(textenc, ids))
+    gen_text = join(text_token)
     print("\n\nGenerated Text: ")
     println(gen_text)
 end
 
-generate( "Fruits are very good for ", 100)
+# generate("My name is Thomas and my main", 100)

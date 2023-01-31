@@ -2,13 +2,10 @@ using Flux
 using StatsBase
 using TextEncodeBase
 using Transformers
-using Transformers.Basic
-using Transformers.GenerativePreTrain
-using Transformers.Pretrain
 using Transformers.HuggingFace
 
 const textenc = hgf"t5-small:tokenizer"
-const model = todevice(hgf"t5-small:ForConditionalGeneration")
+const model = hgf"t5-small:ForConditionalGeneration"
 
 function temp_softmax(logits; temperature=1.2)
     return softmax(logits ./ temperature)
@@ -22,19 +19,21 @@ function top_k_sample(probs; k=10)
 end
 
 function generate_text(context=""; max_length=50, greedy = true)
-    enc = encode(textenc, [context])
-    dec_tokens = [textenc.padsym]
+    enc_encoded = encode(textenc, context).token
+    enc_input = (; token = enc_encoded)
+    dec_encoded = OneHotArray([ lookup(OneHot, textenc.vocab, textenc.padsym) ])
+    ids = dec_encoded.onehots
+    ends_id = lookup(textenc.vocab, textenc.endsym)
     for i in 1:max_length
-        data = lookup(textenc.vocab, dec_tokens)
-        outputs = model(enc.input.tok, data)
-        logits = @view outputs.logits[:, end, 1]
+        input = (; encoder_input = enc_input, decoder_input = (; token = dec_encoded))
+        outputs = model(input)
+        logits = @view outputs.logit[:, end, 1]
         probs = temp_softmax(logits)
-        pred = greedy ? Flux.onecold(probs) : top_k_sample(probs)[1]
-        new_token = lookup(textenc.vocab, pred)
-        push!(dec_tokens, new_token)
-        new_token == textenc.endsym && break
+        new_id = greedy ? Flux.onecold(probs) : top_k_sample(probs)[1]
+        push!(ids, new_id)
+        new_id == ends_id && break
     end
-    return dec_tokens
+    return decode(textenc, dec_encoded)
 end
 
 function generate(prompt; max_length = 100, greedy = true)
