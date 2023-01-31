@@ -24,7 +24,7 @@ include("./implementation/implement.jl")
 
 Get `item` from `model-name`. This will ensure the required data are downloaded. `item` can be "config",
  "tokenizer", and model related like "Model", or "ForMaskedLM", etc. Use [`get_model_type`](@ref) to see what
- model/task are supported.
+ model/task are supported. If `item` is omitted, return a `Tuple` of `<model-name>:tokenizer` and `<model-name>:model`.
 """
 macro hgf_str(name)
   :(load_hgf_pretrained($(esc(name))))

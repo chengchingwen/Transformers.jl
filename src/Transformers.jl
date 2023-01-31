@@ -15,9 +15,9 @@ const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
 using CUDA
 
 """
-  enable_gpu(t=true)
+    enable_gpu(t=true)
 
-enable gpu for `todevice`, disable with `enable_gpu(false)`.
+Enable gpu for `todevice`, disable with `enable_gpu(false)`.
 """
 function enable_gpu(t::Bool=true)
     if t
