@@ -102,22 +102,25 @@ function _hgf_preprocess(
     ; padsym, trunc = nothing, fixedsize = false, trunc_end = :tail, pad_end = :tail,
     process = nothing, kws...
 )
-    truncf = get_trunc_pad_func(fixedsize, trunc, trunc_end, pad_end)
-    maskf = get_mask_func(trunc, pad_end)
+    truncf = TextEncoders.get_trunc_pad_func(fixedsize, trunc, trunc_end, pad_end)
+    maskf = TextEncoders.get_mask_func(trunc, pad_end)
+    has_segment = false
     if !isnothing(process)
-        process = Pipeline{:token}(nestedcall(string_getvalue), 1) |> process
+        process = Pipeline{:token}(nestedcall(TextEncoders.string_getvalue), 1) |> process
         if :segment in FuncPipelines.target_name.(process.pipes)
+            has_segment = true
             process = process |>
                 Pipeline{:segment}(truncf(1), :segment) |>
                 Pipeline{:segment}(nested2batch, :segment)
         end
     else
-        process = Pipeline{:token}(nestedcall(string_getvalue), 1)
+        process = Pipeline{:token}(nestedcall(TextEncoders.string_getvalue), 1)
     end
     return process |>
         Pipeline{:attention_mask}(maskf, :token) |>
         Pipeline{:token}(truncf(padsym), :token) |>
-        Pipeline{:token}(nested2batch, :token)
+        Pipeline{:token}(nested2batch, :token) |>
+        (has_segment ? PipeGet{(:token, :segment, :attention_mask)}() : PipeGet{(:token, :attention_mask)}())
 end
 
 encoder_construct(_type::Val{type}, tokenizer, vocab; kwargs...) where type =

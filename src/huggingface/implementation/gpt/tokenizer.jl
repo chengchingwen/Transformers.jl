@@ -8,8 +8,8 @@ function encoder_construct(::Val{Symbol("openai-gpt")}, tokenizer, vocab; proces
         # replacing the default process since huggingface openai-gpt doesn't have the special tokens
         # and being treated as a text generation model only
         process = Pipelines(
-            Pipeline{:tok}(grouping_sentence, :tok),
-            Pipeline{:tok}(SequenceTemplate(RepeatedTerm(InputTerm{String}()))(Val(1)), :tok),
+            Pipeline{:token}(grouping_sentence, :token),
+            Pipeline{:token}(SequenceTemplate(RepeatedTerm(InputTerm{String}()))(Val(1)), :token),
         )
     end
     return GPTTextEncoder(tokenizer, vocab; process, kwargs...)
