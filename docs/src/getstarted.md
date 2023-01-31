@@ -179,4 +179,25 @@ julia> decode(char_tenc, data2.token)
 
 ## Using (HuggingFace) Pre-trained Models
 
-Use the `HuggingFace` module for loading the pretrained model.
+Use the `HuggingFace` module for loading the pretrained model. The `@hgf_str` return a text encoder of the model, and
+ the model itself.
+
+```julia-repl
+julia> bertenc, bert_model = hgf"bert-base-cased";
+
+julia> bert_model(encode(bertenc, "Peter Piper picked a peck of pickled peppers"))
+(hidden_state = [0.54055643 -0.3517502 … 0.2955708 1.601667; 0.05538677 -0.1114391 … -0.2139448 0.3692414; … ; 0.34500372 0.38523915 … 0.2224255 0.7384993; -0.18260899 -0.05137573 … -0.2833455 -0.23427412;;;], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[13]), pooled = Float32[-0.6727301; 0.42062035; … ; -0.902852; 0.99214816;;])
+
+```
+
+## GPU
+
+Transformers relies on `CUDA.jl` for the GPU stuffs. In `Flux` we normally use `Flux.gpu` to convert model or data to
+ the device. In Transformers, we provide another 2 api (`enable_gpu` and `todevice`) for this. If `enable_gpu(true)` is
+ set, `todevice` will be moving data to GPU device, otherwise it is copying data on CPU. *notice*: `enable_gpu` should
+ only be called in script, it cannot be used during precompilation.
+
+```@docs
+enable_gpu
+todevice
+```
