@@ -127,6 +127,7 @@ function TextEncodeBase.decode(e::AbstractTransformerTextEncoder,
     return TextEncodeBase.decode_indices(e, i)
 end
 
+TextEncodeBase.decode(e::AbstractTransformerTextEncoder, x::AbstractVector) = decode(e, argmax(x))
 function TextEncodeBase.decode(e::AbstractTransformerTextEncoder, x::AbstractArray)
     amax = reshape(argmax(x; dims=1), Base.tail(size(x)))
     i = selectdim(reinterpret(reshape, Int, amax), 1, 1)

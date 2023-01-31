@@ -1,5 +1,6 @@
 using Test
 using ZipFile
+using Flux
 using Transformers.TextEncoders
 using NeuralAttentionlib: LengthMask
 import DoubleArrayTries
@@ -14,6 +15,15 @@ import DoubleArrayTries
 
         gen_data(n) = join(rand(1:10, n), ' ')
 
+        # decode
+        i = rand(1:length(labels))
+        r1 = randn(length(labels))
+        r2 = randn(length(labels), 5)
+        r3 = randn(length(labels), 5, 2)
+        @test decode(textenc, i) == labels[i]
+        @test decode(textenc, r1) == decode(textenc, Flux.onecold(r1))
+        @test decode(textenc, r2) == decode(textenc, Flux.onecold(r2))
+        @test decode(textenc, r3) == decode(textenc, Flux.onecold(r3))
         # single input below trunc
         d1 = gen_data(7)
         s1 = [startsym; split(d1); endsym]
