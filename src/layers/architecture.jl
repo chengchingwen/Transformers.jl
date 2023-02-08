@@ -68,11 +68,11 @@ function return_namedtuple(f, nt, hidden_state)
 end
 
 function (layer::LayerStruct)(arg, args...)
-    arg isa NamedTuple && error("$(typeof(layer))(::NamedTuple) is not overloaded.")
+    arg isa NamedTuple && error("$(nameof(typeof(layer)))(::NamedTuple) is not overloaded.")
     names = argument_names(layer)
     input = tuple(arg, args...)
     length(names) != length(input) && error(
-        "layer should take $(length(names)) arguments $names but only get $(length(input)).\n$(typeof(layer))"
+        "layer should take $(length(names)) arguments $names but only get $(length(input)).\nType: $(typeof(layer))"
     )
     return layer(NamedTuple{names}(input))
 end
@@ -327,6 +327,7 @@ function (c::Chain)(nt::NamedTuple)
         return applylayers(c.layers, nt)
     end
 end
+(c::Chain)(x) = c((hidden_state = x,))
 
 Base.getindex(c::Chain, i) = c.layers[i]
 Base.length(c::Chain) = length(c.layers)

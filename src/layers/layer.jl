@@ -214,6 +214,11 @@ Base.getindex(t::Transformer, i::Integer) = t.blocks[i]
 Base.getindex(t::Transformer, r::AbstractVector) = Transformer(t.blocks[r])
 Base.length(t::Transformer) = length(t.blocks)
 
+"""
+    Transformer(T::Type{<:AbstractTransformerBlock}, n::Int, args...; kwargs...)
+
+Create `n` layers of transformer blocks with `T(args...; kwargs...)`.
+"""
 function Transformer(T::Type{<:AbstractTransformerBlock}, n::Int, args...; collect_outputs = false, kwargs...)
     collect_f = collect_outputs isa Bool ?
         (collect_outputs ? (@__MODULE__).collect_outputs : nothing) :
@@ -270,6 +275,12 @@ end
 
 #############################################
 
+"""
+    SelfAttention(head::Int, hidden_size::Int [, head_hidden_size::Int = hidden_size ÷ head ];
+                  dropout::Union{Nothing, Float64} = nothing, return_score = false, causal = false)
+
+Create a multi-head self attention layer with `head` heads and `head_hidden_size` per head.
+"""
 function SelfAttention(head::Int, hidden_size::Int; dropout = nothing, return_score = false, causal = false)
     @assert rem(hidden_state, head) == 0 "`hidden_size` should be dividible by `head` if `head_hidden_size` is not set"
     head_hidden_size = div(hidden_size, head)
@@ -285,6 +296,12 @@ function SelfAttention(
     sa = SelfAttention(atten_op, head, hidden_size, head_hidden_size)
     return sa
 end
+
+"""
+    SelfAttention(atten_op::AbstractAttenOp, head::Int, hidden_size::Int, head_hidden_size::Int)
+
+Create a self attention layer with given `atten_op`.
+"""
 function SelfAttention(atten_op::AbstractAttenOp, head::Int, hidden_size::Int, head_hidden_size::Int)
     qkv_proj = Dense(hidden_size, 3head * head_hidden_size)
     o_proj = Dense(head * head_hidden_size, hidden_size)
@@ -292,6 +309,12 @@ function SelfAttention(atten_op::AbstractAttenOp, head::Int, hidden_size::Int, h
     return sa
 end
 
+"""
+    CrossAttention(head::Int, hidden_size::Int [, head_hidden_size::Int = hidden_size ÷ head ];
+                   dropout::Union{Nothing, Float64} = nothing, return_score = false)
+
+Create a multi-head cross attention layer with `head` heads and `head_hidden_size` per head.
+"""
 function CrossAttention(head::Int, hidden_size::Int; dropout = nothing, return_score = false)
     @assert rem(hidden_state, head) == 0 "`hidden_size` should be dividible by `head` if `head_hidden_size` is not set"
     head_hidden_size = div(hidden_size, head)
@@ -303,6 +326,12 @@ function CrossAttention(head::Int, hidden_size::Int, head_hidden_size::Int; drop
     ca = CrossAttention(cross_atten_op, head, hidden_size, head_hidden_size)
     return ca
 end
+
+"""
+    CrossAttention(atten_op::AbstractAttenOp, head::Int, hidden_size::Int, head_hidden_size::Int)
+
+Create a cross attention layer with given `atten_op`.
+"""
 function CrossAttention(cross_atten_op::AbstractAttenOp, head::Int, hidden_size::Int, head_hidden_size::Int)
     c_q_proj = Dense(hidden_size, head * head_hidden_size)
     c_kv_proj = Dense(hidden_size, 2head * head_hidden_size)
@@ -313,6 +342,14 @@ end
 
 #############################################
 
+"""
+    TransformerBlock([act,] head::Int, hidden_size::Int [, head_hidden_size::Int], intermediate_size::Int;
+                     attention_dropout = nothing, dropout = nothing, return_score = false)
+
+Create a post-LN transformer encoder block. `head`, `hidden_size` (and `head_hidden_size`) are parameters of
+ [`SelfAttention`](@ref). `intermediate_size`, `hidden_size` (and `act`) would be use to create the 2 layered
+ feed-forward layer.
+"""
 TransformerBlock(
     head::Int, hidden_size::Int, head_hidden_size::Int, intermediate_size::Int;
     attention_dropout = nothing, dropout = nothing, return_score = false,
@@ -325,6 +362,14 @@ TransformerBlock(
 ) = PostNormTransformerBlock(
     act, head, hidden_size, head_hidden_size, intermediate_size; attention_dropout, dropout, return_score)
 
+"""
+    PostTransformerBlock([act,] head::Int, hidden_size::Int [, head_hidden_size::Int], intermediate_size::Int;
+                         attention_dropout = nothing, dropout = nothing, return_score = false)
+
+Create a post-LN transformer encoder block. `head`, `hidden_size` (and `head_hidden_size`) are parameters of
+ [`SelfAttention`](@ref). `intermediate_size`, `hidden_size` (and `act`) would be use to create the 2 layered
+ feed-forward layer.
+"""
 PostNormTransformerBlock(
     head::Int, hidden_size::Int, head_hidden_size::Int, intermediate_size::Int;
     attention_dropout = nothing, dropout = nothing, return_score = false,
@@ -347,6 +392,14 @@ function PostNormTransformerBlock(
             LayerNorm(hidden_size)))
 end
 
+"""
+    PreNormTransformerBlock([act,] head::Int, hidden_size::Int [, head_hidden_size::Int], intermediate_size::Int;
+                            attention_dropout = nothing, dropout = nothing, return_score = false)
+
+Create a pre-LN transformer encoder block. `head`, `hidden_size` (and `head_hidden_size`) are parameters of
+ [`SelfAttention`](@ref). `intermediate_size`, `hidden_size` (and `act`) would be use to create the 2 layered
+ feed-forward layer.
+"""
 PreNormTransformerBlock(
     head::Int, hidden_size::Int, head_hidden_size::Int, intermediate_size::Int;
     attention_dropout = nothing, dropout = nothing, return_score = false,
@@ -371,6 +424,15 @@ end
 
 #############################################
 
+"""
+    TransformerDecoderBlock([act,] head::Int, hidden_size::Int [, head_hidden_size::Int], intermediate_size::Int;
+                            attention_dropout = nothing, dropout = nothing, cross_attention_dropout = nothing, 
+                            return_score = false, return_self_attention_score = false)
+
+Create a post-LN transformer decoder block. `head`, `hidden_size` (and `head_hidden_size`) are parameters of
+ [`SelfAttention`](@ref) and [`CrossAttention`](@ref). `intermediate_size`, `hidden_size` (and `act`) would
+ be use to create the 2 layered feed-forward layer.
+"""
 TransformerDecoderBlock(
     head::Int, hidden_size::Int, head_hidden_size::Int, intermediate_size::Int;
     dropout = nothing, attention_dropout = nothing, cross_attention_dropout = nothing,
@@ -389,6 +451,15 @@ TransformerDecoderBlock(
     dropout, attention_dropout, cross_attention_dropout, return_score, return_self_attention_score
 )
 
+"""
+    PostTransformerDecoderBlock([act,] head::Int, hidden_size::Int [, head_hidden_size::Int], intermediate_size::Int;
+                                attention_dropout = nothing, dropout = nothing, cross_attention_dropout = nothing, 
+                                return_score = false, return_self_attention_score = false)
+
+Create a post-LN transformer decoder block. `head`, `hidden_size` (and `head_hidden_size`) are parameters of
+ [`SelfAttention`](@ref) and [`CrossAttention`](@ref). `intermediate_size`, `hidden_size` (and `act`) would
+ be use to create the 2 layered feed-forward layer.
+"""
 PostNormTransformerDecoderBlock(
     head::Int, hidden_size::Int, head_hidden_size::Int, intermediate_size::Int;
     dropout = nothing, attention_dropout = nothing, cross_attention_dropout = nothing,
@@ -420,6 +491,15 @@ function PostNormTransformerDecoderBlock(
             LayerNorm(hidden_size)))
 end
 
+"""
+    PreTransformerDecoderBlock([act,] head::Int, hidden_size::Int [, head_hidden_size::Int], intermediate_size::Int;
+                               attention_dropout = nothing, dropout = nothing, cross_attention_dropout = nothing, 
+                               return_score = false, return_self_attention_score = false)
+
+Create a pre-LN transformer decoder block. `head`, `hidden_size` (and `head_hidden_size`) are parameters of
+ [`SelfAttention`](@ref) and [`CrossAttention`](@ref). `intermediate_size`, `hidden_size` (and `act`) would
+ be use to create the 2 layered feed-forward layer.
+"""
 PreNormTransformerDecoderBlock(
     head::Int, hidden_size::Int, head_hidden_size::Int, intermediate_size::Int;
     dropout = nothing, attention_dropout = nothing, cross_attention_dropout = nothing,
