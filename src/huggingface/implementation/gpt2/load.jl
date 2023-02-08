@@ -16,14 +16,11 @@ end
 
 (model::HGFGPT2Model)(nt::NamedTuple) = model.decoder(model.embed(nt))
 
-@fluxshow HGFGPT2Model
-
 for T in :[
     HGFGPT2LMHeadModel,
 ].args
     @eval begin
         @hgfdefmodel $T HGFGPT2PreTrainedModel
-        @fluxshow $T
     end
 end
 

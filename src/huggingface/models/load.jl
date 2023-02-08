@@ -2,16 +2,12 @@ import ..Layers
 
 using Flux
 using NNlib
-using Functors
-using DataStructures
-using Pickle.Torch
-using Pickle.Torch: StridedView
-
-using ValSplit
+using DataStructures: OrderedDict
 
 using LinearAlgebra
 
 abstract type HGFPreTrainedModel end
+Layers.@fluxshow HGFPreTrainedModel
 
 const ACT2FN = (gelu = gelu, relu = relu, swish = swish, gelu_new = gelu, mish = mish, quick_gelu = gelu, selu = selu)
 

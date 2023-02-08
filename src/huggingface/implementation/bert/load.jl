@@ -13,6 +13,7 @@ struct BertPooler{D}
     dense::D
 end
 @functor BertPooler
+@fluxlayershow BertPooler
 
 function (m::BertPooler)(x)
     first_token = @view x[:, 1, :]
@@ -23,6 +24,7 @@ struct BertQA{D}
     dense::D
 end
 @functor BertQA
+@fluxlayershow BertQA
 
 function _slice(x, i)
     cs = ntuple(i->Colon(), static(ndims(x)) - static(1))
@@ -49,8 +51,6 @@ end
 (model::HGFBertModel)(nt::NamedTuple) = model.pooler(model.encoder(model.embed(nt)))
 (model::HGFBertModel{E, ENC, Nothing})(nt::NamedTuple) where {E, ENC} = model.encoder(model.embed(nt))
 
-@fluxshow HGFBertModel
-
 # TODO: HGFBertForMultipleChoice
 
 for T in :[
@@ -59,7 +59,6 @@ for T in :[
 ].args
     @eval begin
         @hgfdefmodel $T HGFBertPreTrainedModel
-        @fluxshow $T
     end
 end
 

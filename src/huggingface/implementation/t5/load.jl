@@ -8,6 +8,7 @@ struct T5Gated{G, L}
     linear::L
 end
 @functor T5Gated
+@fluxlayershow T5Gated
 
 (g::T5Gated)(x) = g.gate(x) .* g.linear(x)
 
@@ -48,12 +49,6 @@ end
 function (model::HGFT5EncoderModel)(nt::NamedTuple)
     outputs = model.encoder(model.embed(nt))
     return Base.structdiff(outputs, NamedTuple{(:position_bias,)})
-end
-
-for T in :[
-    HGFT5Model, HGFT5ForConditionalGeneration, HGFT5EncoderModel
-].args
-    @eval @fluxshow $T
 end
 
 get_model_type(::Val{:t5}) = (

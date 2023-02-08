@@ -18,14 +18,11 @@ end
 
 (model::HGFGPTNeoModel)(nt::NamedTuple) = model.decoder(model.embed(nt))
 
-@fluxshow HGFGPTNeoModel
-
 for T in :[
     HGFGPTNeoForCausalLM
 ].args
     @eval begin
         @hgfdefmodel $T HGFGPTNeoPreTrainedModel
-        @fluxshow $T
     end
 end
 

@@ -34,14 +34,11 @@ end
 
 (model::HGFGPTJModel)(nt::NamedTuple) = model.decoder(model.embed(nt))
 
-@fluxshow HGFGPTJModel
-
 for T in :[
     HGFGPTJForCausalLM
 ].args
     @eval begin
         @hgfdefmodel $T HGFGPTJPreTrainedModel
-        @fluxshow $T
     end
 end
 

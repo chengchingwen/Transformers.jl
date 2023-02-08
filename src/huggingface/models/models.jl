@@ -1,13 +1,9 @@
-using Flux
-using Functors
-using DataStructures
-using Pickle.Torch
-using Pickle.Torch: StridedView
-
-using ValSplit
-
 using LinearAlgebra
+using ValSplit
+using Functors
+using DataStructures: OrderedDict
 
+using ..Layers: @fluxshow, @fluxlayershow
 
 """
   `get_model_type(model_type)`
@@ -113,20 +109,6 @@ macro hgfdefmodel(T, PT)
         end
         @functor $T
         (model::$T)(nt::NamedTuple) = model.cls(model.model(nt))
-    end
-end
-
-macro fluxshow(T)
-    return quote
-        function Base.show(io::IO, m::MIME"text/plain", x::$T)
-            if get(io, :typeinfo, nothing) === nothing  # e.g. top level in REPL
-                Flux._big_show(io, x)
-            elseif !get(io, :compact, false)  # e.g. printed inside a Vector, but not a Matrix
-                Flux._layer_show(io, x)
-            else
-                show(io, x)
-            end
-        end
     end
 end
 
