@@ -99,6 +99,7 @@ end
 Dense(w::AbstractArray) = Dense(nothing, w, nothing)
 Dense(act, w::AbstractArray) = Dense(act, w, nothing)
 Dense(w::AbstractArray, b::AbstractArray) = Dense(nothing, w, b)
+Dense(w::AbstractArray, ::Nothing) = Dense(nothing, w, nothing)
 
 Dense(din::Int, dout::Int; bias = true) = Dense(nothing, din, dout; bias)
 function Dense(act, din::Int, dout::Int; bias = true)
