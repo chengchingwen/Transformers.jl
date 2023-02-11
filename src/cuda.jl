@@ -27,3 +27,14 @@ togpudevice(x::NamedTuple{name}; cache = IdDict()) where name = NamedTuple{name}
     end
     return :(_togpudevice(x, cache)::$R)
 end
+
+@generated function togpudevice(x::NeuralAttentionlib.GenericSequenceMask{N, M}; cache = IdDict()) where {N, M}
+    _R = Core.Compiler.return_type(CUDA.cu, Tuple{M})
+    R = if _R isa Union
+        M == _R.a ? _R.b : _R.a
+    else
+        _R
+    end
+    T = NeuralAttentionlib.GenericSequenceMask{N, R}
+    return :(_togpudevice(x, cache)::$T)
+end
