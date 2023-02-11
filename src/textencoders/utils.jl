@@ -1,9 +1,8 @@
-using InternedStrings
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch
 using NeuralAttentionlib: LengthMask, RevLengthMask
 
-string_getvalue(x::TextEncodeBase.TokenStage) = intern(getvalue(x))::String
+string_getvalue(x::TextEncodeBase.TokenStage) = String(getvalue(x))::String
 
 # check word is inside the vocab or not
 check_vocab(vocab::Vocab, word) = findfirst(==(word), vocab.list) !== nothing
