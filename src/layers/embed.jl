@@ -37,7 +37,7 @@ end
 @functor Embed (embeddings,)
 
 Embed(embeddings::AbstractArray; scale = nothing) = Embed(scale, embeddings)
-Embed(hidden_size::Int, vocab_size::Int; scale = nothing) = Embed(scale, init_weight(Float32, hidden_size, vocab_size))
+Embed(hidden_size::Int, vocab_size::Int; scale = nothing) = Embed(scale, randn(Float32, hidden_size, vocab_size))
 
 (embed::Embed{Nothing})(x) = NNlib.gather(embed.embeddings, x)
 function (embed::Embed)(x)
