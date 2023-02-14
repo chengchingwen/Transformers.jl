@@ -66,7 +66,7 @@ end
 @functor EmbedDecoder
 
 EmbedDecoder(embed::Embed; bias = false) = bias ?
-    EmbedDecoder(embed, init_weight(eltype(embed.embeddings), size(embed.embeddings, 1))) :
+    EmbedDecoder(embed, zeros(eltype(embed.embeddings), size(embed.embeddings, 1))) :
     EmbedDecoder(embed, nothing)
 
 function (e::EmbedDecoder{<:Embed})(x)
