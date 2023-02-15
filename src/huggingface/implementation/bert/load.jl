@@ -16,7 +16,7 @@ end
 @fluxlayershow BertPooler
 
 function (m::BertPooler)(x)
-    first_token = @view x[:, 1, :]
+    first_token = selectdim(x, 2, 1)
     return m.dense(first_token)
 end
 
