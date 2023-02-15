@@ -6,6 +6,9 @@
             Model, ForPreTraining, LMHeadModel, ForMaskedLM, ForNextSentencePrediction,
             ForSequenceClassification, ForTokenClassification, ForQuestionAnswering,
         ].args,
+        :roberta => :[
+            Model, ForMaskedLM, ForCausalLM, ForSequenceClassification, ForTokenClassification, ForQuestionAnswering,
+        ].args,
         :gpt2 => [:Model, :LMHeadModel],
         :t5 => [:Model, :ForConditionalGeneration],
         :gpt_neo => [:Model, :ForCausalLM],
@@ -23,6 +26,7 @@
             model = nothing
             model = @test_logs min_level=Logging.Debug load_model(model_name, hgf_model_name, task_type;
                                                                   config = cfg, cache = false)
+            @test model isa model_type
             isnothing(model) && continue
             state_dict1 = HuggingFace.get_state_dict(model)
             model2 = nothing
@@ -39,6 +43,15 @@
                 }
                     @test_logs (:debug, "bert.pooler.dense.weight not found, initialized.") (
                         :debug, "bert.pooler.dense.bias not found, initialized."
+                    ) min_level=Logging.Debug load_model(model_name, hgf_model_name, :model, state_dict1;
+                                                         config = cfg, cache = false)
+                elseif model isa Union{
+                    HuggingFace.HGFRobertaForCausalLM, HuggingFace.HGFRobertaForMaskedLM,
+                    HuggingFace.HGFRobertaForSequenceClassification,
+                    HuggingFace.HGFRobertaForTokenClassification, HuggingFace.HGFRobertaForQuestionAnswering,
+                }
+                    @test_logs (:debug, "roberta.pooler.dense.weight not found, initialized.") (
+                        :debug, "roberta.pooler.dense.bias not found, initialized."
                     ) min_level=Logging.Debug load_model(model_name, hgf_model_name, :model, state_dict1;
                                                          config = cfg, cache = false)
                 else

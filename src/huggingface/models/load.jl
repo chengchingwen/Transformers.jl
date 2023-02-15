@@ -6,6 +6,9 @@ using DataStructures: OrderedDict
 
 using LinearAlgebra
 
+struct FirstTokenPooler end
+(m::FirstTokenPooler)(x) = selectdim(x, 2, 1)
+
 abstract type HGFPreTrainedModel end
 Layers.@fluxshow HGFPreTrainedModel
 

@@ -14,6 +14,8 @@
     pad_token_id::Int = 1
     bos_token_id::Int = 0
     eos_token_id::Int = 2
+    position_embedding_type::String = "absolute"
+    classifier_dropout::Nothing = nothing
 end
 
 const HGFRobertaConfig = HGFConfig{:roberta}
