@@ -160,8 +160,8 @@ end
 Then run the model on the sample
 
 ```julia
-enc = encoder_forward(encoded_sample.encoder_input)
-logits = decoder_forward(encoded_sample.decoder_input, enc)
+enc = encoder_forward(todevice(encoded_sample.encoder_input))
+logits = decoder_forward(todevice(encoded_sample.decoder_input), enc)
 ```
 
 The whole model can be defined without those _forward_ functions. See the example folder and [docs of the Layer API](layers.md) for more information.
@@ -202,7 +202,7 @@ preprocess(sample) = todevice(encode(textenc, sample[1], sample[2]))
 # define training loop
 function train!()
     @info "start training"
-    for i = 1:1000
+    for i = 1:2000
         sample = batched([sample_data() for i = 1:32]) # create 32 random sample and batched
         input = preprocess(sample)
         grad = gradient(()->loss(input), ps)
@@ -244,7 +244,7 @@ end
 ```
 
 ```julia
-translate(map(string, [5,5,6,6,1,2,3,4,7, 10]))
+translate("5 5 6 6 1 2 3 4 7 10")
 ```
 
 ```
