@@ -128,7 +128,8 @@ encoder_construct(_type::Val{type}, tokenizer, vocab; kwargs...) where type =
 function encoder_construct(type::Symbol, tokenizer, vocab; kwargs...)
     @debug "No encoder_construct handdler registed for $type, using default"
     vals = valarg_params(encoder_construct, Tuple{Val, Any, Any}, 1, Symbol)
-    default_f = () -> TransformerTextEncoder(tokenizer, vocab, _hgf_preprocess(; kwargs...); kwargs...)
+    default_f = () -> TransformerTextEncoder(tokenizer, vocab, _hgf_preprocess(; kwargs...);
+                                             Base.structdiff(values(kwargs), NamedTuple{(:process,)})...)
     return ValSplit._valswitch(Val(vals), Val(3), Core.kwfunc(encoder_construct), default_f,
                                kwargs, encoder_construct, type, tokenizer, vocab)
 end
