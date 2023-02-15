@@ -6,6 +6,8 @@
 
 Julia implementation of [transformer](https://arxiv.org/abs/1706.03762)-based models, with [Flux.jl](https://github.com/FluxML/Flux.jl).
 
+*notice: The current version is almost complete different from the 0.1.x version. If you are using the old version, make sure to update the changes or stick to the old version.*
+
 # Installation
 
 In the Julia REPL:
@@ -40,22 +42,6 @@ bert_features = bert_model(sample).hidden_state
 
 See `example` folder for the complete example.
 
-
-# Huggingface
-
-We have some support for the models from [`huggingface/transformers`](https://github.com/huggingface/transformers).
-
-```julia
-using Transformers.HuggingFace
-
-# loading a model from huggingface model hub
-julia> model = hgf"bert-base-cased:forquestionanswering";
-┌ Warning: Transformers.HuggingFace.HGFBertForQuestionAnswering doesn't have field cls.
-└ @ Transformers.HuggingFace ~/peter/repo/gsoc2020/src/huggingface/models/models.jl:46
-┌ Warning: Some fields of Transformers.HuggingFace.HGFBertForQuestionAnswering aren't initialized with loaded state: qa_outputs
-└ @ Transformers.HuggingFace ~/peter/repo/gsoc2020/src/huggingface/models/models.jl:52
-
-```
 
 # For more information
 
