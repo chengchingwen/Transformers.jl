@@ -1,6 +1,7 @@
 import Flux
 using Functors
 using NNlib
+using ChainRulesCore
 
 abstract type AbstractEmbedding end
 
@@ -228,7 +229,7 @@ end
 ApplyEmbed(embed) = ApplyEmbed(.+, embed)
 ApplyEmbed(apply, embed) = ApplyEmbed(apply, embed, identity)
 
-function (e::ApplyEmbed)(x, indices = e.indices(x))
+function (e::ApplyEmbed)(x, indices = ChainRulesCore.ignore_derivatives(() -> e.indices(x)))
     embeddings = e.embed(indices)
     return e.apply(x, embeddings)
 end

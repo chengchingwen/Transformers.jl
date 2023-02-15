@@ -566,6 +566,9 @@ function CompositeEmbedding(; kwargs...)
         if isone(i)
             push!(embeds, WithArg{(name,)}(embed))
         else
+            if embed isa ApplyEmbed
+                embed = (embed.apply, embed.embed, embed.indices)
+            end
             if !(embed isa Tuple)
                 embed = (embed,)
             end
