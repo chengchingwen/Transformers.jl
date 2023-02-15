@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TextEncoders · Transformers.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link rel="canonical" href="https://chengchingwen.github.io/Transformers.jl/textencoders/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.svg" alt="Transformers.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">Transformers.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../getstarted/">Get Started</a></li><li><a class="tocitem" href="../tutorial/">Tutorial</a></li><li><a class="tocitem" href="../layers/">Layers</a></li><li class="is-active"><a class="tocitem" href>TextEncoders</a><ul class="internal"><li><a class="tocitem" href="#API-Reference"><span>API Reference</span></a></li></ul></li><li><a class="tocitem" href="../huggingface/">HuggingFace</a></li><li><a class="tocitem" href="../changelog/">ChangeLogs</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>TextEncoders</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>TextEncoders</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/chengchingwen/Transformers.jl/blob/master/docs/src/textencoders.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Transformers.TextEncoders"><a class="docs-heading-anchor" href="#Transformers.TextEncoders">Transformers.TextEncoders</a><a id="Transformers.TextEncoders-1"></a><a class="docs-heading-anchor-permalink" href="#Transformers.TextEncoders" title="Permalink"></a></h1><p>Text processing module.</p><h2 id="API-Reference"><a class="docs-heading-anchor" href="#API-Reference">API Reference</a><a id="API-Reference-1"></a><a class="docs-heading-anchor-permalink" href="#API-Reference" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="Transformers.TextEncoders.BertTextEncoder" href="#Transformers.TextEncoders.BertTextEncoder"><code>Transformers.TextEncoders.BertTextEncoder</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">BertTextEncoder</code></pre><p>The text encoder for Bert model (WordPiece tokenization).</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/bert_textencoder.jl#L26-L30">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="Transformers.TextEncoders.GPT2TextEncoder" href="#Transformers.TextEncoders.GPT2TextEncoder"><code>Transformers.TextEncoders.GPT2TextEncoder</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">GPT2TextEncoder</code></pre><p>The text encoder for GPT2 model (ByteLevel BytePairEncoding tokenization).</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/gpt_textencoder.jl#L48-L52">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="Transformers.TextEncoders.T5TextEncoder" href="#Transformers.TextEncoders.T5TextEncoder"><code>Transformers.TextEncoders.T5TextEncoder</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">T5TextEncoder</code></pre><p>The text encoder for T5 model (SentencePiece tokenization).</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/t5_textencoder.jl#L7-L11">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="Transformers.TextEncoders.TransformerTextEncoder" href="#Transformers.TextEncoders.TransformerTextEncoder"><code>Transformers.TextEncoders.TransformerTextEncoder</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">struct TransformerTextEncoder{
+    T&lt;:AbstractTokenizer, V&lt;:AbstractVocabulary{String}, P
+} &lt;: AbstractTransformerTextEncoder
+    tokenizer::T
+    vocab::V
+    process::P
+    startsym::String
+    endsym::String
+    padsym::String
+    trunc::Union{Nothing, Int}
+end</code></pre><p>The text encoder for general transformers. Taking a tokenizer, vocabulary, and a processing function, configured with  a start symbol, an end symbol, a padding symbol, and a maximum length.</p><pre><code class="nohighlight hljs">TransformerTextEncoder(tokenze, vocab, process; trunc = nothing,
+                       startsym = &quot;&lt;s&gt;&quot;, endsym = &quot;&lt;/s&gt;&quot;, unksym = &quot;&lt;unk&gt;&quot;, padsym = &quot;&lt;pad&gt;&quot;)</code></pre><p><code>tokenize</code> can be any tokenize function from <code>WordTokenizers</code>. <code>vocab</code> is either a list of word or a <code>Vocab</code>.  <code>process</code> can be omitted, then a predefined processing pipeline will be used. When <code>vocab</code> is a list, those  special symbol (e.g. <code>padsym</code>) would be added to the word list.</p><pre><code class="nohighlight hljs">TransformerTextEncoder(f, e::TransformerTextEncoder)</code></pre><p>Take a text encoder and create a new text encoder with same configuration except the processing function.  <code>f</code> is a function that take the encoder and return a new process function. This is useful for changing part of  the procssing function.</p><p><strong>Example</strong></p><pre><code class="language-julia-repl hljs">julia&gt; textenc = TransformerTextEncoder(labels; startsym, endsym, unksym,
+                                        padsym = unksym, trunc = 100)
+TransformerTextEncoder(
+├─ TextTokenizer(default),
+├─ vocab = Vocab{String, SizedArray}(size = 37678, unk = &lt;/unk&gt;, unki = 1),
+├─ startsym = &lt;s&gt;,
+├─ endsym = &lt;/s&gt;,
+├─ padsym = &lt;/unk&gt;,
+├─ trunc = 100,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := TextEncodeBase.with_head_tail(&lt;s&gt;, &lt;/s&gt;)(target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(10))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(10, &lt;pad&gt;, tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token, target.attention_mask)
+)
+
+julia&gt; TransformerTextEncoder(ans) do enc
+           enc.process[1] |&gt; TextEncoders.Pipelines(enc.process[4:5]) |&gt; TextEncoders.PipeGet{(:token,)}()
+       end
+TransformerTextEncoder(
+├─ TextTokenizer(default),
+├─ vocab = Vocab{String, SizedArray}(size = 37678, unk = &lt;/unk&gt;, unki = 1),
+├─ startsym = &lt;s&gt;,
+├─ endsym = &lt;/s&gt;,
+├─ padsym = &lt;/unk&gt;,
+├─ trunc = 100,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(10, &lt;pad&gt;, tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token)
+)
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/TextEncoders.jl#L146-L213">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="TextEncodeBase.decode-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, Any}" href="#TextEncodeBase.decode-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, Any}"><code>TextEncodeBase.decode</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">decode(e::AbstractTransformerTextEncoder, x::Union{
+    Integer,
+    OneHotArray,
+    AbstractArray{&lt;:Integer}
+})</code></pre><p>Decode the one-hot encoding or indices into <code>String</code> (or <code>Array{String}</code>) from the bound vocabulary.</p><pre><code class="nohighlight hljs">decode(e::AbstractTransformerTextEncoder, x::AbstractArray)</code></pre><p>Perform <code>argmax(x; dims = 1)</code> and then <code>decode</code>. <code>x</code> should be <code>collect</code>ed beforehand if it&#39;s on GPU.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/TextEncoders.jl#L237-L249">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="TextEncodeBase.decode-Tuple{Transformers.TextEncoders.BertTextEncoder, Any}" href="#TextEncodeBase.decode-Tuple{Transformers.TextEncoders.BertTextEncoder, Any}"><code>TextEncodeBase.decode</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">decode(bertenc::BertTextEncoder, x)</code></pre><p>Convert indices back to string with bert vocabulary.</p><p>See also: <a href="#TextEncodeBase.encode-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, Any}"><code>encode</code></a></p><p><strong>Example</strong></p><pre><code class="language-julia-repl hljs">julia&gt; token = encode(bertenc, [[&quot;this is a sentence&quot;, &quot;and another&quot;]]).token;
+
+julia&gt; decode(bertenc, token)
+9×1 Matrix{String}:
+ &quot;[CLS]&quot;
+ &quot;this&quot;
+ &quot;is&quot;
+ &quot;a&quot;
+ &quot;sentence&quot;
+ &quot;[SEP]&quot;
+ &quot;and&quot;
+ &quot;another&quot;
+ &quot;[SEP]&quot;
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/bert_textencoder.jl#L194-L218">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="TextEncodeBase.decode-Tuple{Transformers.TextEncoders.GPT2TextEncoder, Any}" href="#TextEncodeBase.decode-Tuple{Transformers.TextEncoders.GPT2TextEncoder, Any}"><code>TextEncodeBase.decode</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">decode(bertenc::GPT2TextEncoder, x)</code></pre><p>Convert indices back to string with gpt2 vocabulary. This would also map the bytes back to the normal code ranges,  so the string is not directly the one in the vocabulary.</p><p>See also: <a href="#TextEncodeBase.encode-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, Any}"><code>encode</code></a></p><p><strong>Example</strong></p><pre><code class="language-julia-repl hljs">julia&gt; token = encode(gpt2enc, [[&quot;this is a sentence&quot;, &quot;and another&quot;]]).token;
+
+julia&gt; decode(gpt2enc, token)
+6×1 Matrix{String}:
+ &quot;this&quot;
+ &quot; is&quot;
+ &quot; a&quot;
+ &quot; sentence&quot;
+ &quot;and&quot;
+ &quot; another&quot;
+
+julia&gt; TextEncodeBase.decode_indices(gpt2enc, token)
+6×1 Matrix{String}:
+ &quot;this&quot;
+ &quot;Ġis&quot;
+ &quot;Ġa&quot;
+ &quot;Ġsentence&quot;
+ &quot;and&quot;
+ &quot;Ġanother&quot;
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/gpt_textencoder.jl#L292-L323">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="TextEncodeBase.decode-Tuple{Transformers.TextEncoders.T5TextEncoder, Any}" href="#TextEncodeBase.decode-Tuple{Transformers.TextEncoders.T5TextEncoder, Any}"><code>TextEncodeBase.decode</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">decode(bertenc::T5TextEncoder, x)</code></pre><p>Convert indices back to string with t5 vocabulary.</p><p>See also: <a href="#TextEncodeBase.encode-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, Any}"><code>encode</code></a></p><p><strong>Example</strong></p><pre><code class="language-julia-repl hljs">julia&gt; token = encode(t5enc, [[&quot;this is a sentence&quot;, &quot;and another&quot;]]).token;
+
+julia&gt; decode(t5enc, token)
+9×1 Matrix{String}:
+ &quot;▁this&quot;
+ &quot;▁is&quot;
+ &quot;▁&quot;
+ &quot;a&quot;
+ &quot;▁sentence&quot;
+ &quot;&lt;/s&gt;&quot;
+ &quot;▁and&quot;
+ &quot;▁another&quot;
+ &quot;&lt;/s&gt;&quot;
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/t5_textencoder.jl#L128-L152">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="TextEncodeBase.encode-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, Any}" href="#TextEncodeBase.encode-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, Any}"><code>TextEncodeBase.encode</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">encode(e::AbstractTransformerTextEncoder, input::Union{
+    String,                         # single sentence
+    Vector{String},                 # batch of sentences
+    Vector{Vector{String}},         # batch of multi-segment sentences
+    Vector{Vector{Vector{String}}}  # batch of multi-sample multi-segment sentences
+})</code></pre><p>Tokenize the <code>input</code> and apply the processing function on the tokenized result. The <code>input</code> can be either a single  <code>String</code> (1 sample) or a nested vector of <code>String</code> up to depth 3 (batch of samples). How batch input is transformed  is defined by the bound processing function. The result of the processing function (first if return tuple) would be  converted into one-hot encoding with the bound vocabulary.</p><pre><code class="nohighlight hljs">encode(e::AbstractTransformerTextEncoder, src, trg)</code></pre><p>Apply <code>encode</code> on <code>src</code> and <code>trg</code> and build the cross attention mask. This is just a convenient function for doing  encoder-decoder tasks. Return a <code>@NamedTuple{encoder_input, decoder_input}</code> where <code>encoder_input</code> is just  <code>encode(e, src)</code> and <code>decoder_input</code> is <code>encode(e, trg)</code> + the cross attention mask.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/TextEncoders.jl#L216-L234">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="TextEncodeBase.encode-Tuple{Transformers.TextEncoders.BertTextEncoder, Any}" href="#TextEncodeBase.encode-Tuple{Transformers.TextEncoders.BertTextEncoder, Any}"><code>TextEncodeBase.encode</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">encode(::BertTextEncoder, ::String)</code></pre><p>Encode a single sentence with bert text encoder. The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 1}, segment::Vector{Int}, attention_mask::LengthMask{1, Vector{Int32}}}</code>.</p><pre><code class="nohighlight hljs">encode(::BertTextEncoder, ::Vector{String})</code></pre><p>Encode a batch of sentences with bert text encoder. The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 2}, segment::Matrix{Int}, attention_mask::LengthMask{1, Vector{Int32}}}</code>.</p><pre><code class="nohighlight hljs">encode(::BertTextEncoder, ::Vector{Vector{String}})</code></pre><p>Encode a batch of segments with bert text encoder. Segments would be concatenate together as batch of sentences with  separation token and correct indicator in <code>segment</code>. The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 2}, segment::Matrix{Int}, attention_mask::LengthMask{1, Vector{Int32}}}</code>.</p><pre><code class="nohighlight hljs">encode(::BertTextEncoder, ::Vector{Vector{Vector{String}}})</code></pre><p>Encode a batch of multi-sample segments with bert text encoder. The number of sample per data need to be the same.  (e.g. <code>length(batch[1]) == length(batch[2])</code>). The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 3}, segment::Array{Int, 3}, attention_mask::LengthMask{2, Matrix{Int32}}}</code>.  <em>notice</em>: If you want each sample to be independent to each other, this need to be reshaped before feeding to  transformer layer or make sure the attention is not taking the <code>end-1</code> dimension as another length dimension.</p><p>See also: <a href="#TextEncodeBase.decode-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, Any}"><code>decode</code></a>, <code>LengthMask</code></p><p><strong>Example</strong></p><pre><code class="language-julia-repl hljs">julia&gt; bertenc = HuggingFace.load_tokenizer(&quot;bert-base-cased&quot;)
+BertTextEncoder(
+├─ TextTokenizer(MatchTokenization(WordPieceTokenization(bert_cased_tokenizer, WordPiece(vocab_size = 28996, unk = [UNK], max_char = 100)), 5 patterns)),
+├─ vocab = Vocab{String, SizedArray}(size = 28996, unk = [UNK], unki = 101),
+├─ startsym = [CLS],
+├─ endsym = [SEP],
+├─ padsym = [PAD],
+├─ trunc = 512,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
+  ╰─ target[(token, segment)] := SequenceTemplate{String}([CLS]:&lt;type=1&gt; Input[1]:&lt;type=1&gt; [SEP]:&lt;type=1&gt; (Input[2]:&lt;type=2&gt; [SEP]:&lt;type=2&gt;)...)(target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(512))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(512, [PAD], tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target[segment] := TextEncodeBase.trunc_and_pad(512, 1, tail, tail)(target.segment)
+  ╰─ target[segment] := TextEncodeBase.nested2batch(target.segment)
+  ╰─ target := (target.token, target.segment, target.attention_mask)
+)
+
+julia&gt; e = encode(bertenc, [[&quot;this is a sentence&quot;, &quot;and another&quot;]])
+(token = [0 0 … 0 0; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0;;;], segment = [1; 1; … ; 2; 2;;], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[9]))
+
+julia&gt; typeof(e)
+NamedTuple{(:token, :segment, :attention_mask), Tuple{OneHotArray{0x00007144, 2, 3, Matrix{OneHot{0x00007144}}}, Matrix{Int64}, NeuralAttentionlib.LengthMask{1, Vector{Int32}}}}
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/bert_textencoder.jl#L135-L191">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="TextEncodeBase.encode-Tuple{Transformers.TextEncoders.GPT2TextEncoder, Any}" href="#TextEncodeBase.encode-Tuple{Transformers.TextEncoders.GPT2TextEncoder, Any}"><code>TextEncodeBase.encode</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">encode(::GPT2TextEncoder, ::String)</code></pre><p>Encode a single sentence with gpt2 text encoder. The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 1}, attention_mask::RevLengthMask{1, Vector{Int32}}}</code>.</p><pre><code class="nohighlight hljs">encode(::GPT2TextEncoder, ::Vector{String})</code></pre><p>Encode a batch of sentences with gpt2 text encoder. The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 2}, attention_mask::RevLengthMask{1, Vector{Int32}}}</code>.</p><pre><code class="nohighlight hljs">encode(::GPT2TextEncoder, ::Vector{Vector{String}})</code></pre><p>Encode a batch of segments with gpt2 text encoder. Segments would be concatenate together as batch of sentences.  The default pipeline returning <code>@NamedTuple{token::OneHotArray{K, 2}, attention_mask::RevLengthMask{1, Vector{Int32}}}</code>.</p><pre><code class="nohighlight hljs">encode(::GPT2TextEncoder, ::Vector{Vector{Vector{String}}})</code></pre><p>Encode a batch of multi-sample segments with gpt2 text encoder. The number of sample per data need to be the same.  (e.g. <code>length(batch[1]) == length(batch[2])</code>). The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 3}, attention_mask::RevLengthMask{2, Matrix{Int32}}}</code>.  <em>notice</em>: If you want each sample to be independent to each other, this need to be reshaped before feeding to  transformer layer or make sure the attention is not taking the <code>end-1</code> dimension as another length dimension.</p><p>See also: <a href="#TextEncodeBase.decode-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, Any}"><code>decode</code></a>, <code>RevLengthMask</code></p><p><strong>Example</strong></p><pre><code class="language-julia-repl hljs">julia&gt; gpt2enc = HuggingFace.load_tokenizer(&quot;gpt2&quot;)
+GPT2TextEncoder(
+├─ TextTokenizer(MatchTokenization(CodeNormalizer(BPETokenization(GPT2Tokenization, bpe = CachedBPE(BPE(50000 merges))), codemap = CodeMap{UInt8 =&gt; UInt16}(3 code-ranges)), 1 patterns)),
+├─ vocab = Vocab{String, SizedArray}(size = 50257, unk = &lt;unk&gt;, unki = 0),
+├─ codemap = CodeMap{UInt8 =&gt; UInt16}(3 code-ranges),
+├─ startsym = &lt;|endoftext|&gt;,
+├─ endsym = &lt;|endoftext|&gt;,
+├─ padsym = &lt;|endoftext|&gt;,
+├─ trunc = 1024,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
+  ╰─ target[token] := SequenceTemplate{String}((Input:&lt;type=1&gt;)...)(Val{1}(), target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.RevLengthMask ∘ Transformers.TextEncoders.getlengths(1024))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(1024, &lt;|endoftext|&gt;, head, head)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token, target.attention_mask)
+)
+
+julia&gt; e = encode(gpt2enc, [[&quot;this is a sentence&quot;, &quot;and another&quot;]])
+(token = [0 0 … 0 0; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0;;;], attention_mask = NeuralAttentionlib.RevLengthMask{1, Vector{Int32}}(Int32[6]))
+
+julia&gt; typeof(e)
+NamedTuple{(:token, :attention_mask), Tuple{OneHotArray{0x0000c451, 2, 3, Matrix{OneHot{0x0000c451}}}, NeuralAttentionlib.RevLengthMask{1, Vector{Int32}}}}
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/gpt_textencoder.jl#L235-L289">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="TextEncodeBase.encode-Tuple{Transformers.TextEncoders.T5TextEncoder, Any}" href="#TextEncodeBase.encode-Tuple{Transformers.TextEncoders.T5TextEncoder, Any}"><code>TextEncodeBase.encode</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">encode(::T5TextEncoder, ::String)</code></pre><p>Encode a single sentence with t5 text encoder. The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 1}, attention_mask::LengthMask{1, Vector{Int32}}}</code>.</p><pre><code class="nohighlight hljs">encode(::T5TextEncoder, ::Vector{String})</code></pre><p>Encode a batch of sentences with t5 text encoder. The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 2}, attention_mask::LengthMask{1, Vector{Int32}}}</code>.</p><pre><code class="nohighlight hljs">encode(::T5TextEncoder, ::Vector{Vector{String}})</code></pre><p>Encode a batch of segments with t5 text encoder. Segments would be concatenate together as batch of sentences with a  separation token. The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 2}, attention_mask::LengthMask{1, Vector{Int32}}}</code>.</p><pre><code class="nohighlight hljs">encode(::T5TextEncoder, ::Vector{Vector{Vector{String}}})</code></pre><p>Encode a batch of multi-sample segments with t5 text encoder. The number of sample per data need to be the same.  (e.g. <code>length(batch[1]) == length(batch[2])</code>). The default pipeline returning  <code>@NamedTuple{token::OneHotArray{K, 3}, attention_mask::LengthMask{2, Matrix{Int32}}}</code>.  <em>notice</em>: If you want each sample to be independent to each other, this need to be reshaped before feeding to  transformer layer or make sure the attention is not taking the <code>end-1</code> dimension as another length dimension.</p><p>See also: <a href="#TextEncodeBase.decode-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, Any}"><code>decode</code></a>, <code>LengthMask</code></p><p><strong>Example</strong></p><pre><code class="language-julia-repl hljs">julia&gt; t5enc = HuggingFace.load_tokenizer(&quot;t5&quot;)
+T5TextEncoder(
+├─ TextTokenizer(MatchTokenization(PrecompiledNormalizer(WordReplaceNormalizer(UnigramTokenization(EachSplitTokenization(splitter = isspace), unigram = Unigram(vocab_size = 32100, unk = &lt;unk&gt;)), pattern = r&quot;^(?!▁)(.*)$&quot; =&gt; s&quot;▁&quot;), precompiled
+= PrecompiledNorm(...)), 103 patterns)),
+├─ vocab = Vocab{String, SizedArray}(size = 32100, unk = &lt;unk&gt;, unki = 3),
+├─ endsym = &lt;/s&gt;,
+├─ padsym = &lt;pad&gt;,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
+  ╰─ target[(token, segment)] := SequenceTemplate{String}(Input[1]:&lt;type=1&gt; &lt;/s&gt;:&lt;type=1&gt; (Input[2]:&lt;type=1&gt; &lt;/s&gt;:&lt;type=1&gt;)...)(target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(nothing))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(nothing, &lt;pad&gt;, tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token, target.attention_mask)
+)
+
+julia&gt; e = encode(t5enc, [[&quot;this is a sentence&quot;, &quot;and another&quot;]])
+(token = [0 0 … 0 0; 0 0 … 0 1; … ; 0 0 … 0 0; 0 0 … 0 0;;;], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[9]))
+
+julia&gt; typeof(e)
+NamedTuple{(:token, :attention_mask), Tuple{OneHotArray{0x00007d64, 2, 3, Matrix{OneHot{0x00007d64}}}, NeuralAttentionlib.LengthMask{1, Vector{Int32}}}}
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/t5_textencoder.jl#L72-L125">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="Transformers.TextEncoders.bert_cased_tokenizer-Tuple{Any}" href="#Transformers.TextEncoders.bert_cased_tokenizer-Tuple{Any}"><code>Transformers.TextEncoders.bert_cased_tokenizer</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">bert_cased_tokenizer(input)</code></pre><p>Google bert tokenizer which remain the case during tokenization. Recommended for multi-lingual data.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/bert_tokenizer.jl#L88-L92">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="Transformers.TextEncoders.bert_uncased_tokenizer-Tuple{Any}" href="#Transformers.TextEncoders.bert_uncased_tokenizer-Tuple{Any}"><code>Transformers.TextEncoders.bert_uncased_tokenizer</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">bert_uncased_tokenizer(input)</code></pre><p>Google bert tokenizer which do lower case on input before tokenization.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/bert_tokenizer.jl#L81-L85">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="Transformers.TextEncoders.gpt_tokenizer-Tuple{Any}" href="#Transformers.TextEncoders.gpt_tokenizer-Tuple{Any}"><code>Transformers.TextEncoders.gpt_tokenizer</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">gpt_tokenizer(x)</code></pre><p>An alternative for origin tokenizer (spacy tokenizer) used in gpt model.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/gpt_tokenizer.jl#L23-L27">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="Transformers.TextEncoders.text_standardize-Tuple{Any}" href="#Transformers.TextEncoders.text_standardize-Tuple{Any}"><code>Transformers.TextEncoders.text_standardize</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">text_standardize(text)</code></pre><p>The function in the origin gpt code. Fixes some issues the spacy tokenizer had on books corpus also does  some whitespace standardization.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/cccf323c25b4bd39ad4921151f7bb2ddf7dbc898/src/textencoders/gpt_tokenizer.jl#L3-L8">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../layers/">« Layers</a><a class="docs-footer-nextpage" href="../huggingface/">HuggingFace »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 15 February 2023 04:08">Wednesday 15 February 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
