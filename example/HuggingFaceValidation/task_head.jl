@@ -8,14 +8,14 @@ function test_task_head(name, n; max_error = 1e-1, mean_error = 1e-2)
         for task_type in config.architectures
             task_type = task_type_map(task_type)
             @info "Loading model with $task_type head in Python"
-            hgf_model = @tryrun begin
+            global hgf_model = @tryrun begin
                 pyauto = hgf_trf[task_type]
                 pyauto.from_pretrained(name, config = pyconfig)
             end "Failed to load model in Python"
             @info "Python model loaded successfully"
 
             @info "Loading model with $task_type head in Julia"
-            model = @tryrun begin
+            global model = @tryrun begin
                 jl_task_type = chop(task_type, head=length(config.model_type), tail=0) |> lowercase |> Symbol
                 HuggingFace.load_model(model_type, name, jl_task_type; config)
             end "Failed to load the model in Julia"
