@@ -50,7 +50,7 @@ function get_vocab(::GoogleWMT; mode = :vocab)
         voc = open(vf) do f
             d = Dict{String, Int}()
             for (i, l) ∈ enumerate(eachline(f))
-                d[intern(l)] = i
+                d[l] = i
             end
             d
         end

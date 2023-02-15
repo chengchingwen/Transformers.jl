@@ -1,7 +1,6 @@
 module WMT
 using Fetch
 using DataDeps
-using InternedStrings
 using BytePairEncoding
 
 using ..Datasets: Dataset

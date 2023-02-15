@@ -1,33 +1,21 @@
 using Pickle
-using Pickle: TableBlock, HierarchicalTable
 
 """
-  `load_state(model_name)`
+  `load_state_dict(model_name; local_files_only = false, cache = true)`
 
-load the state from the given model name as NamedTuple.
+Load the `state_dict` from the given `model_name` from huggingface hub. By default, this function would check if
+ `model_name` exists on huggingface hub, download the model file (and cache it if `cache` is set), and then load
+ and return the `state_dict`. If `local_files_only = false`, it would check whether the model file is up-to-date and
+ update if not (and thus require network access every time it is called). By setting `local_files_only = true`, it
+ would try to find the files from the cache directly and error out if not found. For managing the caches, see the
+ `HuggingFaceApi.jl` package.
 """
-function load_state(model_name; kw...)
-  state_dict = load_state_dict(model_name; kw...)
-  state = state_dict_to_namedtuple(state_dict)
-  return state
-end
-
-"""
-  `load_state_dict(model_name)`
-
-load the state_dict from the given model name.
-
-See also: [`state_dict_to_namedtuple`](@ref)
-"""
-function load_state_dict(model_name; kw...)
-  state_dict = Pickle.Torch.THload(hgf_model_weight(model_name; kw...))
-  return state_dict
-end
+load_state_dict(model_name; kw...) = Pickle.Torch.THload(hgf_model_weight(model_name; kw...))
 
 """
   `state_dict_to_namedtuple(state_dict)`
 
-convert state_dict into NamedTuple.
+convert state_dict into nested `NamedTuple`.
 """
 function state_dict_to_namedtuple(state_dict)
   ht = Pickle.HierarchicalTable()
@@ -36,8 +24,8 @@ function state_dict_to_namedtuple(state_dict)
 end
 
 _ht2nt(x::Some) = something(x)
-_ht2nt(x::HierarchicalTable) = _ht2nt(x.head)
-function _ht2nt(x::TableBlock)
+_ht2nt(x::Pickle.HierarchicalTable) = _ht2nt(x.head)
+function _ht2nt(x::Pickle.TableBlock)
   if iszero(length(x.entry))
     return ()
   else

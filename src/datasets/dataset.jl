@@ -82,7 +82,6 @@ function token_freq(tokenizef, files::AbstractString...; vocab::Dict{String, Int
         open(f) do fd
             for line ∈ eachline(fd)
                 for token ∈ tokenizef(line)
-                    token = intern(token)
                     vocab[token] = get(vocab, token, 0) + 1
                 end
             end

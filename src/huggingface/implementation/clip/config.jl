@@ -1,5 +1,5 @@
-@cfgdef struct HGFCLIPTextConfig <: HGFConfig
-    vocab_size::Int =  49408
+@defaultdef :clip_text struct HGFCLIPTextConfigDefault
+    vocab_size::Int = 49408
     hidden_size::Int = 512
     intermediate_size::Int = 2048
     num_hidden_layers::Int = 12
@@ -13,8 +13,8 @@
     initializer_factor::Float64 = 1
 end
 
-@cfgdef struct HGFCLIPVisionConfig <: HGFConfig
-    hidden_size::Int =768
+@defaultdef :clip_vision struct HGFCLIPVisionConfigDefault
+    hidden_size::Int = 768
     intermediate_size::Int = 3072
     num_hidden_layers::Int = 12
     num_attention_heads::Int = 12
@@ -29,44 +29,25 @@ end
     initializer_factor::Float64 = 1.0
 end
 
-@cfgdef struct HGFCLIPConfig <: HGFConfig
-    text_config::HGFCLIPTextConfig
-    vision_config::HGFCLIPVisionConfig
-    # text_config_dict::Union{Dict, Nothing} = nothing
-    # vision_config_dict::Dict{Dict, Nothing} = nothing
+@defaultdef :clip struct HGFCLIPConfigDefault
+    text_config::HGFCLIPTextConfigDefault = HGFCLIPTextConfigDefault()
+    vision_config::HGFCLIPVisionConfigDefault = HGFCLIPVisionConfigDefault()
+    text_config_dict::Nothing = nothing
+    vision_config_dict::Nothing = nothing
     projection_dim::Int = 512
     logit_scale_init_value::Float64 = 2.6592
 end
 
-config_type(::Val{:clip}) = HGFCLIPConfig
+const HGFCLIPConfig = HGFConfig{:clip}
 
-function load_config(::Type{HGFCLIPConfig}, cfg)
-    text_config = get(cfg, :text_config, nothing)
-    if isnothing(text_config)
-        text_config_dict = get(cfg, :text_config_dict, (;))
-    else
-        text_config_dict = Dict{Symbol, Any}(Symbol(k) => v for (k, v) in text_config)
-    end
-    text_config = load_config(HGFCLIPTextConfig, text_config_dict)
-
-    vision_config = get(cfg, :vision_config, nothing)
-    if isnothing(vision_config)
-        vision_config_dict = get(cfg, :vision_config_dict, (;))
-    else
-        vision_config_dict = Dict{Symbol, Any}(Symbol(k) => v for (k, v) in vision_config)
-    end
-    vision_config = load_config(HGFCLIPVisionConfig, vision_config_dict)
-
-    kws = Dict{Symbol, Any}()
-    for (k, v) in cfg
-        if k == :text_config
-            kws[:text_config] = text_config
-        elseif k == :vision_config
-            kws[:vision_config] = vision_config
-        else
-            kws[k] = v
-        end
-    end
-
-    return HGFCLIPConfig(; kws...)
+function HGFConfig{:clip}(cfg, overwrite)
+    text_config = HGFConfig{:clip_text}(
+        haskey(cfg, :text_config) ? cfg.text_config :
+        haskey(cfg, :text_config_dict) ? cfg.text_config_dict : (;))
+    overwrite[:text_config] = text_config
+    vision_config = HGFConfig{:clip_vision}(
+        haskey(cfg, :vision_config) ? cfg.vision_config :
+        haskey(cfg, :vision_config_dict) ? cfg.vision_config_dict : (;))
+    overwrite[:vision_config] = vision_config
+    return HGFConfig(:clip, cfg, overwrite)
 end

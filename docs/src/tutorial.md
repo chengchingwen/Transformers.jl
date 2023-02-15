@@ -6,13 +6,13 @@ The following content will cover the basic introductions about the Transformer m
 
 The Transformer model was proposed in the paper: [Attention Is All You Need](https://arxiv.org/abs/1706.03762). In that paper they provide a new way of handling the sequence transduction problem (like the machine translation task) without complex recurrent or convolutional structure. Simply use a stack of attention mechanisms to get the latent structure in the input sentences and a special embedding (positional embedding) to get the locationality. The whole model architecture looks like this:
 
-The Transformer model architecture (picture from the origin paper)![transformer](./transformerblocks.png)
+The Transformer model architecture (picture from the origin paper)![transformer](assets/transformerblocks.png)
 
 ### Multi-Head Attention
 
-Instead of using the regular attention mechanism, they split the input vector to several pairs of subvector and perform a dot-product attention on each subvector pairs.  
+Instead of using the regular attention mechanism, they split the input vector to several pairs of subvector and perform a dot-product attention on each subvector pairs.
 
-regular attention v.s. Multi-Head attention (picture from the origin paper)![mhatten](mhatten.png)
+Regular attention v.s. Multi-Head attention (picture from the origin paper)![mhatten](assets/mhatten.png)
 
 For those who like mathematical expression, here is the formula:
 
@@ -44,9 +44,14 @@ Embedding_k(word) = WordEmbedding_k(word) + PE(pos\_of\_word, k)
 
 ## Transformers.jl
 
-Now we know how the transformer model looks like, let's take a look at the Transformers.jl. The package is build on top of a famous deep learning framework in Julia, [Flux.jl](https://github.com/FluxML/Flux.jl/).
+Now we know how the transformer model looks like, let's take a look at the Transformers.jl.
 
 ### Example
+
+!!! info
+    This tutorial is just for demonstrating how the Transformer model looks like, not for using in real task.
+     The example code can be found in the
+	 [example folder](https://github.com/chengchingwen/Transformers.jl/tree/master/example/AttentionIsAllYouNeed).
 
 To best illustrate the usage of Transformers.jl, we will start with building a two layer Transformer model on a sequence copy task. Before we start, we need to install all the package we need:
 
@@ -63,143 +68,150 @@ We use [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) for the GPU support.
 using Flux
 using CUDA
 using Transformers
-using Transformers.Basic #for loading the positional embedding
+using Transformers.Layers
+using Transformers.TextEncoders
 
-enable_gpu(true) # make `todevice` work on gpu
+enable_gpu(CUDA.functional()) # make `todevice` work on gpu if available
 ```
 
 ### Copy task
 
-The copy task is a toy test case of a sequence transduction problem that simply return the same sequence as the output. Here we define the input as a random sequence with number from 1~10 and length 10. we will also need a start and end symbol to indicate where is the begin and end of the sequence. We can use `Transformers.Basic.Vocabulary` to turn the input to corresponding index.
+The copy task is a toy test case of a sequence transduction problem that simply return the same sequence as the output. Here we define the input as a random sequence of white space separable number from 1~10 and length 10. we will also need a start and end symbol to indicate where is the begin and end of the sequence. We can use `Transformers.TextEncoders.TransformerTextEncoder` to preprocess the input (add start/end symbol, convert to one-hot encoding, ...).
 
 ```julia
 labels = map(string, 1:10)
-startsym = "11"
-endsym = "12"
-unksym = "0"
+startsym = "<s>"
+endsym = "</s>"
+unksym = "<unk>"
 labels = [unksym, startsym, endsym, labels...]
-vocab = Vocabulary(labels, unksym)
+
+textenc = TransformerTextEncoder(split, labels; startsym, endsym, unksym, padsym = unksym)
 ```
 
 ```julia
-#function for generate training datas
-sample_data() = (d = map(string, rand(1:10, 10)); (d,d))
-#function for adding start & end symbol
-preprocess(x) = [startsym, x..., endsym]
+# function for generate training datas
+sample_data() = (d = join(map(string, rand(1:10, 10)), ' '); (d,d))
 
-@show sample = preprocess.(sample_data())
-@show encoded_sample = vocab(sample[1]) #use Vocabulary to encode the training data
+@show sample = sample_data()
+# encode single sentence
+@show encoded_sample_1 = encode(textenc, sample[1])
+# encode for both encoder and decoder input
+@show encoded_sample = encode(textenc, sample[1], sample[2])
 ```
 
 ```
-sample = preprocess.(sample_data()) = (["11", "10", "8", "1", "10", "7", "10", "4", "2", "3", "3", "12"], ["11", "10", "8", "1", "10", "7", "10", "4", "2", "3", "3", "12"])
-encoded_sample = vocab(sample[1]) = [2, 13, 11, 4, 13, 10, 13, 7, 5, 6, 6, 3]
+sample = sample_data() = ("5 1 10 10 7 3 3 4 9 6", "5 1 10 10 7 3 3 4 9 6")
+encoded_sample_1 = encode(textenc, sample[1]) = (token = Bool[0 0 0 0 0 0 0 0 0 0 0 0; 1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 1 0 0 0; 0 1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0; 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 0 0; 0 0 0 1 1 0 0 0 0 0 0 0], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[12]))
+encoded_sample = encode(textenc, sample[1], sample[2]) = (encoder_input = (token = Bool[0 0 0 0 0 0 0 0 0 0 0 0; 1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 1 0 0 0; 0 1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0; 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 0 0; 0 0 0 1 1 0 0 0 0 0 0 0], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[12])), decoder_input = (token = Bool[0 0 0 0 0 0 0 0 0 0 0 0; 1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 1 0 0 0; 0 1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0; 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 0 0; 0 0 0 1 1 0 0 0 0 0 0 0], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[12]), cross_attention_mask = NeuralAttentionlib.BiLengthMask{1, Vector{Int32}}(Int32[12], Int32[12])))
 ```
-
 
 ### Defining the model
 
 With the Transformers.jl and Flux.jl, we can define the model easily. We use a Transformer with 512 hidden size and 8 head.
 
 ```julia
-#define a Word embedding layer which turn word index to word vector
-embed = Embed(512, length(vocab)) |> gpu
-#define a position embedding layer metioned above
-pe = PositionEmbedding(512) |> gpu
+# model setting
+N = 2
+hidden_dim = 512
+head_num = 8
+head_dim = 64
+ffn_dim = 2048
 
-#wrapper for get embedding
-function embedding(x)
-  we = embed(x, inv(sqrt(512)))
-  e = we .+ pe(we)
-  return e
+# define a Word embedding layer which turn word index to word vector
+word_embed = Embed(hidden_dim, length(textenc.vocab)) |> todevice
+
+# define a position embedding layer metioned above
+# since sin/cos position embedding does not have any parameter, `todevice` is not needed.
+pos_embed = SinCosPositionEmbed(hidden_dim)
+
+# define 2 layer of transformer
+encoder_trf = Transformer(TransformerBlock, N, head_num, hidden_dim, head_dim, ffn_dim) |> todevice
+
+# define 2 layer of transformer decoder
+decoder_trf = Transformer(TransformerDecoderBlock, N, head_num, hidden_dim, head_dim, ffn_dim) |> todevice
+
+# define the layer to get the final output probabilities
+# sharing weights with `word_embed`, don't/can't use `todevice`.
+embed_decode = EmbedDecoder(word_embed)
+
+function embedding(input)
+    we = word_embed(input.token)
+    pe = pos_embed(we)
+    return we .+ pe
 end
 
-#define 2 layer of transformer
-encode_t1 = Transformer(512, 8, 64, 2048) |> gpu
-encode_t2 = Transformer(512, 8, 64, 2048) |> gpu
-
-#define 2 layer of transformer decoder
-decode_t1 = TransformerDecoder(512, 8, 64, 2048) |> gpu
-decode_t2 = TransformerDecoder(512, 8, 64, 2048) |> gpu
-
-#define the layer to get the final output probabilities
-linear = Positionwise(Dense(512, length(vocab)), logsoftmax) |> gpu
-
-function encoder_forward(x)
-  e = embedding(x)
-  t1 = encode_t1(e)
-  t2 = encode_t2(t1)
-  return t2
+function encoder_forward(input)
+    attention_mask = get(input, :attention_mask, nothing)
+    e = embedding(input)
+    t = encoder_trf(e, attention_mask) # return a NamedTuples (hidden_state = ..., ...)
+    return t.hidden_state
 end
 
-function decoder_forward(x, m)
-  e = embedding(x)
-  t1 = decode_t1(e, m)
-  t2 = decode_t2(t1, m)
-  p = linear(t2)
-  return p
+function decoder_forward(input, m)
+    attention_mask = get(input, :attention_mask, nothing)
+    cross_attention_mask = get(input, :cross_attention_mask, nothing)
+    e = embedding(input)
+    t = decoder_trf(e, m, attention_mask, cross_attention_mask) # return a NamedTuple (hidden_state = ..., ...)
+    p = embed_decode(t.hidden_state)
+    return p
 end
 ```
 
 Then run the model on the sample
 
 ```julia
-enc = encoder_forward(encoded_sample)
-probs = decoder_forward(encoded_sample, enc)
+enc = encoder_forward(todevice(encoded_sample.encoder_input))
+logits = decoder_forward(todevice(encoded_sample.decoder_input), enc)
 ```
 
-We can also use the`Transformers.Stack` to define the encoder and decoder so you can define multiple layer and the `xx_forwawrd` at once. See the [docs](stacks.md) for more information about the API.
+The whole model can be defined without those _forward_ functions. See the example folder and [docs of the Layer API](layers.md) for more information.
 
 ### define the loss and training loop
 
 For the last step, we need to define the loss function and training loop. We use the kl divergence for the output probability.
 
 ```julia
-using Flux: onehot
-function smooth(et)
-    sm = fill!(similar(et, Float32), 1e-6/size(embed, 2))
-    p = sm .* (1 .+ -et)
-    label = p .+ et .* (1 - convert(Float32, 1e-6))
-    label
-end
-Flux.@nograd smooth
+using Flux.Losses # for logitcrossentropy
 
-#define loss function
-function loss(x, y)
-  label = onehot(vocab, y) #turn the index to one-hot encoding
-  label = smooth(label) #perform label smoothing
-  enc = encoder_forward(x)
-  probs = decoder_forward(y, enc)
-  l = logkldivergence(label[:, 2:end, :], probs[:, 1:end-1, :])
-  return l
+# define loss function
+function shift_decode_loss(logits, trg, trg_mask)
+    label = trg[:, 2:end, :]
+    return logitcrossentropy(@view(logits[:, 1:end-1, :]), label, trg_mask - 1)
 end
 
-#collect all the parameters
-ps = params(embed, pe, encode_t1, encode_t2, decode_t1, decode_t2, linear)
+function loss(input)
+    enc = encoder_forward(input.encoder_input)
+    logits = decoder_forward(input.decoder_input, enc)
+    ce_loss = shift_decode_loss(logits, input.decoder_input.token, input.decoder_input.attention_mask)
+    return ce_loss
+end
+
+# collect all the parameters
+ps = Flux.params(word_embed, encoder_trf, decoder_trf)
 opt = ADAM(1e-4)
 
-#function for created batched data
+# function for created batched data
 using Transformers.Datasets: batched
 
-#flux function for update parameters
+# flux function for update parameters
 using Flux: gradient
 using Flux.Optimise: update!
 
-#define training loop
+preprocess(sample) = todevice(encode(textenc, sample[1], sample[2]))
+
+# define training loop
 function train!()
-  @info "start training"
-  for i = 1:1000
-    data = batched([sample_data() for i = 1:32]) #create 32 random sample and batched
-	x, y = preprocess.(data[1]), preprocess.(data[2])
-    x, y = vocab(x), vocab(y) #encode the data
-    x, y = todevice(x, y) #move to gpu
-    grad = gradient(()->loss(x, y), ps)
-    if i % 8 == 0
-        l = loss(x, y)
-    	println("loss = $l")
+    @info "start training"
+    for i = 1:2000
+        sample = batched([sample_data() for i = 1:32]) # create 32 random sample and batched
+        input = preprocess(sample)
+        grad = gradient(()->loss(input), ps)
+        if i % 8 == 0
+            l = loss(input)
+            println("loss = $l")
+        end
+        update!(opt, ps, grad)
     end
-    update!(opt, ps, grad)
-  end
 end
 ```
 
@@ -212,28 +224,27 @@ train!()
 After training, we can try to test the model.
 
 ```julia
-using Flux: onecold
-function translate(x)
-    ix = todevice(vocab(preprocess(x)))
+function translate(x::AbstractString)
+    ix = todevice(encode(textenc, x).token)
     seq = [startsym]
 
-    enc = encoder_forward(ix)
+    encoder_input = (token = ix,)
+    enc = encoder_forward(encoder_input)
 
-    len = length(ix)
+    len = size(ix, 2)
     for i = 1:2len
-        trg = todevice(vocab(seq))
-        dec = decoder_forward(trg, enc)
-        #move back to gpu due to argmax wrong result on CuArrays
-        ntok = onecold(collect(dec), labels)
-        push!(seq, ntok[end])
-        ntok[end] == endsym && break
+        decoder_input = (token = todevice(lookup(textenc, seq)),)
+        logit = decoder_forward(decoder_input, enc)
+        ntok = decode(textenc, argmax(logit[:, end]))
+        push!(seq, ntok)
+        ntok == endsym && break
     end
-  seq[2:end-1]
+    return seq
 end
 ```
 
 ```julia
-translate(map(string, [5,5,6,6,1,2,3,4,7, 10]))
+translate("5 5 6 6 1 2 3 4 7 10")
 ```
 
 ```

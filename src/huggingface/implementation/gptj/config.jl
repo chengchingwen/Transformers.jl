@@ -1,4 +1,4 @@
-@cfgdef struct HGFGPTJConfig <: HGFConfig
+@defaultdef :gptj struct HGFGPTJConfigDefault
     vocab_size::Int = 50400
     n_positions::Int = 2048
     n_embd::Int = 4096
@@ -18,4 +18,4 @@
     tie_word_embeddings::Bool = false
 end
 
-config_type(::Val{:gptj}) = HGFGPTJConfig
+const HGFGPTJConfig = HGFConfig{:gptj}

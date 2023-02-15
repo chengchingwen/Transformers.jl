@@ -1,6 +1,6 @@
 function _load_added_tokens(added_tokens_json, vocab_list)
     added_tokens = String[]
-    added_tokens_dict = JSON.parsefile(added_tokens_json)
+    added_tokens_dict = JSON3.read(read(added_tokens_json))
     for (idx, token) in sort!(collect(Iterators.map(reverse, added_tokens_dict)))
         n_vocab = length(vocab_list)
         if n_vocab == idx

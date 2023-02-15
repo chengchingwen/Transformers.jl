@@ -1,4 +1,4 @@
-@cfgdef struct HGFT5Config <: HGFConfig
+@defaultdef :t5 struct HGFT5ConfigDefault
     vocab_size::Int = 32128
     d_model::Int = 512
     d_kv::Int = 64
@@ -16,19 +16,24 @@
     use_cache::Bool = true
     pad_token_id::Int = 0
     eos_token_id::Int = 1
-    dense_act_fn::String
-    is_gated_act::Bool
+    dense_act_fn::Nothing = nothing
+    is_gated_act::Bool = false
 end
 
-config_type(::Val{:t5}) = HGFT5Config
+const HGFT5Config = HGFConfig{:t5}
 
-function load_config(::Type{HGFT5Config}, cfg)
+function HGFConfig{:t5}(cfg, overwrite)
     if !haskey(cfg, :num_decoder_layers) && haskey(cfg, :num_layers)
-        cfg[:num_decoder_layers] = cfg[:num_layers]
+        overwrite[:num_decoder_layers] = cfg[:num_layers]
     end
-    feed_forward_proj = get!(cfg, :feed_forward_proj, "relu")
+    if haskey(cfg, :feed_forward_proj)
+        feed_forward_proj = cfg.feed_forward_proj
+    else
+        feed_forward_proj = "relu"
+        overwrite[:feed_forward_proj] = feed_forward_proj
+    end
     act_info = split(feed_forward_proj, '-')
-    cfg[:dense_act_fn] = String(last(act_info))
-    cfg[:is_gated_act] = first(act_info) == "gated"
-    return HGFT5Config(; cfg...)
+    overwrite[:dense_act_fn] = String(last(act_info))
+    overwrite[:is_gated_act] = first(act_info) == "gated"
+    return HGFConfig(:t5, cfg, overwrite)
 end

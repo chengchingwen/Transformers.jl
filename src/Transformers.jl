@@ -1,95 +1,80 @@
 module Transformers
 
 using Flux
-using Requires
-using Requires: @init
 
-export Transformer, TransformerDecoder
-export Stack, @nntopo_str, @nntopo
+using NeuralAttentionlib
 
-export dataset, datafile, get_batch, get_vocab
+export Transformer
 
 export todevice, enable_gpu
-export Gpt
-export Bert
+export Layers, TextEncoders, HuggingFace,
+    Masks
 
-const Abstract3DTensor{T} = AbstractArray{T, 3}
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
-
-const ϵ = Ref(1e-8)
-
-"""
-    set_ϵ(x)
-
-set the ϵ value
-"""
-set_ϵ(x) = (ϵ[] = x; x)
-
-"""
-    epsilon(T)
-
-get the ϵ value in type T
-"""
-epsilon(::Type{T}) where T = convert(T, ϵ[])
 
 using CUDA
 
 """
-  enable_gpu(t=true)
+    enable_gpu(t=true)
 
-enable gpu for `todevice`, disable with `enable_gpu(false)`.
+Enable gpu for `todevice`, disable with `enable_gpu(false)`.
 """
 function enable_gpu(t::Bool=true)
     if t
         CUDA.functional() || error("CUDA not functional")
-        @eval todevice(args...) = togpudevice(args...)
+        @eval todevice(args...; kws...) = togpudevice(args...; kws...)
     else
-        @eval todevice(args...) = tocpudevice(args...)
+        @eval todevice(args...; kws...) = tocpudevice(args...; kws...)
     end
 end
 
 """
-  todevice(x)
+    todevice(x)
 
-move data to device, only when gpu is enable with `enable_gpu`, basically equal `Flux.gpu` except `AbstractArray{Int}` become `CuArray{Int}`. Otherwise equal `Flux.cpu`
+Move data to device, only when gpu is enable with `enable_gpu`, basically equal `Flux.gpu`. Otherwise just `Flux.cpu`.
 """
-todevice(args...) = tocpudevice(args...)
+todevice(args...; kws...) = tocpudevice(args...; kws...)
 
-tocpudevice(x) = cpu(x)
-tocpudevice(x, xs...) = (tocpudevice(x), map(tocpudevice, xs)...)
+# https://github.com/FluxML/Flux.jl/blob/79971741ed8454cdf6a66515799a0c4b864f564a/src/functor.jl#L174
+_tocpudevice(x, cache) = Flux.fmap(
+    x -> Flux.adapt(Flux.FluxCPUAdaptor(), x),
+    x; exclude = Flux._isleaf, cache)
 
-@generated function tocpudevice(x::T) where T <: AbstractArray
+function tocpudevice(x; cache = IdDict())
+    # equivalent to Flux.cpu(x)
+    return _tocpudevice(x, cache)
+end
+function tocpudevice(x, xs...; cache = IdDict())
+    return (tocpudevice(x; cache), map(xi->tocpudevice(xi; cache), xs)...)
+end
+tocpudevice(x::Tuple; cache = IdDict()) = tocpudevice(x...; cache)
+tocpudevice(x::NamedTuple{name}; cache = IdDict()) where name = NamedTuple{name}(tocpudevice(values(x)...; cache))
+
+@generated function tocpudevice(x::T; cache = IdDict()) where {T <: Union{AbstractArray, NeuralAttentionlib.AbstractMask}}
     R = Core.Compiler.return_type(Flux.adapt, Tuple{Type{Array}, x})
-    return :(cpu(x)::$R)
+    return :(_tocpudevice(x, cache)::$R)
+end
+@generated function tocpudevice(x::NeuralAttentionlib.GenericSequenceMask{N, M}; cache = IdDict()) where {N, M}
+    _R = Core.Compiler.return_type(Flux.adapt, Tuple{Type{Array}, M})
+    R = NeuralAttentionlib.GenericSequenceMask{N, _R}
+    return :(_togpudevice(x, cache)::$R)
 end
 
-#implement batchmul, batchtril for flux
-include("./fix/batchedmul.jl")
-include("./fix/batched_tril.jl")
 
-include("./basic/Basic.jl")
-include("./stacks/Stacks.jl")
-include("./datasets/Datasets.jl")
-
-include("./pretrain/Pretrain.jl")
-
-include("./gpt/GenerativePreTrain.jl")
-include("./bert/BidirectionalEncoder.jl")
+include("./layers/Layers.jl")
 include("./tokenizer/tokenizer.jl")
+include("./textencoders/TextEncoders.jl")
 
+include("./datasets/Datasets.jl")
 include("./huggingface/HuggingFace.jl")
 
-include("cuda/cuda.jl")
+include("./loss.jl")
+include("./cuda.jl")
 
-using .Basic
-using .Stacks
+using .Layers
+using .TextEncoders
 using .Datasets
-using .Pretrain
-using .GenerativePreTrain
-using .BidirectionalEncoder
 
 using .HuggingFace
-
-include("./experimental/experimental.jl")
 
 end # module

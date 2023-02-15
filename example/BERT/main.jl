@@ -13,7 +13,7 @@ function parse_commandline()
         "task"
             help = "task name"
             required = true
-            range_tester = x-> x ∈ ["cola", "mnli", "mrpc", "hgf_cola"]
+            range_tester = x-> x ∈ ["cola", "mnli", "mrpc"]
     end
 
     return parse_args(ARGS, s)

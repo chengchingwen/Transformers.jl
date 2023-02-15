@@ -1,97 +1,103 @@
-using JSON
-using MacroTools
+using JSON3
 using ValSplit
-
 using HuggingFaceApi
 
+include("default.jl")
+
 abstract type AbstractHGFConfig <: AbstractDict{Symbol, Any} end
-abstract type HGFPretrainedConfig <: AbstractHGFConfig end
-abstract type HGFConfig <: AbstractHGFConfig end
 
-Base.length(cfg::AbstractHGFConfig) = fieldcount(typeof(cfg))
-Base.isempty(::AbstractHGFConfig) = false
-Base.getindex(cfg::AbstractHGFConfig, k::Symbol) = getproperty(cfg, k)
-Base.iterate(cfg::AbstractHGFConfig) = iterate(cfg, 1)
-Base.iterate(cfg::AbstractHGFConfig, i) = i <= length(cfg) ? (fieldname(typeof(cfg), i) => getfield(cfg, i), i+1) : nothing
-Base.propertynames(cfg::AbstractHGFConfig) = keys(cfg)
+struct HGFConfig{name, C, E <: Union{Nothing, Dict{Symbol, Any}}} <: AbstractHGFConfig
+    pretrain::C
+    overwrite::E
+    function HGFConfig{name, C, E}(pretrain::C, overwrite::E) where {name, C, E <: Union{Nothing, Dict{Symbol, Any}}}
+        !isnothing(overwrite) && isempty(overwrite) && (overwrite = nothing)
+        return new{name, C, typeof(overwrite)}(pretrain, overwrite)
+    end
+end
+HGFConfig(name::Symbol, pretrain, overwrite) = HGFConfig{name, typeof(pretrain), typeof(overwrite)}(pretrain, overwrite)
+HGFConfig{name}(pretrain, overwrite = nothing) where name = HGFConfig{name, typeof(pretrain), typeof(overwrite)}(pretrain, overwrite)
+function HGFConfig(cfg::HGFConfig{name}; kws...) where name
+    overwrite = deepcopy(getfield(cfg, :overwrite))
+    isnothing(overwrite) && (overwrite = Dict{Symbol, Any}())
+    for k in keys(kws)
+        overwrite[k] = kws[k]
+    end
+    return HGFConfig{name}(getfield(cfg, :pretrain), overwrite)
+end
 
-_parent(cfg::HGFConfig) = getfield(cfg, :_parent)
+function Base.getproperty(cfg::HGFConfig, sym::Symbol)
+    pretrain = getfield(cfg, :pretrain)
+    overwrite = getfield(cfg, :overwrite)
+    !isnothing(overwrite) && haskey(overwrite, sym) && return overwrite[sym]
+    haskey(pretrain, sym) && return pretrain[sym]
+    return getproperty(getdefault(cfg), sym)
+end
 
-Base.length(cfg::HGFConfig) = fieldcount(typeof(cfg)) + length(_updated(_parent(cfg))) - 1
-Base.iterate(cfg::HGFConfig) = iterate(cfg, 1)
-function Base.iterate(cfg::HGFConfig, i::Int)
-    n = fieldcount(typeof(cfg))
-    if i < n
-        return fieldname(typeof(cfg), i) => getfield(cfg, i), i+1
+getdefault(cfg::HGFConfig) = DEFAULT_PRETRAIN_CONFIG
+
+Base.getindex(cfg::HGFConfig, sym::String) = cfg[Symbol(sym)]
+Base.getindex(cfg::HGFConfig, sym::Symbol) = getproperty(cfg, sym)
+Base.length(cfg::HGFConfig) = length(keys(cfg))
+
+function Base.haskey(cfg::HGFConfig, k::Symbol)
+    overwrite = getfield(cfg, :overwrite)
+    if isnothing(overwrite)
+        return haskey(getfield(cfg, :pretrain), k)
     else
-        pcfg = _parent(cfg)
-        if pcfg isa UpdatedConfig
-            return iterate(pcfg)
-        else
-            return nothing
-        end
+        return haskey(overwrite, k) || haskey(getfield(cfg, :pretrain), k)
     end
 end
 
-Base.iterate(cfg::HGFConfig, i::Union{Symbol, Nothing}) = iterate(_parent(cfg), i)
-
-macro cfgdef(ex)
-    @capture(ex, struct T_ fields__ end) || error("only accept struct definition like Base.@kwdef")
-    fields_wo_default = map(fields) do fwv
-        @capture(fwv, f_ = v_) ? f : fwv
-    end
-    field_names = map(fields_wo_default) do f
-        @capture(f, fn_::ft_) ? fn : f
-    end
-    @capture(T, Tname_ <: Sname_) || (Tname = T)
-    Tname = esc(Tname)
-    param_ex = map(fields) do fwv
-        @capture(fwv, f_ = v_) ? Expr(:kw, @capture(f, fn_::ft_) ? fn : f, esc(v)) : fwv
-    end
-    kws = gensym(:kws)
-    push!(param_ex, :($(kws)...))
-    param_ex = Expr(:parameters, param_ex...)
-
-    return quote
-        struct $(esc(T))
-            $(esc.(fields_wo_default)...)
-            _parent::HGFPretrainedConfig
-        end
-
-        function $(Tname)($(param_ex))
-            p = pretrained_config(; $(kws)...)
-            $(Tname)($(field_names...), p)
-        end
-    end
+function Base.keys(cfg::HGFConfig)
+    overwrite = getfield(cfg, :overwrite)
+    pretrain = getfield(cfg, :pretrain)
+    return isnothing(overwrite) ? Tuple(keys(pretrain)) : Tuple(union(keys(pretrain), keys(overwrite)))
 end
 
-function Base.getproperty(cfg::HGFConfig, k::Symbol)
-    if hasfield(typeof(cfg), k)
-        return getfield(cfg, k)
-    else
-        if k == :num_labels
-            id2label = getproperty(cfg, :id2label)
-            if !isnothing(id2label)
-                return length(id2label)
-            end
-        end
-        return getproperty(_parent(cfg), k)
-    end
+function Base.get(cfg::HGFConfig, k::Symbol, v)
+    overwrite = getfield(cfg, :overwrite)
+    pretrain = getfield(cfg, :pretrain)
+    !isnothing(overwrite) && haskey(overwrite, k) && return overwrite[k]
+    haskey(pretrain, k) && return pretrain[k]
+    return v
 end
 
-function Base.get(cfg::HGFConfig, k::Symbol, d)
-    if hasfield(typeof(cfg), k)
-        return getfield(cfg, k)
-    else
-        if k == :num_labels
-            id2label = cfg.id2label
-            if !isnothing(id2label)
-                return length(id2label)
-            end
-        end
-        return get(_parent(cfg), k, d)
-    end
+function Base.iterate(cfg::HGFConfig, state = keys(cfg))
+    isempty(state) && return nothing
+    k = state[1]
+    v = cfg[k]
+    return k=>v, Base.tail(state)
 end
 
-include("./auto.jl")
-include("./pretrain.jl")
+Base.propertynames(cfg::HGFConfig) = keys(cfg)
+
+getconfigname(::HGFConfig{name}) where name = name
+
+include("auto.jl")
+
+# api doc
+
+"""
+    HGFConfig{model_type}
+
+The type for holding the configuration for huggingface model `model_type`.
+
+    HGFConfig(base_cfg::HGFConfig; kwargs...)
+
+Return a new `HGFConfig` object for the same `model_type` with fields updated with `kwargs`.
+
+# Example
+
+```julia-repl
+julia> bertcfg = load_config("bert-base-cased");
+
+julia> bertcfg.num_labels
+2
+
+julia> mycfg = HuggingFace.HGFConfig(bertcfg; num_labels = 3);
+
+julia> mycfg.num_labels
+3
+```
+"""
+HGFConfig
