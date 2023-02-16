@@ -282,7 +282,7 @@ end
 Create a multi-head self attention layer with `head` heads and `head_hidden_size` per head.
 """
 function SelfAttention(head::Int, hidden_size::Int; dropout = nothing, return_score = false, causal = false)
-    @assert rem(hidden_state, head) == 0 "`hidden_size` should be dividible by `head` if `head_hidden_size` is not set"
+    @assert rem(hidden_size, head) == 0 "`hidden_size` should be dividible by `head` if `head_hidden_size` is not set"
     head_hidden_size = div(hidden_size, head)
     return SelfAttention(head, hidden_size, head_hidden_size; dropout, return_score, causal)
 end
@@ -316,7 +316,7 @@ end
 Create a multi-head cross attention layer with `head` heads and `head_hidden_size` per head.
 """
 function CrossAttention(head::Int, hidden_size::Int; dropout = nothing, return_score = false)
-    @assert rem(hidden_state, head) == 0 "`hidden_size` should be dividible by `head` if `head_hidden_size` is not set"
+    @assert rem(hidden_size, head) == 0 "`hidden_size` should be dividible by `head` if `head_hidden_size` is not set"
     head_hidden_size = div(hidden_size, head)
     return CrossAttention(head, hidden_size, head_hidden_size; dropout, return_score)
 end
