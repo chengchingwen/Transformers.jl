@@ -39,8 +39,8 @@ const trf_model = Layers.Chain(
     Layers.Branch{(:logits,)}(embed_decode),
 )
 
-const ps = params(trf_model)
-const opt = ADAM(lr)
+const opt_rule = Optimisers.Adam(lr)
+const opt = Optimisers.setup(opt_rule, trf_model)
 
 function train!()
     global Batch, trf_model
@@ -48,15 +48,11 @@ function train!()
     for i = 1:320*7
         data = batched([gen_data() for i = 1:Batch])
         input = preprocess(data)
-        grad = gradient(ps) do
-            nt = trf_model(input)
+        decode_loss, (grad,) = Zygote.withgradient(trf_model) do model
+            nt = model(input)
             shift_decode_loss(nt.logits, input.decoder_input.token, input.decoder_input.attention_mask)
         end
-        i%8 == 0 && begin
-            decode_loss = shift_decode_loss(trf_model(input).logits,
-                                            input.decoder_input.token, input.decoder_input.attention_mask)
-            @show decode_loss
-        end
-        update!(opt, ps, grad)
+        i % 8 == 0 && @show decode_loss
+        Optimisers.update!(opt, trf_model, grad)
     end
 end

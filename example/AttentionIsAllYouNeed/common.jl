@@ -1,8 +1,8 @@
 using Statistics
 using Flux
-using Flux: gradient, onehot, params
 using Flux.Losses
-import Flux.Optimise: update!
+import Optimisers
+using Zygote
 using ChainRulesCore
 
 using Transformers
