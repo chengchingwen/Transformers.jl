@@ -43,7 +43,7 @@ WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
 
 [compat]
 BytePairEncoding = "0.3"
-CUDA = "3.10"
+CUDA = "3.10, 4"
 ChainRulesCore = "1.15"
 DataDeps = "0.7"
 DataStructures = "0.18"
