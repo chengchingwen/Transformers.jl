@@ -1,5 +1,7 @@
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
 Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
 WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"

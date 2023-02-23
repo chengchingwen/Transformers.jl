@@ -6,8 +6,8 @@ using Transformers.Datasets: GLUE
 
 using Flux
 using Flux.Losses
-using Flux: pullback, params
-import Flux.Optimise: update!
+using Zygote
+import Optimisers
 
 const Epoch = 2
 const Batch = 4
@@ -30,8 +30,8 @@ const bertenc = load_tokenizer("bert-base-uncased"; config = bert_config)
 
 const bert_model = todevice(_bert_model)
 
-const ps = params(bert_model)
-const opt = ADAM(1e-6)
+const opt_rule = Optimisers.Adam(1e-6)
+const opt = Optimisers.setup(opt_rule, bert_model)
 
 function acc(p, label)
     pred = Flux.onecold(p)
@@ -56,14 +56,14 @@ function train!()
         al = zero(Float64)
         while (batch = get_batch(datas, Batch)) !== nothing
             input = todevice(preprocess(batch))
-            (l, p), back = pullback(ps) do
-                loss(bert_model, input)
+            (l, p), back = Zygote.pullback(bert_model) do model
+                loss(model, input)
             end
             a = acc(p, input.label)
             al += a
-            grad = back((Flux.Zygote.sensitivity(l), nothing))
-            i+=1
-            update!(opt, ps, grad)
+            (grad,) = back((Zygote.sensitivity(l), nothing))
+            i += 1
+            Optimisers.update!(opt, bert_model, grad)
             mod1(i, 16) == 1 && @info "training" loss=l accuracy=al/i
         end
 
