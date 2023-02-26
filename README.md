@@ -24,7 +24,7 @@ using Transformers
 using Transformers.TextEncoders
 using Transformers.HuggingFace
 
-textencoder, bert_model = hgf"bert-base-cased"
+textencoder, bert_model = hgf"bert-base-uncased"
 
 text1 = "Peter Piper picked a peck of pickled peppers"
 text2 = "Fuzzy Wuzzy was a bear"
