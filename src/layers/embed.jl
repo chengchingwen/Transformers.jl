@@ -71,10 +71,10 @@ EmbedDecoder(embed::Embed; bias = false) = bias ?
     EmbedDecoder(embed, nothing)
 
 function (e::EmbedDecoder{<:Embed})(x)
-    return bias_and_act(nothing, e.bias, NeuralAttentionlib.scaled_matmul(e.embed.embeddings', x, e.embed.scale))
+    return dense(nothing, e.embed.embeddings', e.bias, x, e.embed.scale)
 end
 function (e::EmbedDecoder{<:Embed{Nothing}})(x)
-    return bias_and_act(nothing, e.bias, NeuralAttentionlib.scaled_matmul(e.embed.embeddings', x))
+    return dense(nothing, e.embed.embeddings', e.bias, x)
 end
 
 function Base.show(io::IO, e::EmbedDecoder)

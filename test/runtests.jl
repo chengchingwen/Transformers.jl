@@ -49,4 +49,5 @@ Random.seed!(0)
         end
     end
     include("loss.jl")
+    include("grad.jl")
 end
