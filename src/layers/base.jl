@@ -155,6 +155,37 @@ function _bias_rdims(dS, b)
     return dims
 end
 
+struct DensePullback{A, D, BK, MB, Y, B}
+    ∇act::A
+    dS::D
+    back::BK
+    mm_back::MB
+    y::Y
+    b::B
+end
+function (pb::DensePullback{Nothing, Nothing})(Ybar)
+    Ȳ = unthunk(Ybar)
+    _, _, db, dS = pb.back(Ȳ)
+    _, dW, dx, _ = pb.mm_back(dS)
+    return (NoTangent(), NoTangent(), dW, db, dx, NoTangent())
+end
+function (pb::DensePullback{A, D})(Ybar) where {A, D}
+    dS, b = pb.dS, pb.b
+    Ȳ = unthunk(Ybar)
+    pb.dS .*= Ȳ
+    db = isnothing(b) ? NoTangent() : sum(dS; dims = _bias_rdims(dS, b))
+    _, dW, dx, _ = pb.mm_back(dS)
+    return (NoTangent(), NoTangent(), dW, db, dx, NoTangent())
+end
+function (pb::DensePullback{A, Nothing})(Ybar) where A
+    b = pb.b
+    Ȳ = unthunk(Ybar)
+    dS = pb.∇act.(pb.y) .* Ȳ
+    db = isnothing(b) ? NoTangent() : sum(dS; dims = _bias_rdims(dS, b))
+    _, dW, dx, _ = pb.mm_back(dS)
+    return (NoTangent(), NoTangent(), dW, db, dx, NoTangent())
+end
+
 function ChainRulesCore.rrule(config::RuleConfig, ::typeof(dense), act, W, b, x)
     y, dense_pullback = rrule(config, dense, act, W, b, x, true)
     pullback(Ȳ) = Base.front(dense_pullback(Ȳ))
@@ -167,35 +198,15 @@ function ChainRulesCore.rrule(config::RuleConfig, ::typeof(dense), act, W, b, x,
         broadcast_tape = rrule(config, bias_and_act, act, b, S)
         isnothing(broadcast_tape) && (broadcast_tape = rrule_via_ad(config, bias_and_act, act, b, S))
         y, broadcast_pullback = broadcast_tape
-        function fallback_pullback(Ybar)
-            Ȳ = unthunk(Ybar)
-            _, _, db, dS = broadcast_pullback(Ȳ)
-            _, dW, dx, _ = mm_pullback(dS)
-            return (NoTangent(), NoTangent(), dW, db, dx, NoTangent())
-        end
-        return y, fallback_pullback
+        return y, DensePullback(nothing, nothing, broadcast_pullback, mm_pullback, y, nothing)
     elseif require_x(∇act)
         dS = similar(S)
         Sb = isnothing(b) ? S : Broadcast.broadcasted(+, S, b)
         S .=  _run_fw_bw!.(∇act, Sb, Ref(dS), CartesianIndices(dS))
-        function _pullback(Ybar)
-            Ȳ = unthunk(Ybar)
-            dS .*= Ȳ
-            db = isnothing(b) ? NoTangent() : sum(dS; dims = _bias_rdims(dS, b))
-            _, dW, dx, _ = mm_pullback(dS)
-            return (NoTangent(), NoTangent(), dW, db, dx, NoTangent())
-        end
-        return S, _pullback
+        return S, DensePullback(∇act, dS, nothing, mm_pullback, S, b)
     else
         y = bias_and_act!(act, b, S, S)
-        function pullback(Ybar)
-            Ȳ = unthunk(Ybar)
-            dS = ∇act.(y) .* Ȳ
-            db = isnothing(b) ? NoTangent() : sum(dS; dims = _bias_rdims(dS, b))
-            _, dW, dx, _ = mm_pullback(dS)
-            return (NoTangent(), NoTangent(), dW, db, dx, NoTangent())
-        end
-        return y, pullback
+        return y, DensePullback(∇act, nothing, nothing, mm_pullback, y, b)
     end
 end
 

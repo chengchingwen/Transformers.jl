@@ -1,3 +1,15 @@
+macro isinferred(ex)
+    quote
+        try
+            f = () -> $(esc(ex))
+            @inferred f()
+            true
+        catch err
+            isa(err, ErrorException) ? false : rethrow(err)
+        end
+    end
+end
+
 @testset "Grad" begin
     using NNlib
     using Flux
@@ -11,6 +23,7 @@
                     d2 = Dense(W, isnothing(b) ? false : b, isnothing(act) ? identity : act)
                     grad = gradient((m, x)->sum(sin.(m(x))), d, x)
                     grad2 = gradient((m, x)->sum(sin.(m(x))), d2, x)
+                    @test @isinferred gradient((m, x)->sum(sin.(m(x))), d2, x)
                     @test grad[1].W ≈ grad2[1].weight
                     @test isnothing(grad[1].b) || isnothing(grad[1].b) ?
                         grad[1].b == grad2[1].bias : grad[1].b ≈ grad2[1].bias
