@@ -1,3 +1,5 @@
+using ChainRulesCore
+
 @static if VERSION < v"1.8"
     macro etotal(ex)
         return :(Base.@pure $ex)
@@ -15,16 +17,19 @@ end
     end
     return 0
 end
+ChainRulesCore.@non_differentiable sym_in(x, xs)
 
 @etotal function prefix_name(prefix::Symbol, names::Tuple{Vararg{Symbol}})
     @nospecialize names
     return map(Base.Fix1(Symbol, Symbol(prefix, :_)), names)
 end
+ChainRulesCore.@non_differentiable prefix_name(prefix, names)
 
 @etotal function replace_name(names::Tuple{Vararg{Symbol}}, a::Symbol, b::Symbol)
     @nospecialize names
     return map(name -> name == a ? b : name, names)
 end
+ChainRulesCore.@non_differentiable replace_name(names, a, b)
 
 @etotal function replace_names(names::Tuple{Vararg{Symbol}}, as::NTuple{N, Symbol}, bs::NTuple{N, Symbol}) where N
     @nospecialize names as bs
@@ -33,20 +38,34 @@ end
     end
     return names
 end
+ChainRulesCore.@non_differentiable replace_names(names, as, bs)
 
 @etotal function remove_name(names::Tuple{Vararg{Symbol}}, name::Symbol)
     @nospecialize names
     i = sym_in(name, names)
     return i == 0 ? names : (names[1:i-1]..., names[i+1:end]...)
 end
+ChainRulesCore.@non_differentiable remove_name(names, name)
 
 function rename(nt::NamedTuple{names, types}, _a::Val{a}, _b::Val{b}) where {names, types, a, b}
-    if iszero(sym_in(b, names))
-        new_names = replace_name(names, a, b)
-        return NamedTuple{new_names, types}(values(nt))
+    if @generated
+        if iszero(sym_in(b, names))
+            new_names = replace_name(names, a, b)
+            return :(NamedTuple{$new_names, $types}(values(nt)))
+        else
+            return quote
+                nt = Base.structdiff(nt, NamedTuple{(b,)})
+                return rename(nt, _a, _b)
+            end
+        end
     else
-        nt = Base.structdiff(nt, NamedTuple{(b,)})
-        return rename(nt, _a, _b)
+        if iszero(sym_in(b, names))
+            new_names = replace_name(names, a, b)
+            return NamedTuple{new_names, types}(values(nt))
+        else
+            nt = Base.structdiff(nt, NamedTuple{(b,)})
+            return rename(nt, _a, _b)
+        end
     end
 end
 
