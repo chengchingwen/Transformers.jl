@@ -70,12 +70,25 @@ EmbedDecoder(embed::Embed; bias = false) = bias ?
     EmbedDecoder(embed, zeros(eltype(embed.embeddings), size(embed.embeddings, 1))) :
     EmbedDecoder(embed, nothing)
 
-function (e::EmbedDecoder{<:Embed})(x)
-    return dense(nothing, e.embed.embeddings', e.bias, x, e.embed.scale)
+embed_decode(scale, embeddings, bias, x) = dense(nothing, embeddings', bias, x, scale)
+embed_decode(scale::Nothing, embeddings, bias, x) = dense(nothing, embeddings', bias, x)
+
+function ChainRulesCore.rrule(config::RuleConfig, ::typeof(embed_decode), scale, embeddings, bias, x)
+    _scale = isnothing(scale) ? true : scale
+    y, dense_pullback = rrule(config, dense, nothing, embeddings', bias, x, _scale)
+    function embed_decode_pullback(Ȳ)
+        _, _, dembeddingsT, dbias, dx, _ = dense_pullback(Ȳ)
+        if dembeddingsT isa ChainRulesCore.AbstractZero
+            dembeddings = dembeddingsT
+        else
+            dembeddings = dembeddingsT'
+        end
+        return (NoTangent(), NoTangent(), dembeddings, dbias, dx)
+    end
+    return y, embed_decode_pullback
 end
-function (e::EmbedDecoder{<:Embed{Nothing}})(x)
-    return dense(nothing, e.embed.embeddings', e.bias, x)
-end
+
+(e::EmbedDecoder{<:Embed})(x) = embed_decode(e.embed.scale, e.embed.embeddings, e.bias, x)
 
 function Base.show(io::IO, e::EmbedDecoder)
     print(io, "EmbedDecoder(")
