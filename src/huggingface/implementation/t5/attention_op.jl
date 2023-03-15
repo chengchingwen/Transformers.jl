@@ -41,11 +41,7 @@ function ChainRulesCore.rrule(
     attention_score, attention_pullback = rrule(config, scoref, identity, score)
     function t5rpe_attention_score_pullback(Ȳ)
         ∂pf, _, ∂score = attention_pullback(Ȳ.attention_score)
-        if ∂pf isa NoTangent
-            ∂bias = Ȳ.position_bias
-        else
-            ∂bias = unthunk(Ȳ.position_bias) + unthunk(∂pf.arg[end])
-        end
+        ∂bias = Ȳ.position_bias + ∂pf.arg[end]
         ∂emb = rpe_pullback(∂bias)[3]
         _, ∂q, ∂k = score_pullback(∂score)
         return (NoTangent(), NoTangent(), NoTangent(), NoTangent(), ∂q, ∂k, ∂emb, NoTangent(), NoTangent())
