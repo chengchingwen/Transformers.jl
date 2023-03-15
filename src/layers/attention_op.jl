@@ -19,10 +19,14 @@ set_dropout(op::NeuralAttentionlib.WithScore, p) = NeuralAttentionlib.WithScore(
 
 function apply_attention_op(op, nt::NamedTuple)
     qkv = nt.hidden_state
-    qkv isa NTuple{3, Any} ||
-        error("Expect hidden_state to be a tuple of 3 arrays, but get $(typeof(qkv)).")
-    mask = get(nt, :attention_mask, nothing)
-    a = op(qkv..., mask)
+    ChainRulesCore.ignore_derivatives() do
+        qkv isa NTuple{3, Any} ||
+            error("Expect hidden_state to be a tuple of 3 arrays, but get $(typeof(qkv)).")
+        nothing
+    end
+    q, k, v = qkv
+    mask = ChainRulesCore.ignore_derivatives(()->get(nt, :attention_mask, nothing))
+    a = op(q, k, v, mask)
     return return_hidden_state(nt, a)
 end
 

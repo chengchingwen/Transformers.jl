@@ -12,14 +12,14 @@ end
 
 argument_names(dp::DropoutLayer) = argument_names(dp.layer)
 
+function (dp::DropoutLayer{L, Nothing})(nt::NamedTuple) where L
+    y = apply_on_namedtuple(dp.layer, nt)
+    return y
+end
 function (dp::DropoutLayer)(nt::NamedTuple)
     y = apply_on_namedtuple(dp.layer, nt)
-    if isnothing(dp.p)
-        return y
-    else
-        hidden_state = NeuralAttentionlib.dropout(y.hidden_state, dp.p)
-        return return_hidden_state(y, hidden_state)
-    end
+    hidden_state = NeuralAttentionlib.dropout(y.hidden_state, dp.p)
+    return return_hidden_state(y, hidden_state)
 end
 
 _show_name(dp::DropoutLayer) = join(("DropoutLayer<", dp.p, ">"))
@@ -154,19 +154,29 @@ function argument_names(ca::CrossAttention)
     return Base.merge_names(required_names, cross_field_names)
 end
 
+function _apply_cross_attention_op(op, q::NamedTuple, kv::NamedTuple, cross_attention_mask)
+    k_v = kv.hidden_state
+    ChainRulesCore.ignore_derivatives() do
+        k_v isa NTuple{2, Any} ||
+            error("Expect kv_proj(memory).hidden_state return a tuple of 2 arrays, but get $(typeof(kv.hidden_state)).")
+        nothing
+    end
+    k, v = k_v
+    qkv = merge(kv, q, (
+        hidden_state = (q.hidden_state, k, v),
+        attention_mask = cross_attention_mask,
+    ))
+    a = apply_on_namedtuple(op, Base.structdiff(qkv, NamedTuple{(:attention_score,)}))
+    return a
+end
+
 function (ca::CrossAttention)(nt::NamedTuple)
     hidden_state, memory = nt.hidden_state, nt.memory
-    cross_attention_mask = get(nt, :cross_attention_mask, nothing)
+    cross_attention_mask = ChainRulesCore.ignore_derivatives(()->get(nt, :cross_attention_mask, nothing))
     nt_ext = Base.structdiff(nt, NamedTuple{(:hidden_state, :memory, :attention_mask, :cross_attention_mask)})
     q = with_extra(ca.q_proj, hidden_state, nt_ext)
     kv = with_extra(ca.kv_proj, memory, nt_ext)
-    kv.hidden_state isa NTuple{2, Any} ||
-        error("Expect kv_proj(memory).hidden_state return a tuple of 2 arrays, but get $(typeof(kv.hidden_state)).")
-    qkv = merge(kv, q, (
-        hidden_state = (q.hidden_state, kv.hidden_state...),
-        attention_mask = cross_attention_mask,
-    ))
-    _a = apply_on_namedtuple(ca.attention_op, Base.structdiff(qkv, NamedTuple{(:attention_score,)}))
+    _a = _apply_cross_attention_op(ca.attention_op, q, kv, cross_attention_mask)
     a = rename(Base.structdiff(_a, NamedTuple{(:attention_mask, :cross_attention_mask)}),
                Val(:attention_score), Val(:cross_attention_score))
     y = apply_on_namedtuple(ca.o_proj, a)
@@ -260,17 +270,35 @@ end
 
 #############################################
 
-function collect_outputs(prev, output)
-    hidden_state = output.hidden_state
-    if haskey(prev, :outputs)
-        prev_outputs = prev.outputs
-        new_output = NamedTuple{keys(first(prev_outputs))}(output) # assume each block give the same outputs
-        outputs = (prev_outputs..., new_output)
+function collect_outputs(prev::NamedTuple{prev_names, types}, output::NamedTuple{names}) where {prev_names, types, names}
+    if @generated
+        if iszero(sym_in(:outputs, names))
+            return quote
+                new_output = Base.structdiff(output, prev)
+                outputs = (merge((hidden_state = output.hidden_state,), new_output),)
+                return merge(output, (outputs = outputs,))
+            end
+        else
+            i = sym_in(:outputs, prev_names)
+            name = types.parameters[i].parameters[1].parameters[1]
+            return quote
+                prev_outputs = prev.outputs
+                new_output = NamedTuple{$name}(output)
+                outputs = (prev_outputs..., new_output)
+                return merge(output, (outputs = outputs,))
+            end
+        end
     else
-        new_output = Base.structdiff(output, prev)
-        outputs = (merge((hidden_state = hidden_state,), new_output),)
+        if haskey(prev, :outputs)
+            prev_outputs = prev.outputs
+            new_output = NamedTuple{keys(first(prev_outputs))}(output) # assume each block give the same outputs
+            outputs = (prev_outputs..., new_output)
+        else
+            new_output = Base.structdiff(output, prev)
+            outputs = (merge((hidden_state = output.hidden_state,), new_output),)
+        end
+        return merge(output, (outputs = outputs,))
     end
-    return merge(output, (outputs = outputs,))
 end
 
 #############################################
@@ -426,7 +454,7 @@ end
 
 """
     TransformerDecoderBlock([act,] head::Int, hidden_size::Int [, head_hidden_size::Int], intermediate_size::Int;
-                            attention_dropout = nothing, dropout = nothing, cross_attention_dropout = nothing, 
+                            attention_dropout = nothing, dropout = nothing, cross_attention_dropout = nothing,
                             return_score = false, return_self_attention_score = false)
 
 Create a post-LN transformer decoder block. `head`, `hidden_size` (and `head_hidden_size`) are parameters of
@@ -453,7 +481,7 @@ TransformerDecoderBlock(
 
 """
     PostTransformerDecoderBlock([act,] head::Int, hidden_size::Int [, head_hidden_size::Int], intermediate_size::Int;
-                                attention_dropout = nothing, dropout = nothing, cross_attention_dropout = nothing, 
+                                attention_dropout = nothing, dropout = nothing, cross_attention_dropout = nothing,
                                 return_score = false, return_self_attention_score = false)
 
 Create a post-LN transformer decoder block. `head`, `hidden_size` (and `head_hidden_size`) are parameters of
@@ -493,7 +521,7 @@ end
 
 """
     PreTransformerDecoderBlock([act,] head::Int, hidden_size::Int [, head_hidden_size::Int], intermediate_size::Int;
-                               attention_dropout = nothing, dropout = nothing, cross_attention_dropout = nothing, 
+                               attention_dropout = nothing, dropout = nothing, cross_attention_dropout = nothing,
                                return_score = false, return_self_attention_score = false)
 
 Create a pre-LN transformer decoder block. `head`, `hidden_size` (and `head_hidden_size`) are parameters of
