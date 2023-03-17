@@ -57,7 +57,7 @@ end
 @generated function tocpudevice(x::NeuralAttentionlib.GenericSequenceMask{N, M}; cache = IdDict()) where {N, M}
     _R = Core.Compiler.return_type(Flux.adapt, Tuple{Type{Array}, M})
     R = NeuralAttentionlib.GenericSequenceMask{N, _R}
-    return :(_togpudevice(x, cache)::$R)
+    return :(_tocpudevice(x, cache)::$R)
 end
 
 
