@@ -59,13 +59,14 @@ function test_whole_model(name, corpus; max_error = 1e-1, mean_error = 1e-2)
                     py_states = hgf_model(input_ids = py_input, decoder_input_ids = py_input,
                                           output_hidden_states = true)
                     jl_states = model(jl_input)
+                    py_hidden = rowmaj2colmaj(py_states["decoder_hidden_states"][end].detach().numpy())
                 else
                     py_input = torch.tensor(_py_indices).reshape(1, length(py_indices))
                     jl_input = encode(tkr, line)
                     py_states = hgf_model(py_input, output_hidden_states = true)
                     jl_states = model(jl_input)
+                    py_hidden = rowmaj2colmaj(py_states["hidden_states"][end].detach().numpy())
                 end
-                py_hidden = rowmaj2colmaj(py_states["hidden_states"][end].detach().numpy())
                 jl_hidden = jl_states.hidden_state
                 diff_hidden = (py_hidden .- jl_hidden) .^ 2
                 avg_hidden_err = mean(diff_hidden)
