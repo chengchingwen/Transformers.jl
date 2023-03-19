@@ -2,7 +2,7 @@ using Functors
 using Static
 
 using NeuralAttentionlib
-using NeuralAttentionlib: AbstractAttenOp, MultiheadQKVAttenOp, CausalMultiheadQKVAttenOp
+using NeuralAttentionlib: AbstractAttenOp, MultiheadQKVAttenOp, CausalMultiheadQKVAttenOp, dropout
 
 struct DropoutLayer{L, P} <: LayerStruct
     layer::L
@@ -18,7 +18,7 @@ function (dp::DropoutLayer{L, Nothing})(nt::NamedTuple) where L
 end
 function (dp::DropoutLayer)(nt::NamedTuple)
     y = apply_on_namedtuple(dp.layer, nt)
-    hidden_state = NeuralAttentionlib.dropout(y.hidden_state, dp.p)
+    hidden_state = dropout(y.hidden_state, dp.p)
     return return_hidden_state(y, hidden_state)
 end
 

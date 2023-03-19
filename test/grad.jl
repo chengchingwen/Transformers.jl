@@ -86,47 +86,60 @@ end
 
     @testset "transformer" begin
         x = drandn(Float32, 10, 5)
-        trf = device(Transformer(Layers.TransformerBlock, 3, 2, 10, 5, 5; collect_outputs = false, return_score = false))
-        trf_ws = Layers.WithScore(trf)
-        @test @isinferred trf((; hidden_state = x))
-        @test @isinferred trf_ws((; hidden_state = x))
-        @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf, x)
-        if VERSION < v"1.9"
-            @test_broken @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf_ws, x)
-        else
-            @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf_ws, x)
-        end
-        trf = device(Transformer(Layers.TransformerBlock, 3, 2, 10, 5, 5; collect_outputs = true, return_score = false))
-        trf_ws = Layers.WithScore(trf)
-        @test @isinferred trf((; hidden_state = x))
-        @test @isinferred trf_ws((; hidden_state = x))
-        @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf, x)
-        if VERSION < v"1.9"
-            @test_broken @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf_ws, x)
-        else
-            @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf_ws, x)
-        end
-        trf = device(Transformer(Layers.TransformerDecoderBlock, 3, 2, 10, 5, 5;
-                                 collect_outputs = false, return_score = false))
-        trf_ws = Layers.WithScore(trf)
-        @test @isinferred trf((; hidden_state = x, memory = x))
-        @test @isinferred trf_ws((; hidden_state = x, memory = x))
-        @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)), trf, x)
-        if VERSION < v"1.9"
-            @test_broken @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)), trf_ws, x)
-        else
-            @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)), trf_ws, x)
-        end
-        trf = device(Transformer(Layers.TransformerDecoderBlock, 3, 2, 10, 5, 5;
-                                 collect_outputs = true, return_score = false))
-        trf_ws = Layers.WithScore(trf)
-        @test @isinferred trf((; hidden_state = x, memory = x))
-        @test @isinferred trf_ws((; hidden_state = x, memory = x))
-        @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)), trf, x)
-        if VERSION < v"1.9"
-            @test_broken @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)), trf_ws, x)
-        else
-            @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)), trf_ws, x)
+        for attention_dropout in (nothing, 0.5), dropout in (nothing, 0.5)
+            trf = device(Transformer(Layers.TransformerBlock, 3, 2, 10, 5, 5;
+                                     collect_outputs = false, return_score = false,
+                                     attention_dropout, dropout))
+            trf_ws = Layers.WithScore(trf)
+            @test @isinferred trf((; hidden_state = x))
+            @test @isinferred trf_ws((; hidden_state = x))
+            @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf, x)
+            if VERSION < v"1.9"
+                @test_broken @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf_ws, x)
+            else
+                @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf_ws, x)
+            end
+            trf = device(Transformer(Layers.TransformerBlock, 3, 2, 10, 5, 5;
+                                     collect_outputs = true, return_score = false,
+                                     attention_dropout, dropout))
+            trf_ws = Layers.WithScore(trf)
+            @test @isinferred trf((; hidden_state = x))
+            @test @isinferred trf_ws((; hidden_state = x))
+            @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf, x)
+            if VERSION < v"1.9"
+                @test_broken @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf_ws, x)
+            else
+                @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x,)).hidden_state)), trf_ws, x)
+            end
+            trf = device(Transformer(Layers.TransformerDecoderBlock, 3, 2, 10, 5, 5;
+                                     collect_outputs = false, return_score = false,
+                                     attention_dropout, dropout))
+            trf_ws = Layers.WithScore(trf)
+            @test @isinferred trf((; hidden_state = x, memory = x))
+            @test @isinferred trf_ws((; hidden_state = x, memory = x))
+            @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)), trf, x)
+            if VERSION < v"1.9"
+                @test_broken @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)),
+                                                  trf_ws, x)
+            else
+                @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)),
+                                           trf_ws, x)
+            end
+            trf = device(Transformer(Layers.TransformerDecoderBlock, 3, 2, 10, 5, 5;
+                                     collect_outputs = true, return_score = false,
+                                     attention_dropout, dropout))
+            trf_ws = Layers.WithScore(trf)
+            @test @isinferred trf((; hidden_state = x, memory = x))
+            @test @isinferred trf_ws((; hidden_state = x, memory = x))
+            @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)),
+                                       trf, x)
+            if VERSION < v"1.9"
+                @test_broken @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)),
+                                                  trf_ws, x)
+            else
+                @test @isinferred gradient((m, x)->sum(sin.(m((hidden_state = x, memory = x)).hidden_state)),
+                                           trf_ws, x)
+            end
         end
     end
 end
