@@ -1,4 +1,8 @@
 using BytePairEncoding
+using TextEncodeBase
+using StructWalk
+
+import ..TextEncoders
 
 function load_special_tokens_map(special_tokens_map_json)
     special_tokens = Dict{Symbol, String}()
@@ -57,4 +61,27 @@ function heuristic_extract_slow_tkr_kwargs(config, tkr_cfg, special_tokens)
     slow_tkr_kwargs = Dict{Symbol, Any}()
     slow_tkr_kwargs[:unk_token] = get_tkr_token(tkr_cfg, special_tokens, :unk_token, "<unk>")
     return slow_tkr_kwargs
+end
+
+function guess_encoder_construct(tkr)
+    ref = Ref{Symbol}(:default)
+    StructWalk.scan(TextEncodeBase.TokenizerStyle(), tkr) do x
+        if x isa TextEncoders.WordPieceTokenization
+            ref[] = :bert
+        elseif x isa TextEncoders.GPT2Tokenization
+            ref[] = :gpt2
+        elseif x isa TextEncoders.UnigramTokenization
+            ref[] = :t5
+        end
+    end
+    Tsym = ref[]
+    if Tsym == :bert
+        return TextEncoders.BertTextEncoder
+    elseif Tsym == :gpt2
+        return TextEncoders.GPT2TextEncoder
+    elseif Tsym == :t5
+        return TextEncoders.T5TextEncoder
+    else
+        return TextEncoders.TransformerTextEncoder
+    end
 end
