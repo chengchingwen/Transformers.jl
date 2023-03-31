@@ -74,11 +74,12 @@ function TransformerTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabular
     return TransformerTextEncoder(tkr, vocab, process, startsym, endsym, padsym, trunc)
 end
 
-function TransformerTextEncoder(tkr::AbstractTokenizer, v::WList; kws...)
+function TransformerTextEncoder(tkr::AbstractTokenizer, v::WList;
+                                fixedsize = false, trunc_end = :tail, pad_end = :tail, kws...)
     enc = TransformerTextEncoder(tkr, v, identity; kws...)
     # default processing pipeline
     return TransformerTextEncoder(enc) do e
-        truncf = get_trunc_pad_func(e.padsym, false, e.trunc, :tail, :tail)
+        truncf = get_trunc_pad_func(e.padsym, fixedsize, e.trunc, trunc_end, pad_end)
         maskf = get_mask_func(e.trunc, :tail)
         # get token and convert to string
         Pipeline{:token}(nestedcall(string_getvalue), 1) |>
