@@ -2,6 +2,7 @@ using LinearAlgebra
 using ValSplit
 using Functors
 using DataStructures: OrderedDict
+using Pickle
 
 using ..Layers: @fluxshow, @fluxlayershow
 
@@ -95,7 +96,7 @@ function save_model(model_name, model; path = pwd(), weight_name = PYTORCH_WEIGH
         end
     end
     state = get_state_dict(model)
-    Torch.THsave(model_file, state)
+    Pickle.Torch.THsave(model_file, state)
     return model_file
 end
 
