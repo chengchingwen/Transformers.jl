@@ -55,6 +55,9 @@ TransformerTextEncoder(v::WList, args...; kws...) = TransformerTextEncoder(TextT
 TransformerTextEncoder(t::AbstractTokenization, v::WList, args...; kws...) =
     TransformerTextEncoder(TextTokenizer(t), v, args...; kws...)
 
+TransformerTextEncoder(tkr::AbstractTokenizer, v::WList, args...; kws...) =
+    throw(MethodError(TransformerTextEncoder, (tkr, v, args...)))
+
 function TransformerTextEncoder(tkr::AbstractTokenizer, words::AbstractVector, process; trunc = nothing,
                                 startsym = "<s>", endsym = "</s>", unksym = "<unk>", padsym = "<pad>")
     vocab_list = copy(words)
