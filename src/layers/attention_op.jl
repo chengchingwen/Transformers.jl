@@ -5,7 +5,7 @@ using NeuralAttentionlib: $, AbstractAttenOp, MultiheadQKVAttenOpWithScore, Mult
     CausalMultiheadQKVAttenOp, CausalMultiheadQKVAttenOpWithScore,
     with_rotary_position_embedding, dot_product_score, scaled_dot_product_score,
     masked_score, normalized_score, dropout_score, weighted_sum_mixing,
-    generic_multihead_qkv_attention, CausalMask, BatchedMask
+    generic_multihead_qkv_attention, CausalMask, BatchedMask, LocalMask
 
 
 WithScore(op::AbstractAttenOp) = NeuralAttentionlib.WithScore(op)
