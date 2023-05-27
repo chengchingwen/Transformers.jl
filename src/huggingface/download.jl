@@ -2,6 +2,8 @@ using HuggingFaceApi
 
 using HuggingFaceApi: PYTORCH_WEIGHTS_NAME, CONFIG_NAME
 
+const PYTORCH_WEIGHTS_INDEX_NAME = "pytorch_model.bin.index.json"
+
 const VOCAB_FILE = "vocab.txt"
 const VOCAB_JSON_FILE = "vocab.json"
 const MERGES_FILE = "merges.txt"
@@ -18,6 +20,7 @@ hgf_file_url(model_name, file_name; revision = "main") =
 
 hgf_model_config_url(model_name; revision = "main") = hgf_file_url(model_name, CONFIG_NAME; revision)
 hgf_model_weight_url(model_name; revision = "main") = hgf_file_url(model_name, PYTORCH_WEIGHTS_NAME; revision)
+hgf_model_weight_index_url(model_name; revision = "main") = hgf_file_url(model_name, PYTORCH_WEIGHTS_INDEX_NAME; revision)
 hgf_vocab_url(model_name; revision = "main") = hgf_file_url(model_name, VOCAB_FILE; revision)
 hgf_vocab_json_url(model_name; revision = "main") = hgf_file_url(model_name, VOCAB_JSON_FILE; revision)
 hgf_tokenizer_special_tokens_map_url(model_name; revision = "main") = hgf_file_url(model_name, SPECIAL_TOKENS_MAP_FILE; revision)
@@ -41,6 +44,7 @@ hgf_file(model_name, file_name; revision = "main", kws...) = _hgf_download(hgf_f
 
 hgf_model_config(model_name; kws...) = hgf_file(model_name, CONFIG_NAME; kws...)
 hgf_model_weight(model_name; kws...) = hgf_file(model_name, PYTORCH_WEIGHTS_NAME; kws...)
+hgf_model_weight_index(model_name; kws...) = hgf_file(model_name, PYTORCH_WEIGHTS_INDEX_NAME; kws...)
 hgf_vocab(model_name; kws...) = hgf_file(model_name, VOCAB_FILE; kws...)
 hgf_vocab_json(model_name; kws...) = hgf_file(model_name, VOCAB_JSON_FILE; kws...)
 hgf_tokenizer_special_tokens_map(model_name; kws...) = hgf_file(model_name, SPECIAL_TOKENS_MAP_FILE; kws...)
