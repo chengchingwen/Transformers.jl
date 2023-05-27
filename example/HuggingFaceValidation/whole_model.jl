@@ -40,6 +40,7 @@ function test_whole_model(name, corpus; max_error = 1e-1, mean_error = 1e-2)
         sum_avg_err = 0.0
         sum_max_err = 0.0
         len = 0
+        n_tokens = 0
         try
             fd = open(corpus)
             for line in eachline(fd)
@@ -54,6 +55,7 @@ function test_whole_model(name, corpus; max_error = 1e-1, mean_error = 1e-2)
                 @test jl_indices == py_indices
 
                 if HuggingFace.is_seq2seq(model)
+                    n_tokens += 2 * length(py_tokens)
                     py_input = torch.tensor(_py_indices).reshape(1, length(py_indices))
                     jl_input = encode(tkr, line, line)
                     py_states = hgf_model(input_ids = py_input, decoder_input_ids = py_input,
@@ -61,6 +63,7 @@ function test_whole_model(name, corpus; max_error = 1e-1, mean_error = 1e-2)
                     jl_states = model(jl_input)
                     py_hidden = rowmaj2colmaj(py_states["decoder_hidden_states"][end].detach().numpy())
                 else
+                    n_tokens += length(py_tokens)
                     py_input = torch.tensor(_py_indices).reshape(1, length(py_indices))
                     jl_input = encode(tkr, line)
                     py_states = hgf_model(py_input, output_hidden_states = true)
@@ -108,6 +111,7 @@ function test_whole_model(name, corpus; max_error = 1e-1, mean_error = 1e-2)
         end
         @info "average hidden_state error" max = sum_hidden_max_err mean = sum_hidden_avg_err / len
         @info "average logit error" max = sum_max_err mean = sum_avg_err / len
+        @info "average tokens per sample" token = n_tokens / len
     end
 end
 
