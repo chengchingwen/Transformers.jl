@@ -163,17 +163,28 @@ end
 function extract_pre_tokenization(
     ::Val{:Metaspace}, pretokenizer_dict, tokenization, match_tokens, normalizer, tokenizer_dict
 )
-    @assert tokenization == EachSplitTokenization(isspace) load_error_msg("Metaspace without WhiteSpaceSPlit is unsupported")
-    @assert pretokenizer_dict["replacement"] == pretokenizer_dict["str_rep"]
+    @assert !haskey(pretokenizer_dict, "str_rep") || pretokenizer_dict["replacement"] == pretokenizer_dict["str_rep"]
     replacement = collect(pretokenizer_dict["replacement"])[]::Char
     add_prefix_space = pretokenizer_dict["add_prefix_space"]
-    metaspacef(x) = isspace(x) || x == replacement
-    tokenizaiton = EachSplitTokenization(metaspacef)
-    if add_prefix_space
-        normalizer = normalizer ∘ Base.Fix2(
-            WordReplaceNormalizer,
-            Regex("^(?!$(replacement))(.*)\$") => SubstitutionString("$replacement\\1")
-        )
+    if isnothing(tokenization)
+        tokenization = EachMatchTokenization(Regex("$replacement[^$replacement]*|[^$replacement]+"))
+        normalizer = normalizer ∘ Base.Fix2(ReplaceNormalizer, r" "=>replacement)
+        if add_prefix_space
+            normalizer = normalizer ∘ Base.Fix2(
+                ReplaceNormalizer,
+                Regex("^(?!$(replacement))(.*)\$") => SubstitutionString("$replacement\\1")
+            )
+        end
+    else
+        @assert tokenization == EachSplitTokenization(isspace) load_error_msg("Metaspace without WhiteSpaceSPlit is unsupported")
+        metaspacef(x) = isspace(x) || x == replacement
+        tokenization = EachSplitTokenization(metaspacef)
+        if add_prefix_space
+            normalizer = normalizer ∘ Base.Fix2(
+                WordReplaceNormalizer,
+                Regex("^(?!$(replacement))(.*)\$") => SubstitutionString("$replacement\\1")
+            )
+        end
     end
     return tokenization, match_tokens, normalizer
 end
