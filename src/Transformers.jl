@@ -48,7 +48,8 @@ function tocpudevice(x, xs...; cache = IdDict())
     return (tocpudevice(x; cache), map(xi->tocpudevice(xi; cache), xs)...)
 end
 tocpudevice(x::Tuple; cache = IdDict()) = tocpudevice(x...; cache)
-tocpudevice(x::NamedTuple{name}; cache = IdDict()) where name = NamedTuple{name}(tocpudevice(values(x)...; cache))
+tocpudevice(x::Tuple{Any}; cache = IdDict()) = (tocpudevice(x...; cache),)
+tocpudevice(x::NamedTuple{name}; cache = IdDict()) where name = NamedTuple{name}(tocpudevice(values(x); cache))
 
 @generated function tocpudevice(x::T; cache = IdDict()) where {T <: Union{AbstractArray, NeuralAttentionlib.AbstractMask}}
     R = Core.Compiler.return_type(Flux.adapt, Tuple{Type{Array}, x})

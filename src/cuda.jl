@@ -15,7 +15,8 @@ function togpudevice(x, xs...; cache = IdDict())
     return (togpudevice(x; cache), map(xi->togpudevice(xi; cache), xs)...)
 end
 togpudevice(x::Tuple; cache = IdDict()) = togpudevice(x...; cache)
-togpudevice(x::NamedTuple{name}; cache = IdDict()) where name = NamedTuple{name}(togpudevice(values(x)...; cache))
+togpudevice(x::Tuple{Any}; cache = IdDict()) = (togpudevice(x...; cache),)
+togpudevice(x::NamedTuple{name}; cache = IdDict()) where name = NamedTuple{name}(togpudevice(values(x); cache))
 
 @generated function togpudevice(x::T; cache = IdDict()) where {T <: Union{AbstractArray, NeuralAttentionlib.AbstractMask}}
     # https://github.com/FluxML/Flux.jl/blob/79971741ed8454cdf6a66515799a0c4b864f564a/src/functor.jl#L98
