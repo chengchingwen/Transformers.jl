@@ -13,6 +13,7 @@
         :t5 => [:Model, :ForConditionalGeneration],
         :gpt_neo => [:Model, :ForCausalLM],
         :gptj => [:Model, :ForCausalLM],
+        :gpt_neox => [:Model, :ForCausalLM],
     ])
 
     for (model_name, task_list) in model_list
