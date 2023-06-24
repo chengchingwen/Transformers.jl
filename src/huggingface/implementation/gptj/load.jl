@@ -139,7 +139,6 @@ function load_model(_type::Type{<:HGFGPTJPreTrainedModel}, ::Type{<:TransformerB
         ff = load_model(_type, Layers.Chain{Tuple{Layers.Dense, Layers.Dense}}, cfg, state_dict, joinname(lprefix, "mlp"))
         ff = Layers.DropoutLayer(ff, p)
         block = ParallelPreNormTransformerBlock(sa, ff, ln)
-            TransformerBlock(sa, ff)
         push!(blocks, block)
     end
     collect_f = collect_output ? Layers.collect_outputs : nothing
