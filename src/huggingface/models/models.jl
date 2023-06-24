@@ -47,6 +47,13 @@ function load_model(model_name, task; config = nothing, kws...)
     model_type = getconfigname(config)
     return load_model(model_type, model_name, task; config, kws...)
 end
+function load_model(model_name::AbstractString, task::Symbol, state_dict; trainmode = false, config = nothing, kws...)
+    if isnothing(config)
+        config = load_config(model_name; kws...)
+    end
+    model_type = getconfigname(config)
+    return load_model(model_type, model_name, task, state_dict; trainmode, config, kws...)
+end
 function load_model(model_type, model_name::AbstractString, task; trainmode = false, config = nothing, kws...)
     if isnothing(config)
         config = load_config(model_name; kws...)
