@@ -33,8 +33,11 @@ function extract_and_add_tokens!(added_token_list, vocab_list)
     for added_token in added_token_list
         vidx, token, isspecial = extract_added_token(added_token)
         if isspecial
-            # special tokens should be in the vocab already
-            @assert vidx <= length(vocab_list)
+            if vidx > length(vocab_list)
+                # special tokens not in the vocab already
+                @assert vidx == length(vocab_list) + 1
+                push!(vocab_list, token)
+            end
             @assert vocab_list[vidx] == token
         else
             n_vocab = length(vocab_list)
