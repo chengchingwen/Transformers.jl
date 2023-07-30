@@ -12,7 +12,13 @@ struct FirstTokenPooler end
 abstract type HGFPreTrainedModel end
 Layers.@fluxshow HGFPreTrainedModel
 
-const ACT2FN = (gelu = gelu, relu = relu, swish = swish, gelu_new = gelu, mish = mish, quick_gelu = gelu, selu = selu)
+const ACT2FN = (
+    gelu = gelu, gelu_new = gelu, quick_gelu = gelu,
+    swish = swish, silu = swish,
+    relu = relu,
+    mish = mish,
+    selu = selu,
+)
 
 joinname(prefix, name) = isempty(prefix) ? name : join((prefix, name), '.')
 joinname(prefix, n1, n2...) = joinname(prefix, join((n1, n2...), '.'))
@@ -76,6 +82,12 @@ get_state_dict(_, m::Layers.LayerNorm, state_dict, prefix) = get_state_dict(m, s
 function get_state_dict(m::Layers.LayerNorm, state_dict, prefix)
     state_dict[joinname(prefix, "weight")] = m.α
     state_dict[joinname(prefix, "bias")] = m.β
+    return state_dict
+end
+
+get_state_dict(_, m::Layers.RMSLayerNorm, state_dict, prefix) = get_state_dict(m, state_dict, prefix)
+function get_state_dict(m::Layers.RMSLayerNorm, state_dict, prefix)
+    state_dict[joinname(prefix, "weight")] = m.α
     return state_dict
 end
 

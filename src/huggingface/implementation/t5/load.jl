@@ -280,11 +280,6 @@ function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::Seq2Seq, state_dict,
     return state_dict
 end
 
-function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::Layers.RMSLayerNorm, state_dict, prefix)
-    state_dict[joinname(prefix, "weight")] = m.α
-    return state_dict
-end
-
 function get_state_dict(p::Type{<:HGFT5PreTrainedModel}, m::Layers.SelfAttention, state_dict, prefix)
     get_state_dict(p, m.qkv_proj.layers[1], state_dict, joinname(prefix, "q"))
     get_state_dict(p, m.qkv_proj.layers[2], state_dict, joinname(prefix, "k"))

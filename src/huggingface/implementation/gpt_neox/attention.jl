@@ -105,7 +105,6 @@ struct CausalGPTNeoXRoPEMultiheadQKVAttenOp{F, D, P} <: AbstractAttenOp
     head::Int
     p::P
 end
-CausalGPTNeoXRoPEMultiheadQKVAttenOp(head::Int) = CausalGPTNeoXRoPEMultiheadQKVAttenOp(1e4, nothing, head, nothing)
 CausalGPTNeoXRoPEMultiheadQKVAttenOp(dim::Int, head::Int) = CausalGPTNeoXRoPEMultiheadQKVAttenOp(1e4, dim, head, nothing)
 CausalGPTNeoXRoPEMultiheadQKVAttenOp(base, dim::Int, head::Int) = CausalGPTNeoXRoPEMultiheadQKVAttenOp(base, dim, head, nothing)
 NeuralAttentionlib.get_attention_func(::CausalGPTNeoXRoPEMultiheadQKVAttenOp) = gptneox_rope_multihead_qkv_attention
