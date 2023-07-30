@@ -3,9 +3,12 @@ using ChainRulesCore
 using NeuralAttentionlib
 using NeuralAttentionlib: $, AbstractAttenOp, MultiheadQKVAttenOpWithScore, MultiheadQKVAttenOp,
     CausalMultiheadQKVAttenOp, CausalMultiheadQKVAttenOpWithScore,
+    GroupedQueryAttenOp, GroupedQueryAttenOpWithScore,
+    CausalGroupedQueryAttenOp, CausalGroupedQueryAttenOpWithScore,
     with_rotary_position_embedding, dot_product_score, scaled_dot_product_score,
     masked_score, normalized_score, dropout_score, weighted_sum_mixing,
-    generic_multihead_qkv_attention, CausalMask, BatchedMask, LocalMask
+    generic_multihead_qkv_attention, generic_grouped_query_attention,
+    CausalMask, BatchedMask, LocalMask
 
 
 WithScore(op::AbstractAttenOp) = NeuralAttentionlib.WithScore(op)
@@ -202,6 +205,8 @@ for op in :[
     LocalCausalMultiheadQKVDotAttenOp, LocalCausalMultiheadQKVDotAttenOpWithScore,
     RoPEMultiheadQKVAttenOp, RoPEMultiheadQKVAttenOpWithScore,
     CausalRoPEMultiheadQKVAttenOp, CausalRoPEMultiheadQKVAttenOpWithScore,
+    GroupedQueryAttenOp, GroupedQueryAttenOpWithScore,
+    CausalGroupedQueryAttenOp, CausalGroupedQueryAttenOpWithScore,
 ].args
     @eval begin
         argument_names(::$op) = (:hidden_state, :attention_mask)
