@@ -10,7 +10,7 @@ json_load(f) = JSON3.read(mmap_open(f))
 
 _ensure(f::Function, A, args...; kwargs...) = isnothing(A) ? f(args...; kwargs...) : A
 
-ensure_possible_files(possible_files, model_name; revision = nothing, auth_token = nothing, kw...) =
+ensure_possible_files(possible_files, model_name; revision = nothing, auth_token = HuggingFaceApi.get_token(), kw...) =
     _ensure(list_model_files, possible_files, model_name; revision, token = auth_token)
 
 ensure_config(config, model_name; kw...) = _ensure(load_config, config, model_name; kw...)
