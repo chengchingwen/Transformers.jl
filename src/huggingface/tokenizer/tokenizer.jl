@@ -98,40 +98,12 @@ end
 
 @valsplit slow_tkr_files(Val(type::Symbol)) = error("Don't know what files are need to load slow $type tokenizer.")
 
-function _hgf_preprocess(
-    ; padsym, trunc = nothing, fixedsize = false, trunc_end = :tail, pad_end = :tail,
-    process = nothing, kws...
-)
-    truncf = TextEncoders.get_trunc_pad_func(fixedsize, trunc, trunc_end, pad_end)
-    maskf = TextEncoders.get_mask_func(trunc, pad_end)
-    has_segment = false
-    if !isnothing(process)
-        process = Pipeline{:token}(nestedcall(TextEncoders.string_getvalue), 1) |> process
-        if :segment in FuncPipelines.target_name.(process.pipes)
-            has_segment = true
-            process = process |>
-                Pipeline{:segment}(truncf(1), :segment) |>
-                Pipeline{:segment}(nested2batch, :segment)
-        end
-    else
-        process = Pipeline{:token}(nestedcall(TextEncoders.string_getvalue), 1)
-    end
-    return process |>
-        Pipeline{:attention_mask}(maskf, :token) |>
-        Pipeline{:token}(truncf(padsym), :token) |>
-        Pipeline{:token}(nested2batch, :token) |>
-        (has_segment ? PipeGet{(:token, :segment, :attention_mask)}() : PipeGet{(:token, :attention_mask)}())
-end
-
 encoder_construct(_type::Val{type}, tokenizer, vocab; kwargs...) where type =
     encoder_construct(type, tokenizer, vocab; kwargs...)
 function encoder_construct(type::Symbol, tokenizer, vocab; kwargs...)
     @debug "No encoder_construct handdler registed for $type, using default"
     vals = valarg_params(encoder_construct, Tuple{Val, Any, Any}, 1, Symbol)
-    default_f = () -> guess_encoder_construct(tokenizer)(
-        tokenizer, vocab, _hgf_preprocess(; kwargs...);
-        Base.structdiff(values(kwargs),
-                        NamedTuple{(:process, :fixedsize, :trunc_end, :pad_end)})...)
+    default_f = () -> heuristic_encoder_construct(tokenizer, vocab, kwargs)
     return ValSplit._valswitch(Val(vals), Val(3), Core.kwfunc(encoder_construct), default_f,
                                kwargs, encoder_construct, type, tokenizer, vocab)
 end

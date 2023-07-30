@@ -88,3 +88,46 @@ function guess_encoder_construct(tkr)
         return TextEncoders.TransformerTextEncoder
     end
 end
+
+function _check_padsym(kwargs)
+    kw = values(kwargs)
+    # make sure padsym is not nothing
+    if haskey(kw, :padsym) && isnothing(kw.padsym)
+        @warn "padsym is set to `nothing`, using \"<pad>\" instead"
+        kw = merge(kw, (padsym = "<pad>",))
+    end
+    return kw
+end
+
+function _hgf_preprocess(
+    ; padsym, trunc = nothing, fixedsize = false, trunc_end = :tail, pad_end = :tail,
+    process = nothing, kws...
+)
+    truncf = TextEncoders.get_trunc_pad_func(fixedsize, trunc, trunc_end, pad_end)
+    maskf = TextEncoders.get_mask_func(trunc, pad_end)
+    has_segment = false
+    if !isnothing(process)
+        process = Pipeline{:token}(nestedcall(TextEncoders.string_getvalue), 1) |> process
+        if :segment in FuncPipelines.target_name.(process.pipes)
+            has_segment = true
+            process = process |>
+                Pipeline{:segment}(truncf(1), :segment) |>
+                Pipeline{:segment}(nested2batch, :segment)
+        end
+    else
+        process = Pipeline{:token}(nestedcall(TextEncoders.string_getvalue), 1)
+    end
+    return process |>
+        Pipeline{:attention_mask}(maskf, :token) |>
+        Pipeline{:token}(truncf(padsym), :token) |>
+        Pipeline{:token}(nested2batch, :token) |>
+        (has_segment ? PipeGet{(:token, :segment, :attention_mask)}() : PipeGet{(:token, :attention_mask)}())
+end
+
+function heuristic_encoder_construct(tokenizer, vocab, kwargs)
+    constr = guess_encoder_construct(tokenizer)
+    kwargs = _check_padsym(kwargs)
+    process = _hgf_preprocess(; kwargs...)
+    nkws = Base.structdiff(kwargs, NamedTuple{(:process, :fixedsize, :trunc_end, :pad_end)})
+    return constr(tokenizer, vocab, process; nkws...)
+end

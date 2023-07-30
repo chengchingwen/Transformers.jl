@@ -7,9 +7,12 @@ using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm, Inde
 using ..TextEncoders: BertUnCasedPreTokenization, BertCasedPreTokenization, TextTokenizer, grouping_sentence
 using ..WordPieceModel
 using BytePairEncoding
-using BytePairEncoding: GPT2Tokenization, gpt2_codemap
+using BytePairEncoding: CachedBPE, ByteFallbackBPE, GPT2Tokenization, gpt2_codemap
 using ..UnigramLanguageModel
 using ..UnigramLanguageModel: PrecompiledNormalizer
+
+struct NoTokenization <: TextEncodeBase.BaseTokenization end
+TextEncodeBase.splitting(::NoTokenization, s::TextEncodeBase.SentenceStage) = Base.vect(TextEncodeBase.getvalue(s))
 
 function extract_added_token(added_token)
     vidx = added_token["id"] + 1
@@ -103,13 +106,18 @@ empty2nothing(s) = isempty(s) ? nothing : s
 
 function extract_tokenization_method(::Val{:BPE}, model_dict)
     @assert isnothing(model_dict["dropout"]) "BPE with dropout unsupported"
-    @assert !model_dict["fuse_unk"] "fuse_unk is unsupported"
+    !model_dict["fuse_unk"] && tokenizer_warn("fuse_unk is unsupported")
+    byte_fallback = get(model_dict, "byte_fallback", false)
     unk_token = model_dict["unk_token"]
     sepsym = empty2nothing(model_dict["continuing_subword_prefix"])
     endsym = empty2nothing(model_dict["end_of_word_suffix"])
     merges = rank_from_lines(model_dict["merges"]; endsym)
-    bpe = CachedBPE(BPE(merges, sepsym, endsym))
     vocab_list = reverse_keymap_to_list(model_dict["vocab"])
+    if byte_fallback
+        bpe = ByteFallbackBPE(vocab_list, merges, sepsym, endsym)
+    else
+        bpe = CachedBPE(BPE(merges, sepsym, endsym))
+    end
     return Base.Fix2(BPETokenization, bpe), bpe, unk_token, vocab_list
 end
 
@@ -249,8 +257,14 @@ function extract_base_tokenization(method, match_tokens, tokenizer_dict)
     # normalization should be the outter-most wrapper. OTOH, our tokenization methods is usually defined
     # as a wrapper struct, which means our overall struct would be in the order of:
     # normalization(tokenization method(pre-tokenization))
-    pretokenization, match_tokens, normalizer = extract_pre_tokenization(
-        tokenizer_dict["pre_tokenizer"], nothing, match_tokens, identity, tokenizer_dict)
+    pretokenizer_dict = tokenizer_dict["pre_tokenizer"]
+    if !isnothing(pretokenizer_dict)
+        pretokenization, match_tokens, normalizer = extract_pre_tokenization(
+            pretokenizer_dict, nothing, match_tokens, identity, tokenizer_dict)
+    else
+        pretokenization = NoTokenization()
+        normalizer = identity
+    end
     tokenization = normalizer(method(pretokenization))
     base_tokenization = extract_normalizer(tokenizer_dict["normalizer"], tokenization, tokenizer_dict)
     return base_tokenization, match_tokens
@@ -288,15 +302,26 @@ extract_normalizer(::Val{:NFKC}, normalizer_dict, tokenization, tokenizer_dict) 
     TextEncodeBase.UnicodeNormalizer(tokenization, :NFKC)
 
 function extract_normalizer(::Val{:Replace}, normalizer_dict, tokenization, tokenizer_dict)
-    @assert haskey(normalizer_dict["pattern"], "Regex") load_error_msg("Only support regex pattern")
+    @assert isone(length(normalizer_dict["pattern"])) load_error_msg("Multiple pattern")
+    if haskey(normalizer_dict["pattern"], "Regex")
+        pattern = Regex(normalizer_dict["pattern"]["Regex"])
+    elseif haskey(normalizer_dict["pattern"], "String")
+        pattern = normalizer_dict["pattern"]["String"]
+    else
+        load_error_msg("Only support regex or String pattern")
+    end
     content = normalizer_dict["content"]
-    regex = Regex(normalizer_dict["pattern"]["Regex"])
-    return ReplaceNormalizer(tokenization, regex=>content)
+    return ReplaceNormalizer(tokenization, pattern=>content)
 end
 
 function extract_normalizer(::Val{:Precompiled}, normalizer_dict, tokenization, tokenizer_dict)
     precompiled = UnigramLanguageModel.PrecompiledNorm(normalizer_dict["precompiled_charsmap"])
     return PrecompiledNormalizer(tokenization, precompiled)
+end
+
+function extract_normalizer(::Val{:Prepend}, normalizer_dict, tokenization, tokenizer_dict)
+    prepend = normalizer_dict["prepend"]
+    return ReplaceNormalizer(tokenization, Regex("^(?!$(prepend))(.*)\$") => SubstitutionString("$prepend\\1"))
 end
 
 function extract_normalizer(::Val{:Sequence}, normalizer_dict, tokenization, tokenizer_dict)
