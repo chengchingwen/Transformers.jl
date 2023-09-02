@@ -6,7 +6,7 @@
 
 Julia implementation of [transformer](https://arxiv.org/abs/1706.03762)-based models, with [Flux.jl](https://github.com/FluxML/Flux.jl).
 
-*notice: The current version is almost complete different from the 0.1.x version. If you are using the old version, make sure to update the changes or stick to the old version.*
+*notice: The current version is almost completely different from the 0.1.x version. If you are using the old version, make sure to update the changes or stick to the old version.*
 
 # Installation
 
