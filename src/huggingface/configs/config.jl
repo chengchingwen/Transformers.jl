@@ -4,6 +4,16 @@ using HuggingFaceApi
 
 include("default.jl")
 
+function _attr_map!(cfg, overwrite, ori_attr, alt_attr, default)
+    if !haskey(cfg, alt_attr)
+        val = get(cfg, ori_attr, default)
+        overwrite[alt_attr] = val
+    else
+        val = get(cfg, alt_attr, default)
+        overwrite[ori_attr] = val
+    end
+end
+
 abstract type AbstractHGFConfig <: AbstractDict{Symbol, Any} end
 
 struct HGFConfig{name, C, E <: Union{Nothing, Dict{Symbol, Any}}} <: AbstractHGFConfig

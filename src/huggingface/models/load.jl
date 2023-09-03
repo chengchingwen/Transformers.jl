@@ -101,3 +101,39 @@ load_model(_type::Type, cfg, state_dict) = load_model(_type, cfg, state_dict, ""
 
 get_state_dict(m) = get_state_dict(m, OrderedDict{String, Any}())
 get_state_dict(m, state_dict) = get_state_dict(m, state_dict, "")
+
+
+_load_embed(state_dict, prefix, vocab_size, dims, factor, pad_idx0 = nothing) =
+    _load_embed(state_dict, prefix, weight_init(vocab_size, dims, factor), pad_idx0)
+function _load_embed(state_dict, prefix, w_init, pad_idx0 = nothing)
+    embedding = getweight(Layers.Embed, state_dict, joinname(prefix, "weight")) do
+        weight = w_init()
+        if !isnothing(pad_idx0)
+            weight[:, pad_idx0 + 1] .= 0
+        end
+        return weight
+    end
+    return Layers.Embed(embedding)
+end
+
+function _load_layernorm(state_dict, prefix, dims, ln_ϵ)
+    old_weight_name = joinname(prefix, "gamma")
+    old_bias_name = joinname(prefix, "beta")
+    weight_name = haskey(state_dict, old_weight_name) ? old_weight_name : joinname(prefix, "weight")
+    bias_name = haskey(state_dict, old_bias_name) ? old_bias_name : joinname(prefix, "bias")
+    ln_weight = getweight(one_init(dims), Array, state_dict, weight_name)
+    ln_bias = getweight(zero_init(dims), Array, state_dict, bias_name)
+    return Layers.LayerNorm(ln_weight, ln_bias, ln_ϵ)
+end
+
+_load_dense(state_dict, prefix, din, dout, factor, bias, act = nothing) =
+    _load_dense(state_dict, prefix, weight_init(din, dout, factor), bias ? zero_init(dout) : nothing, act)
+function _load_dense(state_dict, prefix, w_init, b_init, act = nothing)
+    weight = getweight(w_init, Array, state_dict, joinname(prefix, "weight"))
+    if isnothing(b_init)
+        bias = nothing
+    else
+        bias = getweight(b_init, Array, state_dict, joinname(prefix, "bias"))
+    end
+    return Layers.Dense(act, weight, bias)
+end
