@@ -58,6 +58,17 @@ argument_names(b::TransformerDecoderBlock) = Base.merge_names(
 (b::TransformerDecoderBlock)(nt::NamedTuple) =
     apply_on_namedtuple(b.feedforward, apply_on_namedtuple(b.crossattention, apply_on_namedtuple(b.attention, nt)))
 
+struct Residual{L} <: LayerStruct
+    layer::L
+end
+@functor Residual
+
+function (resi::Residual)(nt::NamedTuple)
+    y = apply_on_namedtuple(resi.layer, nt)
+    hidden_state = y.hidden_state + nt.hidden_state
+    return return_hidden_state(y, hidden_state)
+end
+
 struct PreNormResidual{L, N} <: LayerStruct
     layer::L
     norm::N
