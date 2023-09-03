@@ -5,7 +5,8 @@ using NeuralAttentionlib: $, AbstractAttenOp, MultiheadQKVAttenOpWithScore, Mult
     CausalMultiheadQKVAttenOp, CausalMultiheadQKVAttenOpWithScore,
     GroupedQueryAttenOp, GroupedQueryAttenOpWithScore,
     CausalGroupedQueryAttenOp, CausalGroupedQueryAttenOpWithScore,
-    with_rotary_position_embedding, dot_product_score, scaled_dot_product_score,
+    alibi_position_embedding, with_rotary_position_embedding,
+    dot_product_score, scaled_dot_product_score,
     masked_score, normalized_score, dropout_score, weighted_sum_mixing,
     generic_multihead_qkv_attention, generic_grouped_query_attention,
     CausalMask, BatchedMask, LocalMask
@@ -192,6 +193,59 @@ set_dropout(op::CausalRoPEMultiheadQKVAttenOp, p) = CausalRoPEMultiheadQKVAttenO
 
 const CausalRoPEMultiheadQKVAttenOpWithScore{D, F} = NeuralAttentionlib.WithScore{CausalRoPEMultiheadQKVAttenOp{D, F}}
 
+# ALiBi
+
+alibi_attention_score(mask, p) =
+    dropout_score(p) $
+    normalized_score(softmax) $
+    masked_score(NeuralAttentionlib.GenericMaskOp(), mask) $
+    alibi_position_embedding(mask) $
+    scaled_dot_product_score
+
+ChainRulesCore.@non_differentiable alibi_attention_score(arg...)
+
+function alibi_multihead_qkv_attention(head, q, k, v, mask = nothing, p = nothing)
+    return generic_multihead_qkv_attention(
+        weighted_sum_mixing, alibi_attention_score(mask, p),
+        head, q, k, v)
+end
+function alibi_multihead_qkv_attention(
+    ::typeof(NeuralAttentionlib.score_returning),
+    head, q, k, v, mask = nothing, p = nothing
+)
+    return generic_multihead_qkv_attention(
+        NeuralAttentionlib.score_returning(weighted_sum_mixing),
+        alibi_attention_score(mask, p),
+        head, q, k, v, position_embedding)
+end
+
+struct ALiBiMultiheadQKVAttenOp{F} <: AbstractAttenOp
+    head::Int
+    p::F
+end
+ALiBiMultiheadQKVAttenOp(head::Int) = ALiBiMultiheadQKVAttenOp(head, nothing)
+NeuralAttentionlib.get_attention_func(::ALiBiMultiheadQKVAttenOp) = alibi_multihead_qkv_attention
+NeuralAttentionlib.get_attention_func_args(op::ALiBiMultiheadQKVAttenOp, q, k, v, mask = nothing) =
+    (op.head, q, k, v, BatchedMask(mask), op.p)
+
+set_dropout(op::ALiBiMultiheadQKVAttenOp, p) = ALiBiMultiheadQKVAttenOp(op.head, p)
+
+const ALiBiMultiheadQKVAttenOpWithScore{F} = NeuralAttentionlib.WithScore{ALiBiMultiheadQKVAttenOp{F}}
+
+struct CausalALiBiMultiheadQKVAttenOp{F} <: AbstractAttenOp
+    head::Int
+    p::F
+end
+CausalALiBiMultiheadQKVAttenOp(head::Int) = CausalALiBiMultiheadQKVAttenOp(head, nothing)
+NeuralAttentionlib.get_attention_func(::CausalALiBiMultiheadQKVAttenOp) = alibi_multihead_qkv_attention
+NeuralAttentionlib.get_attention_func_args(op::CausalALiBiMultiheadQKVAttenOp, q, k, v, mask = nothing) =
+    (op.head, q, k, v, BatchedMask(CausalMask() & mask), op.p)
+
+set_dropout(op::CausalALiBiMultiheadQKVAttenOp, p) = CausalALiBiMultiheadQKVAttenOp(op.head, p)
+
+const CausalALiBiMultiheadQKVAttenOpWithScore{F} = NeuralAttentionlib.WithScore{CausalALiBiMultiheadQKVAttenOp{F}}
+
+
 # layer api
 
 for op in :[
@@ -205,6 +259,8 @@ for op in :[
     LocalCausalMultiheadQKVDotAttenOp, LocalCausalMultiheadQKVDotAttenOpWithScore,
     RoPEMultiheadQKVAttenOp, RoPEMultiheadQKVAttenOpWithScore,
     CausalRoPEMultiheadQKVAttenOp, CausalRoPEMultiheadQKVAttenOpWithScore,
+    ALiBiMultiheadQKVAttenOp, ALiBiMultiheadQKVAttenOpWithScore,
+    CausalALiBiMultiheadQKVAttenOp, CausalALiBiMultiheadQKVAttenOpWithScore,
     GroupedQueryAttenOp, GroupedQueryAttenOpWithScore,
     CausalGroupedQueryAttenOp, CausalGroupedQueryAttenOpWithScore,
 ].args
