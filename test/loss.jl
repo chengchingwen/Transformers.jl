@@ -7,7 +7,7 @@
     using NeuralAttentionlib: LengthMask, RevLengthMask, GenericSequenceMask, getmask, lengths
 
     noagg(x; dims = :) = x
-    _crossentropy(args...; kwargs...) = crossentropy(args...; kwargs..., ϵ = 0f0)
+    _crossentropy(args...; kwargs...) = crossentropy(args...; kwargs..., eps = 0f0)
     function naive_loss_w_mask(ŷ, y, m; lossf = _crossentropy, agg = mean)
         batch = size(ŷ, ndims(ŷ))
         loss = lossf(reshape(ŷ, size(ŷ,1), :), reshape(y, size(y,1), :); dims = 1, agg = noagg)
