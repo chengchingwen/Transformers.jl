@@ -1,9 +1,12 @@
 using StructWalk: scan
 using FuncPipelines
+using LRUCache
 using TextEncodeBase
 using TextEncodeBase: CodeNormalizer, ReplaceNormalizer, WordReplaceNormalizer,
-    MatchTokenization, EachSplitTokenization, EachMatchTokenization, TokenizerStyle, nestedcall
+    MatchTokenization, EachSplitTokenization, EachMatchTokenization, MatchSplitsTokenization,
+    TokenizerStyle, nestedcall
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm, IndexInputTerm
+using TextEncodeBase.RustRegex
 using ..TextEncoders: BertUnCasedPreTokenization, BertCasedPreTokenization, TextTokenizer, grouping_sentence
 using ..WordPieceModel
 using BytePairEncoding
@@ -116,7 +119,8 @@ function extract_tokenization_method(::Val{:BPE}, model_dict)
     if byte_fallback
         bpe = ByteFallbackBPE(vocab_list, merges, sepsym, endsym)
     else
-        bpe = CachedBPE(BPE(merges, sepsym, endsym))
+        cache = LRU{String, Vector{String}}(; maxsize = 1000)
+        bpe = CachedBPE(BPE(merges, sepsym, endsym), cache)
     end
     return Base.Fix2(BPETokenization, bpe), bpe, unk_token, vocab_list
 end
@@ -178,7 +182,7 @@ function extract_pre_tokenization(
     replacement = collect(pretokenizer_dict["replacement"])[]::Char
     add_prefix_space = pretokenizer_dict["add_prefix_space"]
     if isnothing(tokenization)
-        tokenization = EachMatchTokenization(Regex("$replacement[^$replacement]*|[^$replacement]+"))
+        tokenization = EachMatchTokenization(RuRegex("$replacement[^$replacement]*|[^$replacement]+"))
         normalizer = normalizer ∘ Base.Fix2(ReplaceNormalizer, r" "=>replacement)
         if add_prefix_space
             normalizer = normalizer ∘ Base.Fix2(
@@ -204,25 +208,32 @@ function extract_pre_tokenization(
     ::Val{:Split}, pretokenizer_dict, tokenization, match_tokens, normalizer, tokenizer_dict
 )
     @assert isnothing(tokenization) load_error_msg("Chaining tokenization is unsupported")
-    @assert pretokenizer_dict["behavior"] == "Removed" load_error_msg("Only support removed behavior")
+    behavior = pretokenizer_dict["behavior"]
+    @assert behavior in ("Removed", "Isolated") load_error_msg("Only support removed or isolated behavior")
     @assert haskey(pretokenizer_dict["pattern"], "Regex") load_error_msg("Only support regex pattern")
-    regex = Regex(pretokenizer_dict["pattern"]["Regex"])
-    if pretokenizer_dict["invert"]
-        if regex == r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
-            tokenization = GPT2Tokenization()
-        else
-            if regex == r"<\|startoftext\|>|<\|endoftext\|>|'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+"
-                regex = r"'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+"
-                if isnothing(match_tokens)
-                    match_tokens = ["<|startoftext|>", "<|endoftext|>"]
+    regex_str = pretokenizer_dict["pattern"]["Regex"]
+    if behavior == "Removed"
+        if pretokenizer_dict["invert"]
+            if regex_str == raw"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
+                tokenization = GPT2Tokenization()
+            else
+                if regex_str == raw"<\|startoftext\|>|<\|endoftext\|>|'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+"
+                    regex = r"'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+"
+                    if isnothing(match_tokens)
+                        match_tokens = ["<|startoftext|>", "<|endoftext|>"]
+                    else
+                        push!(match_tokens, "<|startoftext|>", "<|endoftext|>")
+                    end
                 else
-                    push!(match_tokens, "<|startoftext|>", "<|endoftext|>")
+                    regex = RuRegex(regex_str)
                 end
+                tokenization = EachMatchTokenization(regex)
             end
-            tokenization = EachMatchTokenization(regex)
+        else
+            tokenization = EachSplitTokenization(RuRegex(regex_str))
         end
     else
-        tokenization = EachSplitTokenization(regex)
+        tokenization = MatchSplitsTokenization(RuRegex(regex_str))
     end
     return tokenization, match_tokens, normalizer
 end
@@ -304,7 +315,7 @@ extract_normalizer(::Val{:NFKC}, normalizer_dict, tokenization, tokenizer_dict) 
 function extract_normalizer(::Val{:Replace}, normalizer_dict, tokenization, tokenizer_dict)
     @assert isone(length(normalizer_dict["pattern"])) load_error_msg("Multiple pattern")
     if haskey(normalizer_dict["pattern"], "Regex")
-        pattern = Regex(normalizer_dict["pattern"]["Regex"])
+        pattern = RuRegex(normalizer_dict["pattern"]["Regex"])
     elseif haskey(normalizer_dict["pattern"], "String")
         pattern = normalizer_dict["pattern"]["String"]
     else
