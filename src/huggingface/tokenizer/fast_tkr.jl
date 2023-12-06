@@ -7,15 +7,24 @@ using TextEncodeBase: CodeNormalizer, ReplaceNormalizer, WordReplaceNormalizer,
     TokenizerStyle, nestedcall
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm, IndexInputTerm
 using TextEncodeBase.RustRegex
-using ..TextEncoders: BertUnCasedPreTokenization, BertCasedPreTokenization, TextTokenizer, grouping_sentence
+using ..TextEncoders: BertUnCasedPreTokenization, BertCasedPreTokenization, TextTokenizer,
+    grouping_sentence, string_strip
 using ..WordPieceModel
 using BytePairEncoding
-using BytePairEncoding: CachedBPE, ByteFallbackBPE, GPT2Tokenization, gpt2_codemap
+using BytePairEncoding: CachedBPE, ByteFallbackBPE, GPT2Tokenization, gpt2_codemap, fallback2byte
 using ..UnigramLanguageModel
 using ..UnigramLanguageModel: PrecompiledNormalizer
 
 struct NoTokenization <: TextEncodeBase.BaseTokenization end
 TextEncodeBase.splitting(::NoTokenization, s::TextEncodeBase.SentenceStage) = Base.vect(TextEncodeBase.getvalue(s))
+
+# https://github.com/huggingface/transformers/blob/235e5d4991e8a0984aa78db91087b49622c7740e/src/transformers/tokenization_utils_base.py#L3798
+# NOT https://github.com/huggingface/tokenizers/blob/daf361676bdfd14088f7e0bc087effc6a9cfdf3e/tokenizers/src/decoders/wordpiece.rs#L31
+cleanup(s) = replace(
+    replace(replace(s, " ." => ".", " ?" => "?", " !" => "!", " ," => ","), " ' " => "'"),
+    " n't" => "n't", " 'm" => "'m", #= " do not" => " don't", =#
+    " 's" => "'s", " 've" => "'ve", " 're" => "'re")
+
 
 function extract_added_token(added_token)
     vidx = added_token["id"] + 1
@@ -169,7 +178,7 @@ end
 function extract_pre_tokenization(
     ::Val{:ByteLevel}, pretokenizer_dict, tokenization, match_tokens, normalizer, tokenizer_dict
 )
-    @assert !pretokenizer_dict["add_prefix_space"] "add_prefix_space is unsupported"
+    @assert !pretokenizer_dict["add_prefix_space"] load_error_msg("add_prefix_space is unsupported")
     isnothing(tokenization) && (tokenization = GPT2Tokenization())
     normalizer = normalizer ∘ Base.Fix2(CodeNormalizer, gpt2_codemap())
     return tokenization, match_tokens, normalizer
@@ -290,6 +299,7 @@ extract_normalizer(normalizer_dict, tokenization, tokenizer_dict) =
 
 function extract_normalizer(::Val{:BertNormalizer}, normalizer_dict, tokenization, tokenizer_dict)
     # bert normalizer is done in bert pre tokenization
+    @assert normalizer_dict["clean_text"] load_error_msg("bert normalize without clean_text")
     check = Ref{Bool}(false)
     scan(x -> (x isa BertUnCasedPreTokenization || x isa BertCasedPreTokenization) && (check[] = true),
          TokenizerStyle(), tokenization)
@@ -435,7 +445,7 @@ function extract_post_processor(::Val{:BertProcessing}, post_processor_dict, tok
 end
 
 function extract_post_processor(::Val{:RobertaProcessing}, post_processor_dict, tokenizer_dict, process_config)
-    @assert !post_processor_dict["add_prefix_space"] "add_prefix_space is unsupported"
+    @assert !post_processor_dict["add_prefix_space"] load_error_msg("add_prefix_space is unsupported")
     sepsym, sepid = post_processor_dict["sep"]
     startsym, startid = post_processor_dict["cls"]
     process = Pipelines(
@@ -465,24 +475,150 @@ function extract_processor(tokenizer_json)
     return process_config
 end
 
-function load_fast_tokenizer_components(tokenizer_json)
+function reduce_nestedcall(fs)
+    return foldl(fs; init = []) do init, f
+        f isa typeof(identity) && return init
+        isempty(init) && return push!(init, f)
+        f0 = pop!(init)
+        if f0 isa Base.Fix1{typeof(nestedcall)} && f isa Base.Fix1{typeof(nestedcall)}
+            push!(init, nestedcall(f.x ∘ f0.x))
+        else
+            push!(init, f0, f)
+        end
+        return init
+    end
+end
+
+function build_pipeline(fs)
+    isempty(fs) && return identity
+    length(fs) == 1 && return fs[]
+    return foldl(Iterators.drop(fs, 1); init = Pipeline{:token}(first(fs), 1)) do pipe, f
+        pipe |> Pipeline{:token}(f, :token)
+    end |> PipeGet{:token}()
+end
+
+function extract_decoder(decoder_dict, config)
+    decodes = Any[identity]
+    textprocesses = Any[TextEncodeBase.join_text]
+    decodes, textprocesses = extract_decoder(decoder_dict, decodes, textprocesses)
+    config[:clean_up_tokenization_spaces] && !(nestedcall(cleanup) in textprocesses) &&
+        push!(textprocesses, nestedcall(cleanup))
+    decode = build_pipeline(reduce_nestedcall(decodes))
+    textprocess = build_pipeline(reduce_nestedcall(textprocesses))
+    return decode, textprocess
+end
+
+extract_decoder(::Nothing, decode, textprocess) = decode, textprocess
+extract_decoder(decoder_dict, decode, textprocess) = extract_decoder(Symbol(decoder_dict["type"]), decoder_dict, decode, textprocess)
+
+@valsplit extract_decoder(Val(decoder_type::Symbol), decoder_dict, decode, textprocess) = load_error("Unsupported decoder method: $decoder_type")
+
+function extract_decoder(::Val{:Replace}, decoder_dict, decode, textprocess)
+    @assert isone(length(decoder_dict["pattern"])) load_error_msg("Multiple pattern")
+    if haskey(decoder_dict["pattern"], "Regex")
+        pattern = RuRegex(normalizer_dict["pattern"]["Regex"])
+    elseif haskey(decoder_dict["pattern"], "String")
+        pattern = decoder_dict["pattern"]["String"]
+    else
+        load_error_msg("Only support regex or String pattern")
+    end
+    content = decoder_dict["content"]
+    p = pattern => content
+    Replace(s) = replace(s, p)
+    push!(decode, nestedcall(Replace))
+    return decode, textprocess
+end
+
+function extract_decoder(::Val{:ByteFallback}, decoder_dict, decode, textprocess)
+    push!(decode, nestedcall(fallback2byte))
+    return decode, textprocess
+end
+
+function extract_decoder(::Val{:Strip}, decoder_dict, decode, textprocess)
+    content = decoder_dict["content"]
+    @assert length(content) == 1 load_error_msg("Strip decoder with string content")
+    char = content[1]
+    start = decoder_dict["start"]
+    stop = decoder_dict["stop"]
+    Strip(s) = string_strip(char, s; start, stop)
+    push!(textprocess, nestedcall(Strip))
+    return decode, textprocess
+end
+
+function extract_decoder(::Val{:Fuse}, decoder_dict, decode, textprocess)
+    !(TextEncodeBase.join_text in textprocess) && push!(textprocess, TextEncodeBase.join_text)
+    return decode, textprocess
+end
+
+function extract_decoder(::Val{:Metaspace}, decoder_dict, decode, textprocess)
+    @assert !haskey(decoder_dict, "str_rep") || decoder_dict["replacement"] == decoder_dict["str_rep"]
+    replacement = collect(decoder_dict["replacement"])[]::Char
+    p = replacement => ' '
+    metaspace2space(s) = replace(s, p)
+    push!(decode, nestedcall(metaspace2space))
+    if decoder_dict["add_prefix_space"]
+        remove_prefix_space(s) = string_strip(' ', s; start=1, stop=0)
+        push!(textprocess, nestedcall(remove_prefix_space))
+    end
+    return decode, textprocess
+end
+
+function extract_decoder(::Val{:BPEDecoder}, decoder_dict, decode, textprocess)
+    suffix = decoder_dict["suffix"]
+    p = suffix => " "
+    remove_suffix(s) = replace(s, p)
+    remove_tail_space(s) = string_strip(' ', s; start=0, stop=1)
+    push!(decode, nestedcall(remove_suffix))
+    push!(textprocess, nestedcall(remove_tail_space))
+    return decode, textprocess
+end
+
+function extract_decoder(::Val{:ByteLevel}, decoder_dict, decode, textprocess)
+    push!(decode, nestedcall(TextEncodeBase.CodeUnMap(gpt2_codemap())))
+    return decode, textprocess
+end
+
+function extract_decoder(::Val{:WordPiece}, decoder_dict, decode, textprocess)
+    prefix = decoder_dict["prefix"]
+    function remove_conti_prefix(s)
+        if startswith(s, prefix)
+            return String(SubString(s, 1 + ncodeunits(prefix)))
+        else
+            return " $s"
+        end
+    end
+    push!(decode, nestedcall(remove_conti_prefix))
+    remove_prefix_space(s) = string_strip(' ', s; start=1, stop=0)
+    push!(textprocess, nestedcall(remove_prefix_space))
+    return decode, textprocess
+end
+
+function extract_decoder(::Val{:Sequence}, decoder_dict, decode, textprocess)
+    for sub_decoder_dict in decoder_dict["decoders"]
+        decode, textprocess = extract_decoder(sub_decoder_dict, decode, textprocess)
+    end
+    return decode, textprocess
+end
+
+function load_fast_tokenizer_components(tokenizer_json, config)
     tokenizer_dict = json_load(tokenizer_json)
     method, tokenization_object, unk, vocab_list = extract_tokenizer_model(tokenizer_dict["model"])
     match_tokens = extract_and_add_tokens!(tokenizer_dict["added_tokens"], vocab_list)
     base_tokenization, match_tokens = extract_base_tokenization(method, match_tokens, tokenizer_dict)
     match_tokens = empty_then_nothing(match_tokens)
     process_config = extract_processor(tokenizer_dict)
-    return base_tokenization, match_tokens, vocab_list, unk, tokenization_object, process_config
+    decode, textprocess = extract_decoder(tokenizer_dict["decoder"], config)
+    return base_tokenization, match_tokens, vocab_list, unk, tokenization_object, process_config, decode, textprocess
 end
 
-load_fast_tokenizer(type, tokenizer_json) = load_fast_tokenizer(tokenizer_json) # default ignoring type
-function load_fast_tokenizer(tokenizer_json)
-    base_tokenization, match_tokens, vocab_list, unk, tokenization_object, process_config =
-        load_fast_tokenizer_components(tokenizer_json)
+load_fast_tokenizer(type, tokenizer_json, config) = load_fast_tokenizer(tokenizer_json, config) # default ignoring type
+function load_fast_tokenizer(tokenizer_json, config)
+    base_tokenization, match_tokens, vocab_list, unk, tokenization_object, process_config, decode, textprocess =
+        load_fast_tokenizer_components(tokenizer_json, config)
     isnothing(match_tokens) || (base_tokenization = MatchTokenization(base_tokenization, match_tokens))
     isnothing(unk) && (unk = "<unk>") # dummy unk token, wouldn't appear in vocabulary
     unk isa AbstractString || (unk = vocab_list[unk])
     vocab = Vocab(vocab_list, unk)
     tokenizer = TextTokenizer(base_tokenization)
-    return tokenizer, vocab, process_config
+    return tokenizer, vocab, process_config, decode, textprocess
 end

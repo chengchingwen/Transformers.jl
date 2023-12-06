@@ -16,6 +16,7 @@
     pretraining_tp::Int = 1
     tie_word_embeddings::Bool = false
     rope_scaling::Nothing = nothing
+    clean_up_tokenization_spaces::Bool = false
 end
 
 const HGFLlamaConfig = HGFConfig{:llama}

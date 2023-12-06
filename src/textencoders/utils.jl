@@ -4,6 +4,22 @@ using NeuralAttentionlib: LengthMask, RevLengthMask
 
 string_getvalue(x::TextEncodeBase.TokenStage) = String(getvalue(x))::String
 
+# strip with length
+function string_strip(f, s::AbstractString; start = typemax(Int), stop = typemax(Int))
+    start_count = 0
+    for c in Iterators.take(s, start)
+        f(c) || break
+        start_count += 1
+    end
+    stop_count = 0
+    for c in Iterators.take(Iterators.reverse(s), stop)
+        f(c) || break
+        stop_count += 1
+    end
+    return chop(s; head = start_count, tail = stop_count)
+end
+string_strip(char::Char, s::AbstractString; start = typemax(Int), stop = typemax(Int)) = string_strip(isequal(char), s; start, stop)
+
 # check word is inside the vocab or not
 check_vocab(vocab::Vocab, word) = findfirst(==(word), vocab.list) !== nothing
 

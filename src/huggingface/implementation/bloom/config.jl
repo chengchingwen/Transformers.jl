@@ -13,6 +13,7 @@
     attention_dropout::Float64 = 0.0
     pretraining_tp::Int = 1
     slow_but_exact::False = false
+    clean_up_tokenization_spaces::Bool = false
 end
 
 const HGFBloomConfig = HGFConfig{:bloom}
