@@ -1,5 +1,5 @@
 using TextEncodeBase
-using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch
+using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, peek_sequence_sample_type
 using NeuralAttentionlib: LengthMask, RevLengthMask
 
 string_getvalue(x::TextEncodeBase.TokenStage) = String(getvalue(x))::String
@@ -22,20 +22,14 @@ function getlengths(x, maxlength)
 end
 
 _getlengths(maxlength) = TextEncodeBase.FixRest(_getlengths, maxlength)
-_getlengths(x::AbstractArray, maxlength) = __getlength(maxlength, x)
-function _getlengths(x::AbstractArray{<:AbstractArray}, maxlength)
-    ET = Core.Compiler.return_type(_getlengths, Tuple{eltype(x), Int})
-    RT = Array{ET, ndims(x)}
-    y = RT(undef, size(x))
-    map!(_getlengths(maxlength), y, x)
-    return y
-end
-function _getlengths(x::AbstractArray{>:AbstractArray}, maxlength)
-    aoa, aov = TextEncodeBase.allany(Base.Fix2(isa, AbstractArray), x)
-    if aoa
-        map(_getlengths(maxlength), x)
-    elseif aov
-        __getlength(maxlength, x)
+
+function _getlengths(x::AbstractArray, maxlength)
+    stype = peek_sequence_sample_type(x)
+    if stype == TextEncodeBase.SingleSample
+        return __getlength(maxlength, x)
+    elseif stype >= TextEncodeBase.UnknownSample
+        return TextEncodeBase.@elementmap x _getlengths(x, maxlength)
+        # return map(_getlengths(maxlength), x)
     else
         error("Input array is mixing array and non-array elements")
     end
