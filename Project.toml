@@ -44,7 +44,7 @@ WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-BytePairEncoding = "0.4"
+BytePairEncoding = "0.4, 0.5"
 CUDA = "3.10, 4, 5"
 ChainRulesCore = "1.15"
 DataDeps = "0.7"
