@@ -45,7 +45,11 @@ function test_tokenizer(name, corpus; output = nothing)
                     @test jl_indices == py_indices
                 end
 
-                single_pass = jl_tokens == py_tokens
+                jl_decoded = @timeit to "jldecode" TextEncodeBase.decode_text(tkr, jl_indices)
+                py_decoded = @timeit to "pydecode" hgf_tkr.decode(_py_indices)
+                @test jl_decoded == py_decoded
+
+                single_pass = jl_tokens == py_tokens && jl_decoded == py_decoded
                 if !single_pass
                     println("Failed: ", repr(line))
                     isnothing(out_fd) || println(out_fd, line)
