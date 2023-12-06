@@ -30,38 +30,23 @@ Base.show(io::IO, ::GPTTokenization) = print(io, nameof(gpt_tokenizer))
 using BytePairEncoding
 using BytePairEncoding: GPT2Tokenization, gpt2_tokenizer
 
-# encoder
-
-struct GPTTextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P} <: AbstractTransformerTextEncoder
-    tokenizer::T
-    vocab::V
-    process::P
-    startsym::Union{Nothing, String}
-    sepsym::Union{Nothing, String}
-    endsym::Union{Nothing, String}
-    padsym::Union{Nothing, String}
-    trunc::Union{Nothing, Int}
-end
-
-## gpt2 encoder
-
-"""
-    GPT2TextEncoder
-
-The text encoder for GPT2 model (ByteLevel BytePairEncoding tokenization).
-"""
-struct GPT2TextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P, C<:CodeMap} <: AbstractTransformerTextEncoder
-    tokenizer::T
-    vocab::V
-    process::P
-    codemap::C
-    startsym::Union{Nothing, String}
-    endsym::Union{Nothing, String}
-    padsym::Union{Nothing, String}
-    trunc::Union{Nothing, Int}
-end
-
 # encoder constructor
+
+function GPTTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary{String}, process,
+                        startsym::Union{Nothing, String}, sepsym::Union{Nothing, String}, endsym::Union{Nothing, String},
+                        padsym::Union{Nothing, String}, trunc::Union{Nothing, Int})
+    return TrfTextEncoder(
+        tkr, vocab,
+        @NamedTuple{startsym::Union{Nothing, String}, sepsym::Union{Nothing, String}, endsym::Union{Nothing, String},
+                    padsym::Union{Nothing, String}, trunc::Union{Nothing, Int}}(
+                        (startsym, sepsym, endsym, padsym, trunc)),
+        annotate_strings,
+        process,
+        lookup_first,
+        identity,
+        TextEncodeBase.join_text,
+    )
+end
 
 GPTTextEncoder(::typeof(gpt_tokenizer), args...; kwargs...) =
     GPTTextEncoder(GPTTokenization(), args...; kwargs...)
@@ -110,10 +95,26 @@ function GPTTextEncoder(tkr::AbstractTokenizer, vocab::WList;
     end
 end
 
-GPTTextEncoder(builder, e::GPTTextEncoder) =
-    GPTTextEncoder(e.tokenizer, e.vocab, builder(e), e.startsym, e.sepsym, e.endsym, e.padsym, e.trunc)
+GPTTextEncoder(builder, e::TrfTextEncoder) = TrfTextEncoder(builder, e)
 
 ## gpt2 encoder constructor
+
+function GPT2TextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary{String}, process,
+                         codemap::CodeMap, startsym::Union{Nothing, String}, endsym::Union{Nothing, String},
+                         padsym::Union{Nothing, String}, trunc::Union{Nothing, Int})
+    return TrfTextEncoder(
+        tkr, vocab,
+        @NamedTuple{
+            codemap::typeof(codemap), startsym::Union{Nothing, String}, endsym::Union{Nothing, String},
+            padsym::Union{Nothing, String}, trunc::Union{Nothing, Int}}(
+                (codemap, startsym, endsym, padsym, trunc)),
+        annotate_strings,
+        process,
+        lookup_first,
+        TextEncodeBase.nestedcall(CodeUnMap(codemap)),
+        TextEncodeBase.join_text,
+    )
+end
 
 GPT2TextEncoder(::typeof(gpt2_tokenizer), args...; kwargs...) =
     GPT2TextEncoder(GPT2Tokenization(), args...; kwargs...)
@@ -164,9 +165,7 @@ function GPT2TextEncoder(tkr::AbstractTokenizer, vocab::WList;
     end
 end
 
-GPT2TextEncoder(builder, e::GPT2TextEncoder) =
-    GPT2TextEncoder(e.tokenizer, e.vocab, builder(e), e.codemap, e.startsym, e.endsym, e.padsym, e.trunc)
-
+GPT2TextEncoder(builder, e::TrfTextEncoder) = TrfTextEncoder(builder, e)
 
 # preprocess
 
@@ -222,103 +221,3 @@ function gpt2_default_preprocess(; startsym = "<|endoftext|>", endsym = "<|endof
         # return input and mask
         PipeGet{(:token, :attention_mask)}()
 end
-
-# decode
-
-function TextEncodeBase.decode(e::GPT2TextEncoder, i::Union{Integer, OneHotArray, AbstractArray{<:Integer}})
-    uc = CodeUnMap(e.codemap)
-    return TextEncodeBase.nestedcall(uc, TextEncodeBase.decode_indices(e, i))
-end
-
-# api doc
-
-"""
-    encode(::GPT2TextEncoder, ::String)
-
-Encode a single sentence with gpt2 text encoder. The default pipeline returning
- `@NamedTuple{token::OneHotArray{K, 1}, attention_mask::RevLengthMask{1, Vector{Int32}}}`.
-
-    encode(::GPT2TextEncoder, ::Vector{String})
-
-Encode a batch of sentences with gpt2 text encoder. The default pipeline returning
- `@NamedTuple{token::OneHotArray{K, 2}, attention_mask::RevLengthMask{1, Vector{Int32}}}`.
-
-    encode(::GPT2TextEncoder, ::Vector{Vector{String}})
-
-Encode a batch of segments with gpt2 text encoder. Segments would be concatenate together as batch of sentences.
- The default pipeline returning `@NamedTuple{token::OneHotArray{K, 2}, attention_mask::RevLengthMask{1, Vector{Int32}}}`.
-
-    encode(::GPT2TextEncoder, ::Vector{Vector{Vector{String}}})
-
-Encode a batch of multi-sample segments with gpt2 text encoder. The number of sample per data need to be the same.
- (e.g. `length(batch[1]) == length(batch[2])`). The default pipeline returning
- `@NamedTuple{token::OneHotArray{K, 3}, attention_mask::RevLengthMask{2, Matrix{Int32}}}`.
- *notice*: If you want each sample to be independent to each other, this need to be reshaped before feeding to
- transformer layer or make sure the attention is not taking the `end-1` dimension as another length dimension.
-
-See also: [`decode`](@ref), `RevLengthMask`
-
-# Example
-```julia-repl
-julia> gpt2enc = HuggingFace.load_tokenizer("gpt2")
-GPT2TextEncoder(
-├─ TextTokenizer(MatchTokenization(CodeNormalizer(BPETokenization(GPT2Tokenization, bpe = CachedBPE(BPE(50000 merges))), codemap = CodeMap{UInt8 => UInt16}(3 code-ranges)), 1 patterns)),
-├─ vocab = Vocab{String, SizedArray}(size = 50257, unk = <unk>, unki = 0),
-├─ codemap = CodeMap{UInt8 => UInt16}(3 code-ranges),
-├─ startsym = <|endoftext|>,
-├─ endsym = <|endoftext|>,
-├─ padsym = <|endoftext|>,
-├─ trunc = 1024,
-└─ process = Pipelines:
-  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
-  ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
-  ╰─ target[token] := SequenceTemplate{String}((Input:<type=1>)...)(Val{1}(), target.token)
-  ╰─ target[attention_mask] := (NeuralAttentionlib.RevLengthMask ∘ Transformers.TextEncoders.getlengths(1024))(target.token)
-  ╰─ target[token] := TextEncodeBase.trunc_and_pad(1024, <|endoftext|>, head, head)(target.token)
-  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
-  ╰─ target := (target.token, target.attention_mask)
-)
-
-julia> e = encode(gpt2enc, [["this is a sentence", "and another"]])
-(token = [0 0 … 0 0; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0;;;], attention_mask = NeuralAttentionlib.RevLengthMask{1, Vector{Int32}}(Int32[6]))
-
-julia> typeof(e)
-NamedTuple{(:token, :attention_mask), Tuple{OneHotArray{0x0000c451, 2, 3, Matrix{OneHot{0x0000c451}}}, NeuralAttentionlib.RevLengthMask{1, Vector{Int32}}}}
-
-```
-"""
-TextEncodeBase.encode(::GPT2TextEncoder, _)
-
-"""
-    decode(bertenc::GPT2TextEncoder, x)
-
-Convert indices back to string with gpt2 vocabulary. This would also map the bytes back to the normal code ranges,
- so the string is not directly the one in the vocabulary.
-
-See also: [`encode`](@ref)
-
-# Example
-```julia-repl
-julia> token = encode(gpt2enc, [["this is a sentence", "and another"]]).token;
-
-julia> decode(gpt2enc, token)
-6×1 Matrix{String}:
- "this"
- " is"
- " a"
- " sentence"
- "and"
- " another"
-
-julia> TextEncodeBase.decode_indices(gpt2enc, token)
-6×1 Matrix{String}:
- "this"
- "Ġis"
- "Ġa"
- "Ġsentence"
- "and"
- "Ġanother"
-
-```
-"""
-TextEncodeBase.decode(::GPT2TextEncoder, _)
