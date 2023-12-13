@@ -33,18 +33,18 @@ function generate_text(context=""; max_length=50, greedy = true)
         push!(ids, new_id)
         new_id == ends_id && break
     end
-    return decode(textenc, dec_encoded)
+    return dec_encoded
 end
 
 function generate(prompt; max_length = 100, greedy = true)
     tokens = generate_text(prompt; max_length, greedy)
-    if tokens[end] == textenc.endsym
-        tokens = tokens[2:end-1]
-    else
-        tokens = tokens[2:end]
-    end
-    gen_text = replace(join(tokens), '▁'=>' ')
-    println("\nGenerated Text: \n")
-    println(gen_text)
-    return gen_text
+    gen_text = decode_text(textenc, tokens)
+    result = chop(gen_text;
+                  head = length(textenc.padsym),
+                  tail = endswith(gen_text, textenc.endsym) ? length(textenc.endsym) : 0) |> strip
+    println("Generated Text: ")
+    println(result)
+    return result
 end
+
+translate_en2de(text; kw...) = generate("translate English to German: " * text; kw...)
