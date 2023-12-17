@@ -13,7 +13,7 @@ using ..WordPieceModel
 using BytePairEncoding
 using BytePairEncoding: CachedBPE, ByteFallbackBPE, GPT2Tokenization, gpt2_codemap, fallback2byte
 using ..UnigramLanguageModel
-using ..UnigramLanguageModel: PrecompiledNormalizer
+using ..UnigramLanguageModel: PrecompiledNormalizer, CachedUnigram
 
 struct NoTokenization <: TextEncodeBase.BaseTokenization end
 TextEncodeBase.splitting(::NoTokenization, s::TextEncodeBase.SentenceStage) = Base.vect(TextEncodeBase.getvalue(s))
@@ -146,6 +146,7 @@ function extract_tokenization_method(::Val{:Unigram}, model_dict)
     end
     unk = vocab_list[unki]
     unigram = Unigram(vocab_list, scores, unki)
+    unigram = CachedUnigram(unigram, LRU{String, Vector{String}}(; maxsize = 1000))
     return Base.Fix2(UnigramTokenization, unigram), unigram, unk, vocab_list
 end
 

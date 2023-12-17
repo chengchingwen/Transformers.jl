@@ -1,11 +1,14 @@
 using StringViews
+using LRUCache
 
 import DoubleArrayTries
 using DoubleArrayTries: DoubleArrayTrie, CommonPrefixSearch
 
 const DAT = DoubleArrayTries
 
-struct Unigram
+abstract type AbstractUnigram end
+
+struct Unigram <: AbstractUnigram
     trie::DoubleArrayTrie
     unki::Int
     scores::Vector{Float64}
@@ -97,3 +100,18 @@ function optimized_encode(unigram::Unigram, x)
     reverse!(results)
     return results
 end
+
+struct CachedUnigram{U <: AbstractUnigram, D <: AbstractDict{String, Vector{String}}} <: AbstractUnigram
+    unigram::U
+    cache::D
+end
+CachedUnigram(unigram::AbstractUnigram) = CachedUnigram(unigram, LRU{String, Vector{String}}(; maxsize = 1000))
+
+function (unigram::CachedUnigram)(x)
+    haskey(unigram.cache, x) && return unigram.cache[x]
+    y = unigram.unigram(x)
+    unigram.cache[x] = y
+    return y
+end
+
+Base.show(io::IO, unigram::CachedUnigram) = (print(io, "CachedUnigram("); show(io, unigram.unigram); print(io, ')'))
