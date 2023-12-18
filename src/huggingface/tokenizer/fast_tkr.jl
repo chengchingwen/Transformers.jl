@@ -133,7 +133,7 @@ function extract_tokenization_method(::Val{:BPE}, model_dict)
     if byte_fallback
         bpe = ByteFallbackBPE(vocab_list, merges, sepsym, endsym)
     else
-        cache = LRU{String, Vector{String}}(; maxsize = 1000)
+        cache = LRU{AbstractString, Vector{String}}(; maxsize = 1000)
         bpe = CachedBPE(BPE(merges, sepsym, endsym), cache)
     end
     return Base.Fix2(BPETokenization, bpe), bpe, unk_token, vocab_list
