@@ -146,7 +146,8 @@ function extract_tokenization_method(::Val{:Unigram}, model_dict)
     end
     unk = vocab_list[unki]
     unigram = Unigram(vocab_list, scores, unki)
-    unigram = CachedUnigram(unigram, LRU{String, Vector{String}}(; maxsize = 1000))
+    cache = LRU{AbstractString, Vector{String}}(; maxsize = 1000)
+    unigram = CachedUnigram(unigram, cache)
     return Base.Fix2(UnigramTokenization, unigram), unigram, unk, vocab_list
 end
 

@@ -101,17 +101,12 @@ function optimized_encode(unigram::Unigram, x)
     return results
 end
 
-struct CachedUnigram{U <: AbstractUnigram, D <: AbstractDict{String, Vector{String}}} <: AbstractUnigram
+struct CachedUnigram{U <: AbstractUnigram, D <: AbstractDict{<:AbstractString, Vector{String}}} <: AbstractUnigram
     unigram::U
     cache::D
 end
-CachedUnigram(unigram::AbstractUnigram) = CachedUnigram(unigram, LRU{String, Vector{String}}(; maxsize = 1000))
+CachedUnigram(unigram::AbstractUnigram) = CachedUnigram(unigram, LRU{AbstractString, Vector{String}}(; maxsize = 1000))
 
-function (unigram::CachedUnigram)(x)
-    haskey(unigram.cache, x) && return unigram.cache[x]
-    y = unigram.unigram(x)
-    unigram.cache[x] = y
-    return y
-end
+(unigram::CachedUnigram)(x) = get!(()->unigram.unigram(x), x)
 
 Base.show(io::IO, unigram::CachedUnigram) = (print(io, "CachedUnigram("); show(io, unigram.unigram); print(io, ')'))
