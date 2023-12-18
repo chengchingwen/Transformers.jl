@@ -3,6 +3,7 @@ using FuncPipelines
 using LRUCache
 using TextEncodeBase
 using TextEncodeBase: CodeNormalizer, ReplaceNormalizer, WordReplaceNormalizer,
+    SentenceFuncNormalizer, WordFuncNormalizer,
     MatchTokenization, EachSplitTokenization, EachMatchTokenization, MatchSplitsTokenization,
     TokenizerStyle, nestedcall
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm, IndexInputTerm
@@ -25,6 +26,10 @@ cleanup(s) = replace(
     " n't" => "n't", " 'm" => "'m", #= " do not" => " don't", =#
     " 's" => "'s", " 've" => "'ve", " 're" => "'re")
 
+add_prefix(prefix) = Base.Fix1(add_prefix, prefix)
+add_prefix(prefix, str) = prefix * str
+ensure_prefix(prefix) = Base.Fix1(ensure_prefix, prefix)
+ensure_prefix(prefix, str) = String(startswith(str, prefix) ? str : add_prefix(prefix, str))
 
 function extract_added_token(added_token)
     vidx = added_token["id"] + 1
@@ -194,22 +199,16 @@ function extract_pre_tokenization(
     add_prefix_space = pretokenizer_dict["add_prefix_space"]
     if isnothing(tokenization)
         tokenization = EachMatchTokenization(RuRegex("$replacement[^$replacement]*|[^$replacement]+"))
-        normalizer = normalizer ∘ Base.Fix2(ReplaceNormalizer, r" "=>replacement)
+        normalizer = normalizer ∘ Base.Fix2(ReplaceNormalizer, ' '=>replacement)
         if add_prefix_space
-            normalizer = normalizer ∘ Base.Fix2(
-                ReplaceNormalizer,
-                Regex("^(?!$(replacement))(.*)\$") => SubstitutionString("$replacement\\1")
-            )
+            normalizer = normalizer ∘ Base.Fix2(SentenceFuncNormalizer, ensure_prefix(replacement))
         end
     else
         @assert tokenization == EachSplitTokenization(isspace) load_error_msg("Metaspace without WhiteSpaceSPlit is unsupported")
         metaspacef(x) = isspace(x) || x == replacement
         tokenization = EachSplitTokenization(metaspacef)
         if add_prefix_space
-            normalizer = normalizer ∘ Base.Fix2(
-                WordReplaceNormalizer,
-                Regex("^(?!$(replacement))(.*)\$") => SubstitutionString("$replacement\\1")
-            )
+            normalizer = normalizer ∘ Base.Fix2(WordFuncNormalizer, ensure_prefix(replacement))
         end
     end
     return tokenization, match_tokens, normalizer
@@ -344,7 +343,7 @@ end
 
 function extract_normalizer(::Val{:Prepend}, normalizer_dict, tokenization, tokenizer_dict)
     prepend = normalizer_dict["prepend"]
-    return ReplaceNormalizer(tokenization, Regex("^(?!$(prepend))(.*)\$") => SubstitutionString("$prepend\\1"))
+    return SentenceFuncNormalizer(tokenization, ensure_prefix(prepend))
 end
 
 function extract_normalizer(::Val{:Sequence}, normalizer_dict, tokenization, tokenizer_dict)
