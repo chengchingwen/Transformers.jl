@@ -1,3 +1,4 @@
+using DataStructures: MutableLinkedList
 using StringViews
 using LRUCache
 
@@ -40,15 +41,15 @@ BestNodePath(id = -1, best_path_score = 0.0, starts_at = -1) =
     (id = id, best_path_score = best_path_score, starts_at = starts_at)
 
 function optimized_encode(unigram::Unigram, x)
-    results = Vector{String}()
-    isempty(x) && return results
+    results = MutableLinkedList{String}()
+    isempty(x) && return Vector{String}()
     size = ncodeunits(x)
     codes = codeunits(x)
     unk_score = unigram.min_score - kUnkPenalty
     best_path_ends_at = Vector{@NamedTuple{id::Int, best_path_score::Float64, starts_at::Int}}(undef, size + 1)
     fill!(best_path_ends_at, BestNodePath())
     starts_at = 1
-    while starts_at <= size
+    @inbounds while starts_at <= size
         best_path_score_till_here = best_path_ends_at[starts_at].best_path_score
         has_single_node = false
         mblen = ncodeunits(x[starts_at])
@@ -81,7 +82,7 @@ function optimized_encode(unigram::Unigram, x)
     unk_buf = false
     unk_end = size
     unk_start = -1
-    while ends_at > 1
+    @inbounds while ends_at > 1
         node = best_path_ends_at[ends_at]
         starts_at = node.starts_at
         if node.id == unigram.unki
@@ -89,16 +90,15 @@ function optimized_encode(unigram::Unigram, x)
             unk_buf = true
         else
             if unk_buf
-                push!(results, StringView(codes[unk_start:unk_end]))
+                pushfirst!(results, StringView(codes[unk_start:unk_end]))
                 unk_buf = false
             end
-            push!(results, DAT.decode(unigram.trie, node.id))
+            pushfirst!(results, DAT.decode(unigram.trie, node.id))
             unk_end = starts_at-1
         end
         ends_at = starts_at
     end
-    reverse!(results)
-    return results
+    return collect(results)
 end
 
 struct CachedUnigram{U <: AbstractUnigram, D <: AbstractDict{<:AbstractString, Vector{String}}} <: AbstractUnigram
