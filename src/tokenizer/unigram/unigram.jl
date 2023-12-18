@@ -107,6 +107,6 @@ struct CachedUnigram{U <: AbstractUnigram, D <: AbstractDict{<:AbstractString, V
 end
 CachedUnigram(unigram::AbstractUnigram) = CachedUnigram(unigram, LRU{AbstractString, Vector{String}}(; maxsize = 1000))
 
-(unigram::CachedUnigram)(x) = get!(()->unigram.unigram(x), x)
+(unigram::CachedUnigram)(x) = get!(()->unigram.unigram(x), unigram.cache, x)
 
 Base.show(io::IO, unigram::CachedUnigram) = (print(io, "CachedUnigram("); show(io, unigram.unigram); print(io, ')'))
