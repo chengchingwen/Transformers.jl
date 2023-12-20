@@ -50,7 +50,7 @@ Random.seed!(0)
             @info "Test $name"
             for f ∈ readdir(joinpath(@__DIR__, t))
                 endswith(f, ".jl") || continue
-                joinpath(t, f) == "huggingface/tokenizer.jl" && !envget("JL_TRF_TEST_TKR") && continue
+                t == "huggingface" && f == "tokenizer.jl" && !envget("JL_TRF_TEST_TKR") && continue
                 include(joinpath(@__DIR__, t, f))
             end
         end
