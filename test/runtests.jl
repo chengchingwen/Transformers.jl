@@ -11,6 +11,8 @@ using Flux: gradient
 
 using CUDA
 
+const HFHUB_Token = get(ENV, "HUGGINGFACEHUB_TOKEN", nothing)
+
 function envget(var)
     e = get(ENV, var, false)
     e isa Bool && return e

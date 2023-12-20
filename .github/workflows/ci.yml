@@ -18,6 +18,7 @@ jobs:
     env:
       JULIA_NUM_THREADS: ${{ matrix.julia-threads }}
       JL_TRF_TEST_TKR: ${{ matrix.test-hgf-tkr }}
+      HUGGINGFACEHUB_TOKEN: ${{ secrets.HUGGINGFACEHUB_TOKEN }}
     strategy:
       fail-fast: false
       matrix:

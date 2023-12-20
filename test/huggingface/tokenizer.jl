@@ -1,3 +1,4 @@
+@assert !isnothing(HFHUB_Token)
 using Artifacts, LazyArtifacts
 const artifact_dir = @artifact_str("xnli_dev")
 const xnli = joinpath(artifact_dir, "xnli-dev.txt")
@@ -22,18 +23,18 @@ macro tryrun(ex, msg = nothing)
 end
 
 function test_tokenizer(name, corpus; to = TimerOutput())
-    global hgf_trf
+    global hgf_trf, HFHUB_Token
     @info "Validate $name tokenizer"
     @info "Load $name configure file in Julia"
     config = @tryrun begin
         @timeit to "jlload cfg" begin
-            cfg = HuggingFace.load_config(name)
+            cfg = HuggingFace.load_config(name; auth_token = HFHUB_Token)
             HuggingFace.HGFConfig(cfg; layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
         end
     end "Failed to load $name configure file in Julia, probably unsupported"
     @info "Load $name configure file in Python"
     pyconfig = @tryrun begin
-        @timeit to "pyload cfg" hgf_trf.AutoConfig.from_pretrained(name,
+        @timeit to "pyload cfg" hgf_trf.AutoConfig.from_pretrained(name, token = HFHUB_Token,
                                                                    layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
     end "Failed to load $name configure file in Python, probably unsupported"
     vocab_size = if haskey(config, :vocab_size)
@@ -44,12 +45,12 @@ function test_tokenizer(name, corpus; to = TimerOutput())
     end
     @info "Loading $name tokenizer in Python"
     hgf_tkr = @tryrun begin
-        @timeit to "pyload tkr" hgf_trf.AutoTokenizer.from_pretrained(name, config = pyconfig)
+        @timeit to "pyload tkr" hgf_trf.AutoTokenizer.from_pretrained(name, config = pyconfig, token = HFHUB_Token)
     end "Failed to load $name tokenizer in Python"
     @info "Python $name tokenizer loaded successfully"
     @info "Loading $name tokenizer in Julia"
     tkr = @tryrun begin
-        @timeit to "jlload tkr" HuggingFace.load_tokenizer(name; config)
+        @timeit to "jlload tkr" HuggingFace.load_tokenizer(name; config, auth_token = HFHUB_Token)
     end "Failed to load $name tokenizer in Julia"
     @info "Julia $name tokenizer loaded successfully"
     @info "Testing: $name Tokenizer"
@@ -114,7 +115,7 @@ end
     corpus = readlines(xnli)
     for name in [
         "bert-base-cased", "bert-base-uncased", "roberta-base", "gpt2", "t5-small", "google/flan-t5-xl",
-        "EleutherAI/pythia-70m", "databricks/dolly-v2-3b", "bigscience/bloom-560m", "TheBloke/Llama-2-7B-Chat-GPTQ",
+        "EleutherAI/pythia-70m", "databricks/dolly-v2-3b", "bigscience/bloom-560m", "meta-llama/Llama-2-7b-chat-hf"
     ]
         @testset "$name Tokenizer" begin
             to = TimerOutput()
