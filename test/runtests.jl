@@ -1,3 +1,7 @@
+using CondaPkg
+testproj_dir = dirname(Base.load_path()[1])
+cp(joinpath(@__DIR__, "CondaPkg.toml"), joinpath(testproj_dir, "CondaPkg.toml"))
+
 using Transformers
 using Test
 using Random
@@ -7,8 +11,8 @@ using Flux: gradient
 
 using CUDA
 
-function should_test_cuda()
-    e = get(ENV, "JL_PKG_TEST_CUDA", false)
+function envget(var)
+    e = get(ENV, var, false)
     e isa Bool && return e
     if e isa String
         x = tryparse(Bool, e)
@@ -17,6 +21,7 @@ function should_test_cuda()
         return false
     end
 end
+should_test_cuda() = envget("JL_PKG_TEST_CUDA")
 
 const USE_CUDA = @show should_test_cuda()
 
@@ -44,7 +49,9 @@ Random.seed!(0)
         @testset "$name" begin
             @info "Test $name"
             for f ∈ readdir(joinpath(@__DIR__, t))
-                endswith(f, ".jl") && include(joinpath(@__DIR__, t, f))
+                endswith(f, ".jl") || continue
+                joinpath(t, f) == "huggingface/tokenizer.jl" && !envget("JL_TRF_TEST_TKR") && continue
+                include(joinpath(@__DIR__, t, f))
             end
         end
     end

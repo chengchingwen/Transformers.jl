@@ -1,0 +1,8 @@
+[xnli_dev]
+git-tree-sha1 = "fb42e6f4a4522b30eb09d21786b90617c4792113"
+lazy = true
+
+    [[xnli_dev.download]]
+    sha256 = "9fa4c2b8ff5194eb3eb9cd63a264a2f1e2b9e24f5d71781d524cfe0f4b268c25"
+    url = "https://gist.github.com/chengchingwen/27796c1d39efdae744e5abec94ecfdb6/raw/fb42e6f4a4522b30eb09d21786b90617c4792113.tar.gz"
+

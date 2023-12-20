@@ -44,7 +44,8 @@ jobs:
             version: '1'
             arch: x64
             julia-threads: '2'
-  
+            env:
+              JL_TRF_TEST_TKR: true
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
