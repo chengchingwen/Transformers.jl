@@ -3,7 +3,6 @@ using ZipFile
 using Flux
 using Transformers.TextEncoders
 using NeuralAttentionlib: LengthMask
-import DoubleArrayTries
 
 @testset "TextEncoder" begin
     @testset "Transformer" begin
