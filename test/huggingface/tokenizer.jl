@@ -112,7 +112,10 @@ end
 
 @testset "HuggingFace Tokenizer" begin
     corpus = readlines(xnli)
-    for name in ["bert-base-cased", "gpt2", "t5-small"]
+    for name in [
+        "bert-base-cased", "bert-base-uncased", "roberta-base", "gpt2", "t5-small", "google/flan-t5-xl",
+        "EleutherAI/pythia-70m", "databricks/dolly-v2-3b", "bigscience/bloom-560m", "TheBloke/Llama-2-7B-Chat-GPTQ",
+    ]
         @testset "$name Tokenizer" begin
             to = TimerOutput()
             @timeit to "$name Tokenizer" test_tokenizer(name, corpus; to = to)
