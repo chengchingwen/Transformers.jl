@@ -4,6 +4,7 @@ authors = ["chengchingwen <adgjl5645@hotmail.com>"]
 version = "0.2.8"
 
 [deps]
+BangBang = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 BytePairEncoding = "a4280ba5-8788-555a-8ca8-4a8c3d966a71"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
@@ -38,13 +39,15 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StringViews = "354b36f9-a18e-4713-926e-db85100087ba"
 StructWalk = "31cdf514-beb7-4750-89db-dda9d2eb8d3d"
 TextEncodeBase = "f92c20c0-9f2a-4705-8116-881385faba05"
+Tricks = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
 Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 ValSplit = "0625e100-946b-11ec-09cd-6328dd093154"
 WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-BytePairEncoding = "0.4"
+BangBang = "0.3"
+BytePairEncoding = "0.5.1"
 CUDA = "3.10, 4, 5"
 ChainRulesCore = "1.15"
 DataDeps = "0.7"
@@ -63,22 +66,14 @@ LightXML = "0.9"
 NNlib = "0.8"
 NNlibCUDA = "0.2"
 NeuralAttentionlib = "0.2.12"
-Pickle = "0.3"
+Pickle = "0.3.3"
 PrimitiveOneHot = "0.1"
 Static = "0.7, 0.8"
 StringViews = "1"
 StructWalk = "0.2"
-TextEncodeBase = "0.7"
+TextEncodeBase = "0.8.1"
+Tricks = "0.1.8"
 ValSplit = "0.1"
 WordTokenizers = "0.5.6"
 Zygote = "0.6.59"
 julia = "1.6"
-
-[extras]
-ChainRulesTestUtils = "cdddcdb0-9152-4a09-a978-84456f9df70a"
-Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
-
-[targets]
-test = ["Test", "Logging", "ZipFile", "ChainRulesTestUtils"]

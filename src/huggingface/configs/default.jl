@@ -94,6 +94,8 @@ abstract type AbstractHGFConfigDefault end
     eos_token_id::Nothing = nothing
     decoder_start_token_id::Nothing = nothing
     sep_token_id::Nothing = nothing
+    clean_up_tokenization_spaces::Bool = true
+    split_special_tokens::Bool = false
     # pytorch
     torchscript::Bool = false
     tie_word_embeddings::Bool = true

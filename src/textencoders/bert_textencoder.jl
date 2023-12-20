@@ -7,7 +7,6 @@ using TextEncodeBase: BaseTokenization, WrappedTokenization, MatchTokenization, 
     ParentStages, TokenStages, SentenceStage, WordStage, Batch, Sentence, getvalue, getmeta
 using TextEncodeBase: SequenceTemplate, ConstTerm, InputTerm, RepeatedTerm
 
-
 # bert tokenizer
 
 struct BertCasedPreTokenization   <: BaseTokenization end
@@ -21,24 +20,12 @@ const BertTokenization = Union{BertCasedPreTokenization, BertUnCasedPreTokenizat
 Base.show(io::IO, ::BertCasedPreTokenization) = print(io, nameof(bert_cased_tokenizer))
 Base.show(io::IO, ::BertUnCasedPreTokenization) = print(io, nameof(bert_uncased_tokenizer))
 
-# encoder
-
-"""
-    BertTextEncoder
-
-The text encoder for Bert model (WordPiece tokenization).
-"""
-struct BertTextEncoder{T <: AbstractTokenizer, V <: AbstractVocabulary{String}, P} <: AbstractTransformerTextEncoder
-    tokenizer::T
-    vocab::V
-    process::P
-    startsym::String
-    endsym::String
-    padsym::String
-    trunc::Union{Nothing, Int}
-end
-
 # encoder constructor
+
+function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary{String}, process,
+                         startsym::String, endsym::String, padsym::String, trunc::Union{Nothing, Int})
+    return TransformerTextEncoder(tkr, vocab, process, startsym, endsym, padsym, trunc)
+end
 
 BertTextEncoder(::typeof(bert_cased_tokenizer), args...; kws...) =
     BertTextEncoder(BertCasedPreTokenization(), args...; kws...)
@@ -91,8 +78,7 @@ function BertTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary;
     end
 end
 
-BertTextEncoder(builder, e::BertTextEncoder) =
-    BertTextEncoder(e.tokenizer, e.vocab, builder(e), e.startsym, e.endsym, e.padsym, e.trunc)
+BertTextEncoder(builder, e::TrfTextEncoder) = TrfTextEncoder(builder, e)
 
 # preprocess
 
@@ -129,91 +115,3 @@ function bert_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym 
         # return input and mask
         PipeGet{(:token, :segment, :attention_mask)}()
 end
-
-# api doc
-
-"""
-    encode(::BertTextEncoder, ::String)
-
-Encode a single sentence with bert text encoder. The default pipeline returning
- `@NamedTuple{token::OneHotArray{K, 1}, segment::Vector{Int}, attention_mask::LengthMask{1, Vector{Int32}}}`.
-
-    encode(::BertTextEncoder, ::Vector{String})
-
-Encode a batch of sentences with bert text encoder. The default pipeline returning
- `@NamedTuple{token::OneHotArray{K, 2}, segment::Matrix{Int}, attention_mask::LengthMask{1, Vector{Int32}}}`.
-
-    encode(::BertTextEncoder, ::Vector{Vector{String}})
-
-Encode a batch of segments with bert text encoder. Segments would be concatenate together as batch of sentences with
- separation token and correct indicator in `segment`. The default pipeline returning
- `@NamedTuple{token::OneHotArray{K, 2}, segment::Matrix{Int}, attention_mask::LengthMask{1, Vector{Int32}}}`.
-
-    encode(::BertTextEncoder, ::Vector{Vector{Vector{String}}})
-
-Encode a batch of multi-sample segments with bert text encoder. The number of sample per data need to be the same.
- (e.g. `length(batch[1]) == length(batch[2])`). The default pipeline returning
- `@NamedTuple{token::OneHotArray{K, 3}, segment::Array{Int, 3}, attention_mask::LengthMask{2, Matrix{Int32}}}`.
- *notice*: If you want each sample to be independent to each other, this need to be reshaped before feeding to
- transformer layer or make sure the attention is not taking the `end-1` dimension as another length dimension.
-
-See also: [`decode`](@ref), `LengthMask`
-
-# Example
-```julia-repl
-julia> bertenc = HuggingFace.load_tokenizer("bert-base-cased")
-BertTextEncoder(
-├─ TextTokenizer(MatchTokenization(WordPieceTokenization(bert_cased_tokenizer, WordPiece(vocab_size = 28996, unk = [UNK], max_char = 100)), 5 patterns)),
-├─ vocab = Vocab{String, SizedArray}(size = 28996, unk = [UNK], unki = 101),
-├─ startsym = [CLS],
-├─ endsym = [SEP],
-├─ padsym = [PAD],
-├─ trunc = 512,
-└─ process = Pipelines:
-  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
-  ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
-  ╰─ target[(token, segment)] := SequenceTemplate{String}([CLS]:<type=1> Input[1]:<type=1> [SEP]:<type=1> (Input[2]:<type=2> [SEP]:<type=2>)...)(target.token)
-  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(512))(target.token)
-  ╰─ target[token] := TextEncodeBase.trunc_and_pad(512, [PAD], tail, tail)(target.token)
-  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
-  ╰─ target[segment] := TextEncodeBase.trunc_and_pad(512, 1, tail, tail)(target.segment)
-  ╰─ target[segment] := TextEncodeBase.nested2batch(target.segment)
-  ╰─ target := (target.token, target.segment, target.attention_mask)
-)
-
-julia> e = encode(bertenc, [["this is a sentence", "and another"]])
-(token = [0 0 … 0 0; 0 0 … 0 0; … ; 0 0 … 0 0; 0 0 … 0 0;;;], segment = [1; 1; … ; 2; 2;;], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[9]))
-
-julia> typeof(e)
-NamedTuple{(:token, :segment, :attention_mask), Tuple{OneHotArray{0x00007144, 2, 3, Matrix{OneHot{0x00007144}}}, Matrix{Int64}, NeuralAttentionlib.LengthMask{1, Vector{Int32}}}}
-
-```
-"""
-TextEncodeBase.encode(::BertTextEncoder, _)
-
-"""
-    decode(bertenc::BertTextEncoder, x)
-
-Convert indices back to string with bert vocabulary.
-
-See also: [`encode`](@ref)
-
-# Example
-```julia-repl
-julia> token = encode(bertenc, [["this is a sentence", "and another"]]).token;
-
-julia> decode(bertenc, token)
-9×1 Matrix{String}:
- "[CLS]"
- "this"
- "is"
- "a"
- "sentence"
- "[SEP]"
- "and"
- "another"
- "[SEP]"
-
-```
-"""
-TextEncodeBase.decode(::BertTextEncoder, _)

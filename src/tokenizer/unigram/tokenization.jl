@@ -10,11 +10,11 @@ PrecompiledNormalizer(precompiled) = PrecompiledNormalizer(DefaultTokenization()
 
 TextEncodeBase.normalizer(t::PrecompiledNormalizer) = t.precompiled
 
-struct UnigramTokenization{T <: AbstractTokenization} <: WrappedTokenization{T}
+struct UnigramTokenization{T <: AbstractTokenization, U <: AbstractUnigram} <: WrappedTokenization{T}
     base::T
-    unigram::Unigram
+    unigram::U
 end
-UnigramTokenization(unigram::Unigram) = UnigramTokenization(DefaultTokenization(), unigram)
+UnigramTokenization(unigram::AbstractUnigram) = UnigramTokenization(DefaultTokenization(), unigram)
 
 TextEncodeBase.splittability(::ParentStages, ::UnigramTokenization, ::WordStage) = Splittable()
 TextEncodeBase.splitting(::ParentStages, t::UnigramTokenization, w::WordStage) = t.unigram(getvalue(w))

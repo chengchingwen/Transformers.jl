@@ -17,6 +17,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       JULIA_NUM_THREADS: ${{ matrix.julia-threads }}
+      JL_TRF_TEST_TKR: ${{ matrix.test-hgf-tkr }}
+      HUGGINGFACEHUB_TOKEN: ${{ secrets.HUGGINGFACEHUB_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -30,7 +32,8 @@ jobs:
           - x64
         julia-threads:
           - '1'
-
+        test-hgf-tkr:
+          - 'false'
         include:
           - os: windows-latest
             version: '1'
@@ -44,7 +47,7 @@ jobs:
             version: '1'
             arch: x64
             julia-threads: '2'
-  
+            test-hgf-tkr: 'true'
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1

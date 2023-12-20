@@ -2,11 +2,17 @@ using Unicode: normalize
 
 using WordTokenizers: TokenBuffer, isdone, flush!, character, spaces, atoms
 
+function wide_iscntrl(c)
+    C = Base.Unicode.category_code(c)
+    return iscntrl(c) || C == Base.Unicode.UTF8PROC_CATEGORY_CC || C == Base.Unicode.UTF8PROC_CATEGORY_CF ||
+        C == Base.Unicode.UTF8PROC_CATEGORY_CN || C == Base.Unicode.UTF8PROC_CATEGORY_CO
+end
+
 function isinvalid(c)
   if c == '\t' || c == '\n' || c == '\r'
     return false
   end
-  c == Char(0) || c == Char(0xfffd) || iscntrl(c)
+  c == Char(0) || c == Char(0xfffd) || wide_iscntrl(c)
 end
 
 # ignore invalid characters such like U+0000, U+fffd, and Control characters

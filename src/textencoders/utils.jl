@@ -1,8 +1,24 @@
 using TextEncodeBase
-using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch
+using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, peek_sequence_sample_type
 using NeuralAttentionlib: LengthMask, RevLengthMask
 
 string_getvalue(x::TextEncodeBase.TokenStage) = String(getvalue(x))::String
+
+# strip with length
+function string_strip(f, s::AbstractString; start = typemax(Int), stop = typemax(Int))
+    start_count = 0
+    for c in Iterators.take(s, start)
+        f(c) || break
+        start_count += 1
+    end
+    stop_count = 0
+    for c in Iterators.take(Iterators.reverse(s), stop)
+        f(c) || break
+        stop_count += 1
+    end
+    return chop(s; head = start_count, tail = stop_count)
+end
+string_strip(char::Char, s::AbstractString; start = typemax(Int), stop = typemax(Int)) = string_strip(isequal(char), s; start, stop)
 
 # check word is inside the vocab or not
 check_vocab(vocab::Vocab, word) = findfirst(==(word), vocab.list) !== nothing
@@ -22,20 +38,14 @@ function getlengths(x, maxlength)
 end
 
 _getlengths(maxlength) = TextEncodeBase.FixRest(_getlengths, maxlength)
-_getlengths(x::AbstractArray, maxlength) = __getlength(maxlength, x)
-function _getlengths(x::AbstractArray{<:AbstractArray}, maxlength)
-    ET = Core.Compiler.return_type(_getlengths, Tuple{eltype(x), Int})
-    RT = Array{ET, ndims(x)}
-    y = RT(undef, size(x))
-    map!(_getlengths(maxlength), y, x)
-    return y
-end
-function _getlengths(x::AbstractArray{>:AbstractArray}, maxlength)
-    aoa, aov = TextEncodeBase.allany(Base.Fix2(isa, AbstractArray), x)
-    if aoa
-        map(_getlengths(maxlength), x)
-    elseif aov
-        __getlength(maxlength, x)
+
+function _getlengths(x::AbstractArray, maxlength)
+    stype = peek_sequence_sample_type(x)
+    if stype == TextEncodeBase.SingleSample
+        return __getlength(maxlength, x)
+    elseif stype >= TextEncodeBase.UnknownSample
+        return TextEncodeBase.@elementmap x _getlengths(x, maxlength)
+        # return map(_getlengths(maxlength), x)
     else
         error("Input array is mixing array and non-array elements")
     end

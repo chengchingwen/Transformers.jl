@@ -4,6 +4,7 @@ using FuncPipelines
 using TextEncodeBase
 using TextEncodeBase: trunc_and_pad, trunc_or_pad, nested2batch, nestedcall
 using ValSplit
+using BangBang
 
 load_tokenizer_config(model_name; kw...) = JSON3.read(read(hgf_tokenizer_config(model_name; kw...)))
 
@@ -50,7 +51,8 @@ function load_tokenizer(
 
     if FULL_TOKENIZER_FILE in possible_files || force_fast_tkr
         @assert FULL_TOKENIZER_FILE in possible_files "Forcely using fast tokenizer but cannot find $FULL_TOKENIZER_FILE in $model_name repo"
-        tokenizer, vocab, process_config = load_fast_tokenizer(T, hgf_tokenizer(model_name; kw...))
+        tokenizer, vocab, process_config, decode, textprocess =
+            load_fast_tokenizer(T, hgf_tokenizer(model_name; kw...), config)
     else
         slow_tkr_kwargs = extract_slow_tkr_kwargs(T, tkr_config, config, special_tokens)
         slow_files = slow_tkr_files(T)
@@ -58,6 +60,8 @@ function load_tokenizer(
         slow_files = map(file->hgf_file(model_name, file; kw...), slow_files)
         added_tokens_file = ADDED_TOKENS_FILE in possible_files ?
             hgf_tokenizer_added_token(model_name; kw...) : nothing
+        decode = identity
+        textprocess = TextEncodeBase.join_text
         tokenizer, vocab, process_config = load_slow_tokenizer(
             T, slow_files..., added_tokens_file, special_tokens; slow_tkr_kwargs...)
     end
@@ -66,7 +70,8 @@ function load_tokenizer(
         kwargs[k] = v
     end
 
-    return encoder_construct(T, tokenizer, vocab; kwargs...)
+    tkr = encoder_construct(T, tokenizer, vocab; kwargs...)
+    return setproperties!!(tkr, (; decode, textprocess))
 end
 
 tokenizer_type(type::Val) = type

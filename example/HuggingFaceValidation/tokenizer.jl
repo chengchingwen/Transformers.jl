@@ -1,20 +1,21 @@
+using TimerOutputs
 using TextEncodeBase: getvalue, nestedcall
 
 function test_tokenizer(name, corpus; output = nothing)
-    global torch, hgf_trf, config, vocab_size, config, pyconfig
+    global torch, hgf_trf, config, vocab_size, config, pyconfig, to
     @info "Validate $name tokenizer with corpus $corpus"
     @testset "Tokenizer" begin
         isfile(corpus) || error("corpus file $corpus do not exist.")
 
         @info "Loading tokenizer in Python"
         hgf_tkr = @tryrun begin
-            hgf_trf.AutoTokenizer.from_pretrained(name, config = pyconfig)
+            @timeit to "pyload" hgf_trf.AutoTokenizer.from_pretrained(name, config = pyconfig)
         end "Failed to load the tokenizer in Python"
         @info "Python tokenizer loaded successfully"
 
         @info "Loading tokenizer in Julia"
         tkr = @tryrun begin
-            HuggingFace.load_tokenizer(name; config)
+            @timeit to "jlload" HuggingFace.load_tokenizer(name; config)
         end "Failed to load the tokenizer in Julia"
         @info "Julia tokenizer loaded successfully"
 
@@ -28,11 +29,12 @@ function test_tokenizer(name, corpus; output = nothing)
             for line in eachline(fd)
                 # single input
                 isempty(line) && continue
-                jl_tokens = TextEncodeBase.getvalue.(TextEncodeBase.tokenize(tkr, line))
-                py_tokens = hgf_tkr.tokenize(line)
+                jl_tokens = @timeit to "jltokenize" TextEncodeBase.getvalue.(TextEncodeBase.tokenize(tkr, line))
+                py_tokens = @timeit to "pytokenize" hgf_tkr.tokenize(line)
                 @test jl_tokens == py_tokens
                 jl_indices = collect(reinterpret(Int32, encode(tkr, line).token))
-                py_indices = collect(hgf_tkr(line)["input_ids"]) .+ 1
+                _py_indices = hgf_tkr(line)["input_ids"]
+                py_indices = collect(_py_indices) .+ 1
                 jl_ind_len = length(jl_indices)
                 py_ind_len = length(py_indices)
                 if jl_ind_len > py_ind_len
@@ -43,7 +45,11 @@ function test_tokenizer(name, corpus; output = nothing)
                     @test jl_indices == py_indices
                 end
 
-                single_pass = jl_tokens == py_tokens
+                jl_decoded = @timeit to "jldecode" TextEncodeBase.decode_text(tkr, jl_indices)
+                py_decoded = @timeit to "pydecode" hgf_tkr.decode(_py_indices)
+                @test jl_decoded == py_decoded
+
+                single_pass = jl_tokens == py_tokens && jl_decoded == py_decoded
                 if !single_pass
                     println("Failed: ", repr(line))
                     isnothing(out_fd) || println(out_fd, line)
@@ -51,8 +57,9 @@ function test_tokenizer(name, corpus; output = nothing)
                 # pair input
                 if !isnothing(prev_line) && single_pass
                     pair_jl_tokens =
-                        vcat(nestedcall(getvalue, TextEncodeBase.tokenize(tkr, [[prev_line, line]]))[]...)
-                    pair_py_tokens = hgf_tkr.tokenize(prev_line, line)
+                        @timeit to "jltokenize2" vcat(
+                            nestedcall(getvalue, TextEncodeBase.tokenize(tkr, [[prev_line, line]]))[]...)
+                    pair_py_tokens = @timeit to "pytokenize2" hgf_tkr.tokenize(prev_line, line)
                     @test pair_jl_tokens == pair_py_tokens
                     pair_jl_indices = reshape(
                         collect(reinterpret(Int32, encode(tkr, [[prev_line, line]]).token)), :)
