@@ -176,9 +176,11 @@ function Base.getproperty(e::TrfTextEncoder, sym::Symbol)
     end
 end
 
-_membercall(f, e, x) = !(f isa Pipelines) && static_hasmethod(f, Tuple{typeof(e), typeof(x)}) ? f(e, x) : f(x)
+@inline _membercall(f, e, x) = !(f isa Pipelines) && static_hasmethod(f, Tuple{typeof(e), typeof(x)}) ? f(e, x) : f(x)
 
+TextEncodeBase.process(::Type{<:TrfTextEncoder}) = nestedcall(string_getvalue)
 TextEncodeBase.tokenize(e::TrfTextEncoder, x) = getfield(e, :tokenizer)(_membercall(getfield(e, :annotate), e, x))
+TextEncodeBase.process(e::TrfTextEncoder, x) = _membercall(getfield(e, :process), e, x)
 TextEncodeBase.lookup(e::TrfTextEncoder, x) = _membercall(getfield(e, :onehot), e, x)
 TextEncodeBase.decode(e::TrfTextEncoder, x) = _membercall(getfield(e, :decode), e, TextEncodeBase.decode_indices(e, x))
 TextEncodeBase.decode_text(e::TrfTextEncoder, x) = _membercall(getfield(e, :textprocess), e, TextEncodeBase.decode(e, x))
