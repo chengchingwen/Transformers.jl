@@ -1,5 +1,6 @@
 module TextEncoders
 
+using BangBang
 using Tricks
 using PrimitiveOneHot
 using FuncPipelines
@@ -47,6 +48,36 @@ function Base.show(io::IO, e::AbstractTransformerTextEncoder)
     print(IOContext(io, :pipeline_display_prefix => "  ╰─ "), ",\n└─ process = ", e.process, "\n)")
 end
 
+"""
+    struct TrfTextEncoder{
+        T <: AbstractTokenizer,
+        V <: AbstractVocabulary{String},
+        C, A, EP, OP, DP, TP
+    } <: AbstractTransformerTextEncoder
+        tokenizer::T
+        vocab::V
+        config::C
+        annotate::A
+        process::EP
+        onehot::OP
+        decode::DP
+        textprocess::TP
+    end
+
+The general text encoder. `TrfTextEncoder` has multiple fields that can modify the encode/decode process:
+
+1. `.annotate` (default to `TextEncoders.annotate_strings`): Annotate the input string for the tokenizer,
+ e.g. `String` would be treated as a single sentence, not a single word.
+2. `.process` (default to `TextEncodeBase.nestedcall(TextEncoders.string_getvalue)`): The pre-process
+ function applied to the tokenization results, e.g. adding special `end-of-sentence` token, computing attention mask...
+3. `.onehot` (default to `TextEncoders.lookup_fist`): Apply onehot encoding on the preprocess result,
+ the default behavior takes the first element from the proprocess result and applies onehot encoding.
+4. `.decode` (default to `identity`): The function that converts each token id back to string. This can
+ be used to handle some tokenizers that use a different set of vocabulary such as gpt2's byte-level vocabulary.
+5. `.textprocess` (default to `TextEncodeBase.join_text`): the function that joins the `decode`-d result
+ in complete sentence(s).
+
+"""
 struct TrfTextEncoder{
     T <: AbstractTokenizer,
     V <: AbstractVocabulary{String},
@@ -62,14 +93,80 @@ struct TrfTextEncoder{
     textprocess::TP
 end
 
-TrfTextEncoder(builder, e::TrfTextEncoder) = TrfTextEncoder(
-    getfield(e, :tokenizer), getfield(e, :vocab), getfield(e, :config),
-    getfield(e, :annotate),
-    builder(e),
-    getfield(e, :onehot),
-    getfield(e, :decode),
-    getfield(e, :textprocess)
-)
+"""
+    TrfTextEncoder(
+        tokenizer     :: AbstractTokenizer ,
+        vocab         :: AbstractVocabulary{String} ,
+        [ annotate    =  TextEncoders.annotate_string ,
+        [ process     =  TextEncodeBase.nestedcall(TextEncoders.string_getvalue) ,
+        [ onehot      =  TextEncoders.lookup_first ,
+        [ decode      =  identity ,
+        [ textprocess =  TextEncodeBase.join_text, ]]]]]
+        ; config...)
+
+Constructor of `TrfTextEncoder`. All keyword arguments are store in the `.config` field.
+"""
+TrfTextEncoder(tokenizer::AbstractTokenizer, vocab::AbstractVocabulary{String}; kws...) =
+    TrfTextEncoder(tokenizer, vocab, annotate_strings; kws...)
+TrfTextEncoder(tokenizer::AbstractTokenizer, vocab::AbstractVocabulary{String}, annotate; kws...) =
+    TrfTextEncoder(tokenizer, vocab, annotate, nestedcall(string_getvalue); kws...)
+TrfTextEncoder(tokenizer::AbstractTokenizer, vocab::AbstractVocabulary{String}, annotate, process; kws...) =
+    TrfTextEncoder(tokenizer, vocab, annotate, process, lookup_first; kws...)
+TrfTextEncoder(tokenizer::AbstractTokenizer, vocab::AbstractVocabulary{String}, annotate, process, onehot; kws...) =
+    TrfTextEncoder(tokenizer, vocab, annotate, process, onehot, identity; kws...)
+TrfTextEncoder(tokenizer::AbstractTokenizer, vocab::AbstractVocabulary{String}, annotate, process, onehot, decode;
+               kws...) = TrfTextEncoder(tokenizer, vocab, annotate, process, onehot, decode, join_text; kws...)
+function TrfTextEncoder(tokenizer::AbstractTokenizer, vocab::AbstractVocabulary{String},
+                        annotate, process, onehot, decode, textprocess; kws...)
+    return TrfTextEncoder(tokenizer, vocab, values(kws), annotate, process, onehot, decode, textprocess)
+end
+
+for name in fieldnames(TrfTextEncoder)
+    (name == :tokenizer || name == :vocab) && continue
+    @eval $(quote
+        """
+            set_$($(QuoteNode(name)))(builder, e::TrfTextEncoder)
+
+        Return a new text encoder with the `$($(QuoteNode(name)))` field replaced with `builder(e)`.
+        """
+        function $(Symbol(:set_, name))(builder, e::TrfTextEncoder)
+            setproperty!!(e, $(QuoteNode(name)), builder(e))
+        end
+    end)
+end
+
+"""
+    set_tokenizer(builder, e::TrfTextEncoder)
+
+Return a new text encoder with the `tokenizer` field replaced with `builder(e)`. `builder` can either return
+ a `AbstractTokenizer` or a `AbstractTokenization`.
+"""
+function set_tokenizer(builder, e::TrfTextEncoder)
+    new_tkr = builder(e)
+    if !(new_tkr isa AbstractTokenizer)
+        new_tkr = TextTokenizer(new_tkr)
+    end
+    return setproperty!!(e, :tokenizer, new_tkr)
+end
+
+"""
+    set_vocab(builder, e::TrfTextEncoder)
+
+Return a new text encoder with the `vocab` field replaced with `builder(e)`. `builder` can either return
+ a `AbstractVocabulary{String}` or a `AbstractVector{String}`.
+"""
+function set_vocab(builder, e::TrfTextEncoder)
+    new_vocab = builder(e)
+    if !(new_vocab isa AbstractVocabulary)
+        new_vocab = Vocab(new_vocab, e.vocab.unk)
+    end
+    return TrfTextEncoder(
+        getfield(e, :tokenizer), new_vocab, getfield(e, :config),
+        getfield(e, :annotate), getfield(e, :process), getfield(e, :onehot),
+        getfield(e, :decode), getfield(e, :textprocess))
+end
+
+TrfTextEncoder(builder, e::TrfTextEncoder) = set_process(builder, e)
 
 function Base.getproperty(e::TrfTextEncoder, sym::Symbol)
     if hasfield(TrfTextEncoder, sym)
