@@ -5,7 +5,7 @@ using Tricks
 using PrimitiveOneHot
 using FuncPipelines
 using TextEncodeBase
-using TextEncodeBase: WordTokenization, nested2batch, nestedcall, with_head_tail, tokenize, decode_text
+using TextEncodeBase: WordTokenization, nested2batch, nestedcall, with_head_tail, tokenize, join_text
 using ..WordPieceModel
 using BytePairEncoding
 using ..UnigramLanguageModel
@@ -13,7 +13,7 @@ using ..UnigramLanguageModel
 using NeuralAttentionlib: AttenMask, LengthMask, RevLengthMask, GenericSequenceMask
 
 export lookup, encode, decode, decode_text, Vocab, OneHot, OneHotArray,
-    TransformerTextEncoder, BertTextEncoder, GPT2TextEncoder, T5TextEncoder
+    TrfTextEncoder, TransformerTextEncoder, BertTextEncoder, GPT2TextEncoder, T5TextEncoder
 
 
 include("bert_tokenizer.jl")
@@ -224,7 +224,7 @@ function TransformerTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabular
         process,
         lookup_first,
         identity,
-        TextEncodeBase.join_text,
+        join_text,
     )
 end
 
