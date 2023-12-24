@@ -1,4 +1,4 @@
-@defaultdef :bert struct HGFBertConfigDefault
+@hgfcfg :bert struct HGFBertConfig
     vocab_size::Int = 30522
     hidden_size::Int = 768
     num_hidden_layers::Int = 12
@@ -15,5 +15,3 @@
     position_embedding_type::String = "absolute"
     classifier_dropout::Float64 = 0.0
 end
-
-const HGFBertConfig = HGFConfig{:bert}

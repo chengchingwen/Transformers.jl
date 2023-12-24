@@ -1,4 +1,4 @@
-@defaultdef :roberta struct HGFRobertaConfigDefault
+@hgfcfg :roberta struct HGFRobertaConfig
     vocab_size::Int = 30522
     hidden_size::Int = 768
     num_hidden_layers::Int = 12
@@ -17,5 +17,3 @@
     position_embedding_type::String = "absolute"
     classifier_dropout::Nothing = nothing
 end
-
-const HGFRobertaConfig = HGFConfig{:roberta}

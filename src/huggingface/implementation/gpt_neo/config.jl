@@ -1,10 +1,10 @@
-@defaultdef :gpt_neo struct HGFGPTNeoConfigDefault
+@hgfcfg :gpt_neo struct HGFGPTNeoConfig
     vocab_size::Int = 50257
     max_position_embeddings::Int = 2048
     hidden_size::Int = 2048
-    num_layers::Int = 24
+    [num_layers, num_hidden_layers]::Int = 24
     attention_types::Tuple{Tuple{NTuple{2, String}, Int}} =((("global", "local"), 12),)
-    num_heads::Int = 16
+    [num_heads, num_attention_heads]::Int = 16
     intermediate_size::Nothing = nothing
     window_size::Int = 256
     activation_function::String = "gelu_new"
@@ -22,8 +22,6 @@
     bos_token_id::Int = 50256
     eos_token_id::Int = 50256
 end
-
-const HGFGPTNeoConfig = HGFConfig{:gpt_neo}
 
 function HGFConfig{:gpt_neo}(cfg, overwrite)
     if !haskey(cfg, :attention_layers)

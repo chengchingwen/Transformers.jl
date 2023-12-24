@@ -1,9 +1,9 @@
-@defaultdef var"openai-gpt" struct HGFOpenAIGPTConfigDefault
+@hgfcfg var"openai-gpt" struct HGFOpenAIGPTConfig
     vocab_size::Int = 40478
-    n_positions::Int = 512
-    n_embd::Int = 768
-    n_layer::Int = 12
-    n_head::Int = 12
+    [n_positions, max_position_embeddings]::Int = 512
+    [n_embd, hidden_size]::Int = 768
+    [n_layer, num_hidden_layers]::Int = 12
+    [n_head, num_attention_heads]::Int = 12
     afn::String = "gelu"
     resid_pdrop::Float64 = 0.1
     embd_pdrop::Float64 = 0.1
@@ -17,5 +17,3 @@
     summary_proj_to_labels::Bool = true
     summary_first_dropout::Float64 = 0.1
 end
-
-const HGFOpenAIGPTConfig = HGFConfig{Symbol("openai-gpt")}
