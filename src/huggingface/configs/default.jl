@@ -9,7 +9,7 @@ function hgfcfgm(model_type, ex)
     mut && error("syntax: mutable is not allowed")
     (type isa Symbol && Meta.isexpr(fields, :block)) || error("syntax: invalid struct definition")
     expr = quote
-        @eval $(@__MODULE__) const $type = HGFConfig{$model_type}
+        const $type = HGFConfig{$model_type}
     end
     values = Expr(:tuple)
     cur_loc = nothing
