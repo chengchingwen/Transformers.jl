@@ -3,14 +3,14 @@
     max_position_embeddings::Int = 1024
     encoder_layers::Int = 12
     encoder_ffn_dim::Int = 4096
-    [encoder_attention_heads,num_attention_heads]::Int = 16
+    [encoder_attention_heads, num_attention_heads]::Int = 16
     decoder_layers::Int = 12
     decoder_ffn_dim::Int = 4096
     decoder_attention_heads::Int = 16
     encoder_layerdrop::Float64 = 0.0
     decoder_layerdrop::Float64 = 0.0
     activation_function::String = "gelu"
-    [d_model,hidden_size]::Int = 1024
+    [d_model, hidden_size]::Int = 1024
     dropout::Float64 = 0.1
     attention_dropout::Float64 = 0.0
     activation_dropout::Float64 = 0.0
