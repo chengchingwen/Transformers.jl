@@ -19,7 +19,10 @@ makedocs(;
         "Tutorial" => "tutorial.md",
         "Layers" => "layers.md",
         "TextEncoders" => "textencoders.md",
-        "HuggingFace" => "huggingface.md",
+        "HuggingFace" => [
+            "User Interface" => "huggingface.md",
+            "Add New Models" => "huggingface_dev.md",
+        ],
         "ChangeLogs" => "changelog.md",
     ],
 )

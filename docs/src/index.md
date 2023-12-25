@@ -22,6 +22,7 @@ Pages = [
   "layers.md",
   "textencoders.md",
   "huggingface.md",
+  "huggingface_dev.md",
 ]
 Depth = 3
 ```
