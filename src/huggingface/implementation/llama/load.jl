@@ -18,34 +18,13 @@ end
 
 (m::LLamaGated)(x) = m.gate(x) .* m.dense(x)
 
-abstract type HGFLlamaPreTrainedModel <: HGFPreTrainedModel end
-
-struct HGFLlamaModel{E, DEC} <: HGFLlamaPreTrainedModel
-    embed::E
-    decoder::DEC
-end
-@functor HGFLlamaModel
-
-(model::HGFLlamaModel)(nt::NamedTuple) = model.decoder(model.embed(nt))
-
-for T in :[
-    HGFLlamaForCausalLM,
-    # HGFLlamaForSequenceClassification,
-].args
-    @eval begin
-        @hgfdefmodel $T HGFLlamaPreTrainedModel
-    end
-end
-
-basemodelkey(::Type{<:HGFLlamaPreTrainedModel}) = :model
-isbasemodel(::Type{<:HGFLlamaModel}) = true
-isbasemodel(::Type{<:HGFLlamaPreTrainedModel}) = false
-
-get_model_type(::Val{:llama}) = (
-    model = HGFLlamaModel,
-    forcausallm = HGFLlamaForCausalLM,
-    # forsequenceclassification = HGFLlamaForSequenceClassification,
+@hgfdef Llama (
+    Model => (embed, decoder),
+    ForCausalLM,
+    # ForSequenceClassification,
 )
+
+basemodelkey(::Type{<:HGFPreTrained{:llama}}) = :model
 
 function load_model(_type::Type{HGFLlamaModel}, cfg, state_dict, prefix)
     embed = load_model(_type, CompositeEmbedding, cfg, state_dict, prefix)

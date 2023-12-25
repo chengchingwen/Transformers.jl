@@ -1,10 +1,14 @@
+import InteractiveUtils
 using LinearAlgebra
 using ValSplit
+using StructWalk
 using Functors
 using DataStructures: OrderedDict
 using Pickle
 
 using ..Layers: @fluxshow, @fluxlayershow
+
+include("./load.jl")
 
 """
   `get_model_type(model_type)`
@@ -26,7 +30,14 @@ get_model_type
 _symbol(v::Val) = v
 _symbol(v) = Symbol(v)
 
-@valsplit get_model_type(Val(model_type::Symbol)) = error("Unknown model type: $model_type")
+function _get_model_type(model_type::Symbol)
+    types = Tuple(InteractiveUtils.subtypes(HGFPreTrained{model_type}))
+    isempty(types) &&
+        error("Unknown model type: $model_type")
+    return NamedTuple{getmodeltask.(types)}(types)
+end
+
+@valsplit get_model_type(Val(model_type::Symbol)) = _get_model_type(model_type)
 function get_model_type(model_type, task::Union{Symbol, String})
     task = Symbol(lowercase(String(task)))
     tasks = get_model_type(_symbol(model_type))
@@ -36,8 +47,6 @@ function get_model_type(model_type, task::Union{Symbol, String})
         error("Model $model_type doesn't support this kind of task: $task")
     end
 end
-
-include("./load.jl")
 
 load_model(model_name; kws...) = load_model(model_name, :model; kws...)
 function load_model(model_name, task; config = nothing, kws...)
@@ -107,17 +116,12 @@ function save_model(model_name, model; path = pwd(), weight_name = PYTORCH_WEIGH
     return model_file
 end
 
-is_seq2seq(_) = false
-
-macro hgfdefmodel(T, PT)
-    return quote
-        struct $T{M, C} <: $PT
-            model::M
-            cls::C
-        end
-        @functor $T
-        (model::$T)(nt::NamedTuple) = model.cls(model.model(nt))
+function is_seq2seq(model)
+    has_seq2seq = Ref(false)
+    StructWalk.scan(Layers.LayerStyle, model) do x
+        x isa Layers.Seq2Seq && (has_seq2seq[] = true)
     end
+    return has_seq2seq[]
 end
 
 # api doc

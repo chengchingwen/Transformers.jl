@@ -8,32 +8,12 @@ using NeuralAttentionlib
 using NeuralAttentionlib
 using NeuralAttentionlib: WithScore
 
-abstract type HGFGPTNeoPreTrainedModel <: HGFPreTrainedModel end
-
-struct HGFGPTNeoModel{E, DEC} <: HGFGPTNeoPreTrainedModel
-    embed::E
-    decoder::DEC
-end
-@functor HGFGPTNeoModel
-
-(model::HGFGPTNeoModel)(nt::NamedTuple) = model.decoder(model.embed(nt))
-
-for T in :[
-    HGFGPTNeoForCausalLM
-].args
-    @eval begin
-        @hgfdefmodel $T HGFGPTNeoPreTrainedModel
-    end
-end
-
-basemodelkey(::Type{<:HGFGPTNeoPreTrainedModel}) = :transformer
-isbasemodel(::Type{<:HGFGPTNeoModel}) = true
-isbasemodel(::Type{<:HGFGPTNeoPreTrainedModel}) = false
-
-get_model_type(::Val{:gpt_neo}) = (
-    model = HGFGPTNeoModel,
-    forcausallm = HGFGPTNeoForCausalLM,
+@hgfdef :gpt_neo GPTNeo (
+    Model => (embed, decoder),
+    ForCausalLM,
 )
+
+basemodelkey(::Type{<:HGFPreTrained{:gpt_neo}}) = :transformer
 
 function load_model(_type::Type{HGFGPTNeoModel}, cfg, state_dict, prefix)
     embed = load_model(_type, CompositeEmbedding, cfg, state_dict, prefix)

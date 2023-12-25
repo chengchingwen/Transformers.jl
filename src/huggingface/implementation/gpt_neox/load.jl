@@ -63,38 +63,15 @@ function Base.show(io::IO, layer::GPTNeoXSplit)
 end
 @fluxlayershow GPTNeoXSplit false
 
-abstract type HGFGPTNeoXPreTrainedModel <: HGFPreTrainedModel end
-
-struct HGFGPTNeoXModel{E, DEC} <: HGFGPTNeoXPreTrainedModel
-    embed::E
-    decoder::DEC
-end
-@functor HGFGPTNeoXModel
-
-(model::HGFGPTNeoXModel)(nt::NamedTuple) = model.decoder(model.embed(nt))
-
-for T in :[
-    HGFGPTNeoXForCausalLM,
-    # HGFGPTNeoXForSequenceClassification,
-    # HGFGPTNeoXForTokenClassification,
-    # HGFGPTNeoXForQuestionAnswering
-].args
-    @eval begin
-        @hgfdefmodel $T HGFGPTNeoXPreTrainedModel
-    end
-end
-
-basemodelkey(::Type{<:HGFGPTNeoXPreTrainedModel}) = :gpt_neox
-isbasemodel(::Type{<:HGFGPTNeoXModel}) = true
-isbasemodel(::Type{<:HGFGPTNeoXPreTrainedModel}) = false
-
-get_model_type(::Val{:gpt_neox}) = (
-    model = HGFGPTNeoXModel,
-    forcausallm = HGFGPTNeoXForCausalLM,
-    # forsequenceclassification = HGFGPTNeoXForSequenceClassification,
-    # fortokenclassification = HGFGPTNeoXForSequenceClassification,
-    # forquestionanswering = HGFGPTNeoXForQuestionAnswering,
+@hgfdef :gpt_neox GPTNeoX (
+    Model => (embed, decoder),
+    ForCausalLM,
+    # ForSequenceClassification,
+    # ForTokenClassification,
+    # ForQuestionAnswering,
 )
+
+basemodelkey(::Type{<:HGFPreTrained{:gpt_neox}}) = :gpt_neox
 
 function load_model(_type::Type{HGFGPTNeoXModel}, cfg, state_dict, prefix)
     embed = load_model(_type, CompositeEmbedding, cfg, state_dict, prefix)

@@ -12,56 +12,24 @@ end
 
 (g::T5Gated)(x) = g.gate(x) .* g.linear(x)
 
-abstract type HGFT5PreTrainedModel <: HGFPreTrainedModel end
-
-struct HGFT5Model{E, S} <: HGFT5PreTrainedModel
-    embed::E
-    seq2seq::S
-end
-@functor HGFT5Model
-
-function (model::HGFT5Model)(nt::NamedTuple)
-    embs = model.embed(nt)
-    outputs = model.seq2seq(embs)
-    encoder_output = Base.structdiff(outputs.encoder_output, NamedTuple{(:position_bias,)})
-    decoder_output = Base.structdiff(outputs.decoder_output, NamedTuple{(:position_bias,)})
-    return merge(outputs, (; encoder_output, decoder_output))
-end
-
-struct HGFT5ForConditionalGeneration{M, H} <: HGFT5PreTrainedModel
-    model::M
-    lm_head::H
-end
-@functor HGFT5ForConditionalGeneration
-
-function (model::HGFT5ForConditionalGeneration)(nt::NamedTuple)
-    outputs = model.model(nt)
-    outputs = model.lm_head(outputs)
-    return outputs
-end
-
-struct HGFT5EncoderModel{E, ENC} <: HGFT5PreTrainedModel
-    embed::E
-    encoder::ENC
-end
-@functor HGFT5EncoderModel
-
-function (model::HGFT5EncoderModel)(nt::NamedTuple)
-    outputs = model.encoder(model.embed(nt))
-    return Base.structdiff(outputs, NamedTuple{(:position_bias,)})
-end
-
-get_model_type(::Val{:t5}) = (
-    model = HGFT5Model,
-    forconditionalgeneration = HGFT5ForConditionalGeneration,
-    encodermodel = HGFT5EncoderModel,
-    withlmheadmodel = HGFT5ForConditionalGeneration,
+@hgfdef T5 (
+    Model => begin
+      embs = model.embed(nt)
+      outputs = model.seq2seq(embs)
+      encoder_output = Base.structdiff(outputs.encoder_output, NamedTuple{(:position_bias,)})
+      decoder_output = Base.structdiff(outputs.decoder_output, NamedTuple{(:position_bias,)})
+      return merge(outputs, (; encoder_output, decoder_output))
+    end,
+    ForConditionalGeneration => (model, lm_head),
+    EncoderModel => begin
+      outputs = model.encoder(model.embed(nt))
+      return Base.structdiff(outputs, NamedTuple{(:position_bias,)})
+    end,
 )
 
-is_seq2seq(::HGFT5Model) = true
-is_seq2seq(::HGFT5ForConditionalGeneration) = true
+get_model_type(::Val{:t5}) = merge(_get_model_type(:t5), (withlmheadmodel = HGFT5ForConditionalGeneration,))
 
-basemodelkey(::Type{<:HGFT5PreTrainedModel}) = :transformer
+basemodelkey(::Type{<:HGFPreTrained{:t5}}) = :transformer
 isbasemodel(::Type{<:HGFT5Model}) = true
 isbasemodel(::Type{<:HGFT5ForConditionalGeneration}) = true
 isbasemodel(::Type{<:HGFT5EncoderModel}) = true

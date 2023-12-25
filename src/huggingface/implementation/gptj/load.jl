@@ -24,32 +24,12 @@ end
 
 @fluxshow ParallelPreNormTransformerBlock
 
-abstract type HGFGPTJPreTrainedModel <: HGFPreTrainedModel end
-
-struct HGFGPTJModel{E, DEC} <: HGFGPTJPreTrainedModel
-    embed::E
-    decoder::DEC
-end
-@functor HGFGPTJModel
-
-(model::HGFGPTJModel)(nt::NamedTuple) = model.decoder(model.embed(nt))
-
-for T in :[
-    HGFGPTJForCausalLM
-].args
-    @eval begin
-        @hgfdefmodel $T HGFGPTJPreTrainedModel
-    end
-end
-
-basemodelkey(::Type{<:HGFGPTJPreTrainedModel}) = :transformer
-isbasemodel(::Type{<:HGFGPTJModel}) = true
-isbasemodel(::Type{<:HGFGPTJPreTrainedModel}) = false
-
-get_model_type(::Val{:gptj}) = (
-    model = HGFGPTJModel,
-    forcausallm = HGFGPTJForCausalLM,
+@hgfdef GPTJ (
+    Model => (embed, decoder),
+    ForCausalLM,
 )
+
+basemodelkey(::Type{<:HGFPreTrained{:gptj}}) = :transformer
 
 function load_model(_type::Type{HGFGPTJModel}, cfg, state_dict, prefix)
     embed = load_model(_type, CompositeEmbedding, cfg, state_dict, prefix)

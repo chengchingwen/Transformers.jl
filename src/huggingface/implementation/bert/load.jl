@@ -39,44 +39,26 @@ function (m::BertQA)(x)
 end
 (m::BertQA)(nt::NamedTuple) = merge(nt, m(nt.hidden_state))
 
-abstract type HGFBertPreTrainedModel <: HGFPreTrainedModel end
-
-struct HGFBertModel{E, ENC, P} <: HGFBertPreTrainedModel
-    embed::E
-    encoder::ENC
-    pooler::P
-end
-@functor HGFBertModel
-
-(model::HGFBertModel)(nt::NamedTuple) = model.pooler(model.encoder(model.embed(nt)))
-(model::HGFBertModel{E, ENC, Nothing})(nt::NamedTuple) where {E, ENC} = model.encoder(model.embed(nt))
-
-# TODO: HGFBertForMultipleChoice
-
-for T in :[
-    HGFBertForPreTraining, HGFBertLMHeadModel, HGFBertForMaskedLM, HGFBertForNextSentencePrediction,
-    HGFBertForSequenceClassification, HGFBertForTokenClassification, HGFBertForQuestionAnswering
-].args
-    @eval begin
-        @hgfdefmodel $T HGFBertPreTrainedModel
-    end
-end
-
-get_model_type(::Val{:bert}) = (
-    model = HGFBertModel,
-    forpretraining = HGFBertForPreTraining,
-    lmheadmodel = HGFBertLMHeadModel,
-    formaskedlm = HGFBertForMaskedLM,
-    fornextsentenceprediction = HGFBertForNextSentencePrediction,
-    forsequenceclassification = HGFBertForSequenceClassification,
-    # :formultiplechoice => HGFBertForMultipleChoice,
-    fortokenclassification = HGFBertForTokenClassification,
-    forquestionanswering = HGFBertForQuestionAnswering,
+@hgfdef Bert (
+    Model => begin
+      outputs = model.encoder(model.embed(nt))
+      if isnothing(model.pooler)
+        return outputs
+      else
+        return model.pooler(outputs)
+      end
+    end,
+    ForPreTraining,
+    LMHeadModel,
+    ForMaskedLM,
+    ForNextSentencePrediction,
+    ForSequenceClassification,
+    ForTokenClassification,
+    ForQuestionAnswering,
+    # ForMultipleChoice,
 )
 
-basemodelkey(::Type{<:HGFBertPreTrainedModel}) = :bert
-isbasemodel(::Type{<:HGFBertModel}) = true
-isbasemodel(::Type{<:HGFBertPreTrainedModel}) = false
+basemodelkey(::Type{<:HGFPreTrained{:bert}}) = :bert
 
 bert_ones_like(x::AbstractArray) = Ones{Int}(Base.tail(size(x)))
 ChainRulesCore.@non_differentiable bert_ones_like(x)
