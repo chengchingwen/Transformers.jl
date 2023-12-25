@@ -43,7 +43,7 @@ function HGFConfig(cfg::HGFConfig{name}; kws...) where name
                     error("Aliases of the same config entry is set at the same time: $(aliasgroup(namemap, k))")
             end
         end
-        overwrite = merge!(Dict(overwrite), kws)
+        overwrite = merge!(Dict(pairs(overwrite)), kws)
     end
     pretrain = getfield(cfg, :pretrain)
     return HGFConfig{name, typeof(pretrain)}(pretrain, overwrite)
