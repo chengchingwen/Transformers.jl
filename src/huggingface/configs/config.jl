@@ -4,59 +4,96 @@ using HuggingFaceApi
 
 include("default.jl")
 
-function _attr_map!(cfg, overwrite, ori_attr, alt_attr, default)
-    if !haskey(cfg, alt_attr)
-        val = get(cfg, ori_attr, default)
-        overwrite[alt_attr] = val
-    else
-        val = get(cfg, alt_attr, default)
-        overwrite[ori_attr] = val
-    end
-end
-
 abstract type AbstractHGFConfig <: AbstractDict{Symbol, Any} end
 
-struct HGFConfig{name, C, E <: Union{Nothing, Dict{Symbol, Any}}} <: AbstractHGFConfig
+struct HGFConfig{name, C, E <: Union{Nothing, NamedTuple}} <: AbstractHGFConfig
     pretrain::C
     overwrite::E
-    function HGFConfig{name, C, E}(pretrain::C, overwrite::E) where {name, C, E <: Union{Nothing, Dict{Symbol, Any}}}
-        !isnothing(overwrite) && isempty(overwrite) && (overwrite = nothing)
+    function HGFConfig{name, C}(pretrain::C, overwrite::Union{Nothing, NamedTuple}) where {name, C}
+        return new{name, C, typeof(overwrite)}(pretrain, overwrite)
+    end
+    function HGFConfig{name, C}(pretrain::C, overwrite::AbstractDict{Symbol}) where {name, C}
+        isempty(overwrite) && return HGFConfig{name, C}(pretrain, nothing)
+        namemap = getnamemap(HGFConfig{name})
+        if !isempty(aliases(namemap))
+            rewrite = Dict{Symbol, Any}()
+            for (k, val) in overwrite
+                key = haskey(namemap, k) ? aliasof(namemap, k) : k
+                haskey(rewrite, key) &&
+                    error("Aliases of the same config entry is set at the same time: $(aliasgroup(namemap, key))")
+                rewrite[key] = val
+            end
+            overwrite = rewrite
+        end
+        overwrite = NamedTuple(overwrite)
         return new{name, C, typeof(overwrite)}(pretrain, overwrite)
     end
 end
-HGFConfig(name::Symbol, pretrain, overwrite) = HGFConfig{name, typeof(pretrain), typeof(overwrite)}(pretrain, overwrite)
-HGFConfig{name}(pretrain, overwrite = nothing) where name = HGFConfig{name, typeof(pretrain), typeof(overwrite)}(pretrain, overwrite)
+@inline HGFConfig(name::Symbol, pretrain, overwrite) = HGFConfig{name, typeof(pretrain)}(pretrain, overwrite)
+HGFConfig{name}(pretrain, overwrite = nothing) where name = HGFConfig(name, pretrain, overwrite)
 function HGFConfig(cfg::HGFConfig{name}; kws...) where name
-    overwrite = deepcopy(getfield(cfg, :overwrite))
-    isnothing(overwrite) && (overwrite = Dict{Symbol, Any}())
-    for k in keys(kws)
-        overwrite[k] = kws[k]
+    overwrite = getfield(cfg, :overwrite)
+    if isnothing(overwrite)
+        overwrite = Dict(kws)
+    else
+        namemap = getnamemap(HGFConfig{name})
+        for k in keys(kws)
+            if haskey(namemap, k)
+                count(Base.Fix1(haskey, kws), aliasgroup(namemap, k)) > 1 &&
+                    error("Aliases of the same config entry is set at the same time: $(aliasgroup(namemap, k))")
+            end
+        end
+        overwrite = merge!(Dict(pairs(overwrite)), kws)
     end
-    return HGFConfig{name}(getfield(cfg, :pretrain), overwrite)
+    pretrain = getfield(cfg, :pretrain)
+    return HGFConfig{name, typeof(pretrain)}(pretrain, overwrite)
+end
+
+getconfigname(::HGFConfig{name}) where name = name
+
+getdefault(cfg::HGFConfig) = getdefault(typeof(cfg))
+getdefault(::Type{<:HGFConfig}) = DEFAULT_PRETRAIN_CONFIG
+
+getnamemap(cfg::HGFConfig) = getnamemap(typeof(cfg))
+getnamemap(::Type{<:HGFConfig}) = getfield(DEFAULT_PRETRAIN_CONFIG, :namemap)
+
+function Base.propertynames(cfg::HGFConfig)
+    global DEFAULT_PRETRAIN_CONFIG
+    namemap = getnamemap(cfg)
+    overwrite = getfield(cfg, :overwrite)
+    return union(
+        isnothing(overwrite) ? () : keys(overwrite),
+        keys(getfield(cfg, :pretrain)),
+        keys(namemap),
+        keys(DEFAULT_PRETRAIN_CONFIG))
+end
+
+function Base.hasproperty(cfg::HGFConfig, sym::Symbol)
+    global DEFAULT_PRETRAIN_CONFIG
+    namemap = getnamemap(cfg)
+    haskey(namemap, sym) && return true
+    overwrite = getfield(cfg, :overwrite)
+    overwritten = isnothing(overwrite) ? false : haskey(overwrite, sym)
+    return overwritten || haskey(getfield(cfg, :pretrain), sym) || haskey(DEFAULT_PRETRAIN_CONFIG, sym)
 end
 
 function Base.getproperty(cfg::HGFConfig, sym::Symbol)
-    pretrain = getfield(cfg, :pretrain)
+    global DEFAULT_PRETRAIN_CONFIG
+    namemap = getnamemap(cfg)
+    haskey(namemap, sym) && (sym = aliasof(namemap, sym)::Symbol)
     overwrite = getfield(cfg, :overwrite)
     !isnothing(overwrite) && haskey(overwrite, sym) && return overwrite[sym]
+    pretrain = getfield(cfg, :pretrain)
     haskey(pretrain, sym) && return pretrain[sym]
-    return getproperty(getdefault(cfg), sym)
+    default = getdefault(cfg)
+    haskey(default, sym) && return default[sym]
+    haskey(DEFAULT_PRETRAIN_CONFIG, sym) && return DEFAULT_PRETRAIN_CONFIG[sym]
+    error("type HGFConfig{$(getconfigname(cfg))} has no field $sym")
 end
-
-getdefault(cfg::HGFConfig) = DEFAULT_PRETRAIN_CONFIG
 
 Base.getindex(cfg::HGFConfig, sym::String) = cfg[Symbol(sym)]
 Base.getindex(cfg::HGFConfig, sym::Symbol) = getproperty(cfg, sym)
 Base.length(cfg::HGFConfig) = length(keys(cfg))
-
-function Base.haskey(cfg::HGFConfig, k::Symbol)
-    overwrite = getfield(cfg, :overwrite)
-    if isnothing(overwrite)
-        return haskey(getfield(cfg, :pretrain), k)
-    else
-        return haskey(overwrite, k) || haskey(getfield(cfg, :pretrain), k)
-    end
-end
 
 function Base.keys(cfg::HGFConfig)
     overwrite = getfield(cfg, :overwrite)
@@ -64,12 +101,23 @@ function Base.keys(cfg::HGFConfig)
     return isnothing(overwrite) ? Tuple(keys(pretrain)) : Tuple(union(keys(pretrain), keys(overwrite)))
 end
 
-function Base.get(cfg::HGFConfig, k::Symbol, v)
+Base.haskey(cfg::HGFConfig, k::String) = haskey(cfg, Symbol(k))
+function Base.haskey(cfg::HGFConfig, k::Symbol)
+    namemap = getnamemap(cfg)
+    haskey(namemap, k) && (k = aliasof(namemap, k)::Symbol)
     overwrite = getfield(cfg, :overwrite)
-    pretrain = getfield(cfg, :pretrain)
+    overwritten = isnothing(overwrite) ? false : haskey(overwrite, k)
+    return overwritten || haskey(getfield(cfg, :pretrain), k)
+end
+
+Base.get(cfg::HGFConfig, k::String, v) = get(cfg, Symbol(k), v)
+function Base.get(cfg::HGFConfig, k::Symbol, v)
+    namemap = getnamemap(cfg)
+    haskey(namemap, k) && (k = aliasof(namemap, k)::Symbol)
+    overwrite = getfield(cfg, :overwrite)
     !isnothing(overwrite) && haskey(overwrite, k) && return overwrite[k]
-    haskey(pretrain, k) && return pretrain[k]
-    return v
+    pretrain = getfield(cfg, :pretrain)
+    return haskey(pretrain, k) ? pretrain[k] : v
 end
 
 function Base.iterate(cfg::HGFConfig, state = keys(cfg))
@@ -79,16 +127,12 @@ function Base.iterate(cfg::HGFConfig, state = keys(cfg))
     return k=>v, Base.tail(state)
 end
 
-Base.propertynames(cfg::HGFConfig) = keys(cfg)
-
-getconfigname(::HGFConfig{name}) where name = name
-
 include("auto.jl")
 
 # api doc
 
 """
-    HGFConfig{model_type}
+    HGFConfig{model_type} <: AbstractDict{Symbol, Any}
 
 The type for holding the configuration for huggingface model `model_type`.
 
@@ -108,6 +152,38 @@ julia> mycfg = HuggingFace.HGFConfig(bertcfg; num_labels = 3);
 
 julia> mycfg.num_labels
 3
+
+```
+
+# Extended help
+
+Each `HGFConfig` has a pre-defined set of type-dependent default field values and some field name aliases. For example,
+ `(cfg::HGFConfig{:gpt2}).hidden_size` is an alias of `(cfg::HGFConfig{:gpt2}).n_embd`. Using `propertynames`,
+ `hasproperty`, `getproperty`, `getindex` will access the default field values if the key is not present in the loaded
+ configuration. On the other hand, using `length`, `keys`, `haskey`, `get`, `iterate` will not interact with the
+ default values (while the name aliases still work).
+
+```julia-repl
+julia> fakegpt2cfg = HuggingFace.HGFConfig{:gpt2}((a=3,b=5))
+Transformers.HuggingFace.HGFConfig{:gpt2, @NamedTuple{a::Int64, b::Int64}, Nothing} with 2 entries:
+  :a => 3
+  :b => 5
+
+julia> myfakegpt2cfg = HuggingFace.HGFConfig(fakegpt2cfg; hidden_size = 7)
+Transformers.HuggingFace.HGFConfig{:gpt2, @NamedTuple{a::Int64, b::Int64}, @NamedTuple{n_embd::Int64}} with 3 entries:
+  :a      => 3
+  :b      => 5
+  :n_embd => 7
+
+julia> myfakegpt2cfg[:hidden_size] == myfakegpt2cfg.hidden_size == myfakegpt2cfg.n_embd
+true
+
+julia> myfakegpt2cfg.n_layer
+12
+
+julia> get(myfakegpt2cfg, :n_layer, "NOT_FOUND")
+"NOT_FOUND"
+
 ```
 """
 HGFConfig

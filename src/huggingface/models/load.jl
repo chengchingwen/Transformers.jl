@@ -2,6 +2,8 @@ import ..Layers
 
 using Flux
 using NNlib
+using Tricks
+using StructWalk
 using DataStructures: OrderedDict
 
 using LinearAlgebra
@@ -12,9 +14,113 @@ struct FirstTokenPooler end
 abstract type HGFPreTrainedModel end
 Layers.@fluxshow HGFPreTrainedModel
 
-const ACT2FN = (
-    gelu = gelu, gelu_new = gelu, quick_gelu = gelu,
-    swish = swish, silu = swish,
+abstract type HGFPreTrained{model_type, task} <: HGFPreTrainedModel end
+
+getmodeltype(m::HGFPreTrained) = getmodeltype(typeof(m))
+getmodeltask(m::HGFPreTrained) = getmodeltask(typeof(m))
+getmodeltype(::Type{<:HGFPreTrained{MT}}) where MT = MT
+getmodeltask(::Type{<:HGFPreTrained{MT, T}}) where {MT, T} = T
+
+function hgf_model_forward end
+function hgf_model_loss end
+
+function (model::HGFPreTrained)(nt::NamedTuple)
+    if static_hasmethod(hgf_model_loss, Tuple{typeof(model)}) && haskey(nt, :label)
+        return hgf_model_loss(model)(model, hgf_model_forward(model, nt))
+    else
+        return hgf_model_forward(model, nt)
+    end
+end
+
+for (task, lfunc) in (
+    (:forcausallm, :causal_lm_loss),
+)
+    @eval begin
+        @inline hgf_model_loss(::HGFPreTrained{MT, $(QuoteNode(task))}) where MT = $lfunc
+    end
+end
+
+function _hgfmodelstruct(model_type, type_name, task_name, field_names, expr = nothing)
+    sbody = []
+    tnames = []
+    fbody = :nt
+    for fname in field_names
+        tname = Symbol(uppercase(String(fname)))
+        push!(tnames, tname)
+        push!(sbody, :($fname::$tname))
+        fbody = :(model.$fname($fbody))
+    end
+    sname = Symbol("HGF", type_name, task_name)
+    name = Expr(:<:,
+                Expr(:curly, sname, tnames...),
+                Expr(:curly, :HGFPreTrained, QuoteNode(model_type), QuoteNode(Symbol(lowercase(String(task_name))))))
+    st = Expr(:struct, false, name, Expr(:block, sbody...))
+    if !isnothing(expr)
+        fbody = expr.args
+    else
+        fbody = (fbody,)
+    end
+    func = :(@inline $(@__MODULE__).hgf_model_forward(model::$sname, nt::NamedTuple) = $(fbody...))
+    return Expr(:block, st, :($(@__MODULE__).@functor $sname), func)
+end
+
+function _extractfields(ex)
+    field_names = Symbol[]
+    function __extractfields(x)
+        if Meta.isexpr(x, :call)
+            f = x.args[1]
+            Meta.isexpr(f, :.) && f.args[1] == :model &&
+                push!(field_names, f.args[2].value)
+        end
+        return nothing
+    end
+    StructWalk.scan(__extractfields, identity, __extractfields, StructWalk.WalkStyle, ex)
+    return field_names
+end
+
+function _modeldef(model_type, type_name, ex)
+    ex isa Symbol &&
+        return _hgfmodelstruct(model_type, type_name, ex, (:model, :cls))
+    if Meta.isexpr(ex, :call, 3) && first(ex.args) == :(=>)
+        task_name = ex.args[2]
+        ex = ex.args[3]
+        if Meta.isexpr(ex, :tuple)
+            all(Base.Fix2(isa, Symbol), ex.args) &&
+                return _hgfmodelstruct(model_type, type_name, task_name, ex.args)
+        elseif Meta.isexpr(ex, :block)
+            field_names = _extractfields(ex)
+            st = _hgfmodelstruct(model_type, type_name, task_name, field_names, ex)
+            return st
+        end
+    end
+    error("Unknown pattern: $ex")
+end
+
+macro hgfdef(type_name, ex)
+    model_type = QuoteNode(Symbol(lowercase(String(type_name))))
+    return var"@hgfdef"(__source__, __module__, model_type, type_name, ex)
+end
+macro hgfdef(model_type, type_name, ex)
+    if model_type isa Symbol
+        model_type = QuoteNode(model_type)
+    end
+    @assert model_type isa QuoteNode "model_type is not a Symbol"
+    @assert type_name isa Symbol
+    @assert Meta.isexpr(ex, :tuple) "supported models should be put in a tuple"
+    exprs = []
+    for task in ex.args
+        st = _modeldef(model_type.value, type_name, task)
+        append!(exprs, st.args)
+    end
+    return esc(Expr(:block, :(const $(Symbol(:HGF, type_name, :PreTrainedModel)) = HGFPreTrained{$model_type}), exprs...))
+end
+
+isbasemodel(_) = false
+isbasemodel(::Type{<:HGFPreTrained{T, :model}}) where T = true
+
+const ACT2FN = @alias (
+    [gelu, gelu_new, quick_gelu] = gelu,
+    [swish, silu] = swish,
     relu = relu,
     mish = mish,
     selu = selu,

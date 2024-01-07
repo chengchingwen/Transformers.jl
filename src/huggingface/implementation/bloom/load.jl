@@ -7,39 +7,15 @@ using Static
 using NeuralAttentionlib
 using NeuralAttentionlib: WithScore
 
-
-abstract type HGFBloomPreTrainedModel <: HGFPreTrainedModel end
-
-struct HGFBloomModel{E, DEC} <: HGFBloomPreTrainedModel
-    embed::E
-    decoder::DEC
-end
-@functor HGFBloomModel
-
-(model::HGFBloomModel)(nt::NamedTuple) = model.decoder(model.embed(nt))
-
-for T in :[
-    HGFBloomForCausalLM,
-    # HGFBloomForSequenceClassification,
-    # HGFBloomForTokenClassification,
-    # HGFBloomForQuestionAnswering,
-].args
-    @eval begin
-        @hgfdefmodel $T HGFBloomPreTrainedModel
-    end
-end
-
-basemodelkey(::Type{<:HGFBloomPreTrainedModel}) = :transformer
-isbasemodel(::Type{<:HGFBloomModel}) = true
-isbasemodel(::Type{<:HGFBloomPreTrainedModel}) = false
-
-get_model_type(::Val{:bloom}) = (
-    model = HGFBloomModel,
-    forcausallm = HGFBloomForCausalLM,
-    # forsequenceclassification =  HGFBloomForSequenceClassification,
-    # fortokenclassification = HGFBloomForTokenClassification,
-    # forquestionanswering = HGFBloomForQuestionAnswering,
+@hgfdef Bloom (
+    Model => (embed, decoder),
+    ForCausalLM,
+    # ForSequenceClassification,
+    # ForTokenClassification,
+    # ForQuestionAnswering,
 )
+
+basemodelkey(::Type{<:HGFPreTrained{:bloom}}) = :transformer
 
 function load_model(_type::Type{HGFBloomModel}, cfg, state_dict, prefix)
     embed = load_model(_type, CompositeEmbedding, cfg, state_dict, prefix)

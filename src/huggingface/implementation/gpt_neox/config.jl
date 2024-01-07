@@ -1,4 +1,4 @@
-@defaultdef :gpt_neox struct HGFGPTNeoXConfigDefault
+@hgfcfg :gpt_neox struct HGFGPTNeoXConfig
     vocab_size::Int = 50432
     hidden_size::Int = 6144
     num_hidden_layers::Int = 44
@@ -17,5 +17,3 @@
     tie_word_embeddings::Bool = false
     use_parallel_residual::Bool = true
 end
-
-const HGFGPTNeoConfig = HGFConfig{:gpt_neo}

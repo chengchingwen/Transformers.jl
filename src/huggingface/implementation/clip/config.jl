@@ -1,4 +1,4 @@
-@defaultdef :clip_text struct HGFCLIPTextConfigDefault
+@hgfcfg :clip_text_model struct HGFCLIPTextConfig
     vocab_size::Int = 49408
     hidden_size::Int = 512
     intermediate_size::Int = 2048
@@ -13,7 +13,7 @@
     initializer_factor::Float64 = 1
 end
 
-@defaultdef :clip_vision struct HGFCLIPVisionConfigDefault
+@hgfcfg :clip_vision_model struct HGFCLIPVisionConfig
     hidden_size::Int = 768
     intermediate_size::Int = 3072
     num_hidden_layers::Int = 12
@@ -29,7 +29,7 @@ end
     initializer_factor::Float64 = 1.0
 end
 
-@defaultdef :clip struct HGFCLIPConfigDefault
+@hgfcfg :clip struct HGFCLIPConfig
     text_config::HGFCLIPTextConfigDefault = HGFCLIPTextConfigDefault()
     vision_config::HGFCLIPVisionConfigDefault = HGFCLIPVisionConfigDefault()
     text_config_dict::Nothing = nothing
@@ -38,14 +38,12 @@ end
     logit_scale_init_value::Float64 = 2.6592
 end
 
-const HGFCLIPConfig = HGFConfig{:clip}
-
 function HGFConfig{:clip}(cfg, overwrite)
-    text_config = HGFConfig{:clip_text}(
+    text_config = HGFConfig{:clip_text_model}(
         haskey(cfg, :text_config) ? cfg.text_config :
         haskey(cfg, :text_config_dict) ? cfg.text_config_dict : (;))
     overwrite[:text_config] = text_config
-    vision_config = HGFConfig{:clip_vision}(
+    vision_config = HGFConfig{:clip_vision_model}(
         haskey(cfg, :vision_config) ? cfg.vision_config :
         haskey(cfg, :vision_config_dict) ? cfg.vision_config_dict : (;))
     overwrite[:vision_config] = vision_config

@@ -9,41 +9,24 @@ using Static
 using NeuralAttentionlib
 using NeuralAttentionlib: $, WithScore
 
-
-abstract type HGFRobertaPreTrainedModel <: HGFPreTrainedModel end
-
-struct HGFRobertaModel{E, ENC, P} <: HGFRobertaPreTrainedModel
-    embed::E
-    encoder::ENC
-    pooler::P
-end
-@functor HGFRobertaModel
-
-(model::HGFRobertaModel)(nt::NamedTuple) = model.pooler(model.encoder(model.embed(nt)))
-(model::HGFRobertaModel{E, ENC, Nothing})(nt::NamedTuple) where {E, ENC} = model.encoder(model.embed(nt))
-
-# TODO: HGFRobertaForMultipleChoice
-
-for T in :[
-    HGFRobertaForMaskedLM, HGFRobertaForCausalLM, HGFRobertaForSequenceClassification,
-    HGFRobertaForTokenClassification, HGFRobertaForQuestionAnswering
-].args
-    @eval @hgfdefmodel $T HGFRobertaPreTrainedModel
-end
-
-get_model_type(::Val{:roberta}) = (
-    model = HGFRobertaModel,
-    formaskedlm = HGFRobertaForMaskedLM,
-    forcausallm = HGFRobertaForCausalLM,
-    forsequenceclassification = HGFRobertaForSequenceClassification,
-    # :formultiplechoice => HGFRobertaForMultipleChoice,
-    fortokenclassification = HGFRobertaForTokenClassification,
-    forquestionanswering = HGFRobertaForQuestionAnswering,
+@hgfdef Roberta (
+    Model => begin
+      outputs = model.encoder(model.embed(nt))
+      if isnothing(model.pooler)
+        return outputs
+      else
+        return model.pooler(outputs)
+      end
+    end,
+    ForMaskedLM,
+    ForCausalLM,
+    ForSequenceClassification,
+    ForTokenClassification,
+    ForQuestionAnswering,
+    # ForMultipleChoice,
 )
 
-basemodelkey(::Type{<:HGFRobertaPreTrainedModel}) = :roberta
-isbasemodel(::Type{<:HGFRobertaModel}) = true
-isbasemodel(::Type{<:HGFRobertaPreTrainedModel}) = false
+basemodelkey(::Type{<:HGFPreTrained{:roberta}}) = :roberta
 
 roberta_pe_indices(pad_id, x) = Base.OneTo{Int32}(size(x, 2)) .+ Int32(pad_id + 1)
 

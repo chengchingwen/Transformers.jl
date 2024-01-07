@@ -1,4 +1,4 @@
-@defaultdef :llama struct HGFLlamaConfigDefault
+@hgfcfg :llama struct HGFLlamaConfig
     vocab_size::Int = 32000
     hidden_size::Int = 4096
     intermediate_size::Int = 11008
@@ -18,5 +18,3 @@
     rope_scaling::Nothing = nothing
     clean_up_tokenization_spaces::Bool = false
 end
-
-const HGFLlamaConfig = HGFConfig{:llama}

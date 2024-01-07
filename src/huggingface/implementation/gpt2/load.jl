@@ -6,33 +6,13 @@ using Static
 using NeuralAttentionlib
 using NeuralAttentionlib: WithScore
 
-abstract type HGFGPT2PreTrainedModel <: HGFPreTrainedModel end
-
-struct HGFGPT2Model{E, DEC} <: HGFGPT2PreTrainedModel
-    embed::E
-    decoder::DEC
-end
-@functor HGFGPT2Model
-
-(model::HGFGPT2Model)(nt::NamedTuple) = model.decoder(model.embed(nt))
-
-for T in :[
-    HGFGPT2LMHeadModel,
-].args
-    @eval begin
-        @hgfdefmodel $T HGFGPT2PreTrainedModel
-    end
-end
-
-basemodelkey(::Type{<:HGFGPT2PreTrainedModel}) = :transformer
-isbasemodel(::Type{<:HGFGPT2Model}) = true
-isbasemodel(::Type{<:HGFGPT2PreTrainedModel}) = false
-
-get_model_type(::Val{:gpt2}) = (
-  model = HGFGPT2Model,
-  lmheadmodel = HGFGPT2LMHeadModel,
-  # doubleheadsmodel = HGFGPT2DoubleHeadsModel,
+@hgfdef GPT2 (
+    Model => (embed, decoder),
+    LMHeadModel,
+    # DoubleHeadsModel,
 )
+
+basemodelkey(::Type{<:HGFPreTrained{:gpt2}}) = :transformer
 
 
 function load_model(_type::Type{HGFGPT2Model}, cfg, state_dict, prefix)

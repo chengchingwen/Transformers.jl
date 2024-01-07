@@ -1,11 +1,11 @@
-@defaultdef :t5 struct HGFT5ConfigDefault
+@hgfcfg :t5 struct HGFT5Config
     vocab_size::Int = 32128
-    d_model::Int = 512
+    [d_model, hidden_size]::Int = 512
     d_kv::Int = 64
     d_ff::Int = 2048
-    num_layers::Int = 6
+    [num_layers, num_hidden_layers]::Int = 6
     num_decoder_layers::Int = 6
-    num_heads::Int = 8
+    [num_heads, num_attention_heads]::Int = 8
     relative_attention_num_buckets::Int = 32
     relative_attention_max_distance::Int = 128
     dropout_rate::Float64 = 0.1
@@ -19,8 +19,6 @@
     dense_act_fn::Nothing = nothing
     is_gated_act::Bool = false
 end
-
-const HGFT5Config = HGFConfig{:t5}
 
 function HGFConfig{:t5}(cfg, overwrite)
     if !haskey(cfg, :num_decoder_layers) && haskey(cfg, :num_layers)
