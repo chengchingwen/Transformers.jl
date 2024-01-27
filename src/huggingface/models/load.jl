@@ -65,6 +65,15 @@ function get_state_dict(m::Layers.Embed, state_dict, prefix)
     return state_dict
 end
 
+get_state_dict(_, m::Layers.EmbedDecoder, state_dict, prefix) = get_state_dict(m, state_dict, prefix)
+function get_state_dict(m::Layers.EmbedDecoder, state_dict, prefix)
+    if !isnothing(m.bias)
+        state_dict[joinname(prefix, "bias")] = m.bias
+    end
+    get_state_dict(m.embed, state_dict, prefix)
+    return state_dict
+end
+
 get_state_dict(_, m::Layers.FixedLenPositionEmbed, state_dict, prefix) = get_state_dict(m, state_dict, prefix)
 function get_state_dict(m::Layers.FixedLenPositionEmbed, state_dict, prefix)
     state_dict[joinname(prefix, "weight")] = m.embeddings'
