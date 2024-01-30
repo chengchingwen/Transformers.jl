@@ -14,16 +14,28 @@ Load the `state_dict` from the given `model_name` from huggingface hub. By defau
 """
 function load_state_dict(model_name; possible_files = nothing, kw...)
     possible_files = ensure_possible_files(possible_files, model_name; kw...)
+    # here we need to create a fork to recognize, if we want to load the weights from safetensors
+    # or from pytorch pickle
     if PYTORCH_WEIGHTS_INDEX_NAME in possible_files
-        weight_index = JSON3.read(read(hgf_model_weight_index(model_name; kw...)))
-        full_state_dict = OrderedDict{Any, Any}()
-        for weight_file in Set{String}(values(weight_index.weight_map))
-            merge!(full_state_dict, Pickle.Torch.THload(hgf_file(model_name, weight_file; kw...)))
-        end
-        return full_state_dict
+      weight_index = JSON3.read(read(hgf_model_weight_index(model_name; kw...)))
+      return load_weights_from_weightmap(Pickle.Torch.THload, model_name, weight_index;kw...)
+    elseif SAFETENSORS_WEIGHTS_INDEX_NAME in possible_files
+      weight_index = JSON3.read(read(hgf_model_safetensor_index(model_name; kw...)))
+      return load_weights_from_weightmap(load_safetensors, model_name, weight_index;kw...)
+    elseif any(s -> endswith(s, "safetensors"), possible_files)
+      error("seems like weights are stored in safetensors, but the loader is not implemented since the author did not know the name of the file. File issue with name of the repo and tag @pevnak")
+      # return load_safetensors(hgf_model_safetensor(model_name; kw...))
     else
-        return Pickle.Torch.THload(hgf_model_weight(model_name; kw...))
+      return Pickle.Torch.THload(hgf_model_weight(model_name; kw...))
     end
+end
+
+function load_weights_from_weightmap(weight_load_fun, model_name, weight_index;kw...)
+  full_state_dict = OrderedDict{Any, Any}()
+  for weight_file in Set{String}(values(weight_index.weight_map))
+      merge!(full_state_dict, weight_load_fun(hgf_file(model_name, weight_file; kw...)))
+  end
+  return full_state_dict
 end
 
 """
