@@ -12,7 +12,6 @@ export @hgf_str,
     load_hgf_pretrained
 
 include("./utils.jl")
-include("safetensors.jl")
 include("./download.jl")
 include("./weight.jl")
 include("./configs/config.jl")

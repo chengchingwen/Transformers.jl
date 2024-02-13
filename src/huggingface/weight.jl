@@ -1,6 +1,7 @@
 using DataStructures: OrderedDict
 using JSON3
 using Pickle
+using SafeTensors
 
 """
   `load_state_dict(model_name; local_files_only = false, cache = true)`
@@ -21,7 +22,7 @@ function load_state_dict(model_name; possible_files = nothing, kw...)
       return load_weights_from_weightmap(Pickle.Torch.THload, model_name, weight_index;kw...)
     elseif SAFETENSORS_WEIGHTS_INDEX_NAME in possible_files
       weight_index = JSON3.read(read(hgf_model_safetensor_index(model_name; kw...)))
-      return load_weights_from_weightmap(load_safetensors, model_name, weight_index;kw...)
+      return load_weights_from_weightmap(
     elseif any(s -> endswith(s, "safetensors"), possible_files)
       error("seems like weights are stored in safetensors, but the loader is not implemented since the author did not know the name of the file. File issue with name of the repo and tag @pevnak")
       # return load_safetensors(hgf_model_safetensor(model_name; kw...))
