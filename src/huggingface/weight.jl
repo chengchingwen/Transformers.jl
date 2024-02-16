@@ -4,31 +4,41 @@ using Pickle
 using SafeTensors
 
 """
-  `load_state_dict(model_name; local_files_only = false, cache = true)`
+  `load_state_dict(model_name; local_files_only = false, force_format = :auto cache = true)`
 
 Load the `state_dict` from the given `model_name` from huggingface hub. By default, this function would check if
  `model_name` exists on huggingface hub, download the model file (and cache it if `cache` is set), and then load
  and return the `state_dict`. If `local_files_only = false`, it would check whether the model file is up-to-date and
  update if not (and thus require network access every time it is called). By setting `local_files_only = true`, it
  would try to find the files from the cache directly and error out if not found. For managing the caches, see the
- `HuggingFaceApi.jl` package.
+ `HuggingFaceApi.jl` package. If `force_format` is `:auto` it will automatically selects the format from which the
+ weights will be loaded. If `force_format` is `:pickle` or `:safetensor`, it will prefer relevant file.
 """
-function load_state_dict(model_name; possible_files = nothing, kw...)
+function load_state_dict(model_name; possible_files = nothing, force_format = :auto, kw...)
     possible_files = ensure_possible_files(possible_files, model_name; kw...)
-    # here we need to create a fork to recognize, if we want to load the weights from safetensors
-    # or from pytorch pickle
-    if PYTORCH_WEIGHTS_INDEX_NAME in possible_files
+    weight_format = force_format == :auto ? detect_weight_format(possible_files) : force_format
+
+    if weight_format == :pickle && PYTORCH_WEIGHTS_INDEX_NAME in possible_files
       weight_index = JSON3.read(read(hgf_model_weight_index(model_name; kw...)))
       return load_weights_from_weightmap(Pickle.Torch.THload, model_name, weight_index;kw...)
-    elseif SAFETENSORS_WEIGHTS_INDEX_NAME in possible_files
+    elseif weight_format == :safetensor && SAFE_WEIGHTS_INDEX_NAME in possible_files
       weight_index = JSON3.read(read(hgf_model_safetensor_index(model_name; kw...)))
-      return load_weights_from_weightmap(
-    elseif any(s -> endswith(s, "safetensors"), possible_files)
-      error("seems like weights are stored in safetensors, but the loader is not implemented since the author did not know the name of the file. File issue with name of the repo and tag @pevnak")
-      # return load_safetensors(hgf_model_safetensor(model_name; kw...))
-    else
+      return return load_weights_from_weightmap(load_safetensors, model_name, weight_index;kw...)
+    elseif weight_format == :safetensors && SAFE_WEIGHTS_NAME in possible_files
+      return load_safetensors(hgf_model_safetensor(SAFE_WEIGHTS_NAME; kw...))
+    elseif weight_format == :pickle && PYTORCH_WEIGHTS_NAME in possible_files
       return Pickle.Torch.THload(hgf_model_weight(model_name; kw...))
+    else 
+      error("The repository does not contain the weights stored in $(weight_format) format")
     end
+end
+
+function detect_weight_format(possible_files)
+  PYTORCH_WEIGHTS_INDEX_NAME in possible_files && return(:pickle)
+  PYTORCH_WEIGHTS_NAME in possible_files && return(:pickle)
+  SAFE_WEIGHTS_INDEX_NAME in possible_files && return(:safetensor)
+  SAFE_WEIGHTS_NAME in possible_files && return(:safetensor)
+  error("The repository does not contain the weights stored in known format")
 end
 
 function load_weights_from_weightmap(weight_load_fun, model_name, weight_index;kw...)

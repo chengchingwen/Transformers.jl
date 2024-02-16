@@ -24,7 +24,7 @@ function generate_text(context=""; max_length=50)
     new_ids = ids[0:-1]
     ends_id = lookup(textenc.vocab, textenc.endsym)
     for i in 1:max_length
-        input = (; token = OneHotArray(ids))
+        input = (; token = encoded)
         outputs = model(input)
         logits = @view outputs.logit[:, end, 1]
         probs = temp_softmax(logits)
@@ -32,7 +32,7 @@ function generate_text(context=""; max_length=50)
         push!(ids, new_id)
         new_id == ends_id && break
     end
-    return decode(textenc, OneHotArray(ids))
+    return decode(textenc, encoded)
 end
 
 function generate(prompt, max_length)

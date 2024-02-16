@@ -3,7 +3,8 @@ using HuggingFaceApi
 using HuggingFaceApi: PYTORCH_WEIGHTS_NAME, CONFIG_NAME
 
 const PYTORCH_WEIGHTS_INDEX_NAME = "pytorch_model.bin.index.json"
-const SAFETENSORS_WEIGHTS_INDEX_NAME = "model.safetensors.index.json"
+const SAFE_WEIGHTS_INDEX_NAME = "model.safetensors.index.json"
+const SAFE_WEIGHTS_NAME = "model.safetensors"
 
 const VOCAB_FILE = "vocab.txt"
 const VOCAB_JSON_FILE = "vocab.json"
@@ -46,7 +47,7 @@ hgf_file(model_name, file_name; revision = "main", kws...) = _hgf_download(hgf_f
 hgf_model_config(model_name; kws...) = hgf_file(model_name, CONFIG_NAME; kws...)
 hgf_model_weight(model_name; kws...) = hgf_file(model_name, PYTORCH_WEIGHTS_NAME; kws...)
 hgf_model_weight_index(model_name; kws...) = hgf_file(model_name, PYTORCH_WEIGHTS_INDEX_NAME; kws...)
-hgf_model_safetensor_index(model_name; kws...) = hgf_file(model_name, SAFETENSORS_WEIGHTS_INDEX_NAME; kws...)
+hgf_model_safetensor_index(model_name; kws...) = hgf_file(model_name, SAFE_WEIGHTS_INDEX_NAME; kws...)
 hgf_vocab(model_name; kws...) = hgf_file(model_name, VOCAB_FILE; kws...)
 hgf_vocab_json(model_name; kws...) = hgf_file(model_name, VOCAB_JSON_FILE; kws...)
 hgf_tokenizer_special_tokens_map(model_name; kws...) = hgf_file(model_name, SPECIAL_TOKENS_MAP_FILE; kws...)
