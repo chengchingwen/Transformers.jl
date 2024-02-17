@@ -4,7 +4,7 @@ using Pickle
 using SafeTensors
 
 """
-  `load_state_dict(model_name; local_files_only = false, force_format = :auto cache = true)`
+  `load_state_dict(model_name; local_files_only = false, force_format = :auto, cache = true)`
 
 Load the `state_dict` from the given `model_name` from huggingface hub. By default, this function would check if
  `model_name` exists on huggingface hub, download the model file (and cache it if `cache` is set), and then load
