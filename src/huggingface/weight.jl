@@ -21,13 +21,13 @@ function load_state_dict(model_name; possible_files = nothing, force_format = :a
     if weight_format == :pickle && PYTORCH_WEIGHTS_INDEX_NAME in possible_files
       weight_index = JSON3.read(read(hgf_model_weight_index(model_name; kw...)))
       return load_weights_from_weightmap(Pickle.Torch.THload, model_name, weight_index;kw...)
-    elseif weight_format == :safetensor && SAFE_WEIGHTS_INDEX_NAME in possible_files
-      weight_index = JSON3.read(read(hgf_model_safetensor_index(model_name; kw...)))
-      return return load_weights_from_weightmap(load_safetensors, model_name, weight_index;kw...)
-    elseif weight_format == :safetensors && SAFE_WEIGHTS_NAME in possible_files
-      return load_safetensors(hgf_model_safetensor(SAFE_WEIGHTS_NAME; kw...))
     elseif weight_format == :pickle && PYTORCH_WEIGHTS_NAME in possible_files
       return Pickle.Torch.THload(hgf_model_weight(model_name; kw...))
+    elseif weight_format == :safetensor && SAFE_WEIGHTS_INDEX_NAME in possible_files
+      weight_index = JSON3.read(read(hgf_model_safetensor_weight_index(model_name; kw...)))
+      return return load_weights_from_weightmap(load_safetensors, model_name, weight_index;kw...)
+    elseif weight_format == :safetensors && SAFE_WEIGHTS_NAME in possible_files
+      return load_safetensors(hgf_model_safetensor_weight(SAFE_WEIGHTS_NAME; kw...))
     else 
       error("The repository does not contain the weights stored in $(weight_format) format")
     end
