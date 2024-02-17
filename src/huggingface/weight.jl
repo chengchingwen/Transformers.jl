@@ -38,7 +38,7 @@ function detect_weight_format(possible_files)
   PYTORCH_WEIGHTS_NAME in possible_files && return(:pickle)
   SAFE_WEIGHTS_INDEX_NAME in possible_files && return(:safetensor)
   SAFE_WEIGHTS_NAME in possible_files && return(:safetensor)
-  error("The repository does not contain the weights stored in known format")
+  error("The repository does not contain the weights stored in supported formats (pytorch pickle or safetensors)")
 end
 
 function load_weights_from_weightmap(weight_load_fun, model_name, weight_index;kw...)
