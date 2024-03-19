@@ -1,3 +1,5 @@
+# THIS FORK IS CUSTOMIZED FOR DECODER_ONLY MODELS.
+
 <div align="center"> <img src="images/transformerslogo.png" alt="Transformers.jl" width="512"></img></div>
 
 [![Build status](https://github.com/chengchingwen/Transformers.jl/workflows/CI/badge.svg)](https://github.com/chengchingwen/Transformers.jl/actions)
