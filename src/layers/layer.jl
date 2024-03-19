@@ -45,22 +45,17 @@ end
 
 struct TransformerDecoderBlock{A, F} <: AbstractTransformerBlock
     attention::A
-    #crossattention::C
     feedforward::F
 end
 @functor TransformerDecoderBlock
 
 argument_names(b::TransformerDecoderBlock) = Base.merge_names(
-    #=Base.merge_names(argument_names(b.crossattention),=# argument_names(b.attention),#),
+    argument_names(b.attention),
     argument_names(b.feedforward)
 )
 
 (b::TransformerDecoderBlock)(nt::NamedTuple) =
-    apply_on_namedtuple(b.feedforward, 
-        #apply_on_namedtuple(b.crossattention,
-            apply_on_namedtuple(b.attention, nt)
-        #)
-    )
+    apply_on_namedtuple(b.feedforward, apply_on_namedtuple(b.attention, nt))
 
 struct Residual{L} <: LayerStruct
     layer::L
@@ -119,7 +114,7 @@ end
 function Base.show(io::IO, t::PreNormTransformerDecoderBlock)
     print(io, "PreNormTransformerDecoderBlock(")
     show(io, t.attention.layer); print(io, ", "); show(io, t.attention.norm); print(io, ", ");
-    show(io, t.crossattention.layer); print(io, ", "); show(io, t.crossattention.norm); print(io, ", ");
+    # show(io, t.crossattention.layer); print(io, ", "); show(io, t.crossattention.norm); print(io, ", ");
     show(io, t.feedforward.layer); print(io, ", "); show(io, t.feedforward.norm); print(io, ')')
 end
 function Base.show(io::IO, t::PostNormTransformerDecoderBlock)
@@ -135,8 +130,8 @@ _show_name(t::PostNormTransformerDecoderBlock) = "PostNormTransformerDecoderBloc
 
 Flux._show_children(t::PreNormTransformerBlock) = (t.attention.layer, t.attention.norm, t.feedforward.layer, t.feedforward.norm)
 Flux._show_children(t::PostNormTransformerBlock) = (t.attention.layer, t.attention.norm, t.feedforward.layer, t.feedforward.norm)
-Flux._show_children(t::PreNormTransformerDecoderBlock) = (t.attention.layer, t.attention.norm, t.crossattention.layer, t.crossattention.norm, t.feedforward.layer, t.feedforward.norm)
-Flux._show_children(t::PostNormTransformerDecoderBlock) = (t.attention.layer, t.attention.norm, t.crossattention.layer, t.crossattention.norm, t.feedforward.layer, t.feedforward.norm)
+Flux._show_children(t::PreNormTransformerDecoderBlock) = (t.attention.layer, t.attention.norm, #=t.crossattention.layer, t.crossattention.norm,=# t.feedforward.layer, t.feedforward.norm)
+Flux._show_children(t::PostNormTransformerDecoderBlock) = (t.attention.layer, t.attention.norm, #= t.crossattention.layer, t.crossattention.norm, =# t.feedforward.layer, t.feedforward.norm)
 
 #############################################
 
@@ -519,18 +514,14 @@ function PostNormTransformerDecoderBlock(
 )
     sa = SelfAttention(head, hidden_size, head_hidden_size;
                        dropout = attention_dropout, causal = true, return_score = return_self_attention_score)
-    #ca = CrossAttention(head, hidden_size, head_hidden_size; dropout = cross_attention_dropout, return_score)
     ff1 = Dense(act, hidden_size, intermediate_size)
     ff2 = Dense(intermediate_size, hidden_size)
     return TransformerDecoderBlock(
         PostNormResidual(
-            DropoutLayer(sa, dropout),
+            sa,
             LayerNorm(hidden_size)),
-        #PostNormResidual(
-        #    DropoutLayer(ca, dropout),
-        #    LayerNorm(hidden_size)),
         PostNormResidual(
-            DropoutLayer(Chain(ff1, ff2), dropout),
+            Chain(ff1, ff2),
             LayerNorm(hidden_size)))
 end
 
