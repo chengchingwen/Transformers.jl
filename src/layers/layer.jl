@@ -43,20 +43,24 @@ end
 
 (b::TransformerBlock)(nt::NamedTuple) = apply_on_namedtuple(b.feedforward, apply_on_namedtuple(b.attention, nt))
 
-struct TransformerDecoderBlock{A, C, F} <: AbstractTransformerBlock
+struct TransformerDecoderBlock{A, F} <: AbstractTransformerBlock
     attention::A
-    crossattention::C
+    #crossattention::C
     feedforward::F
 end
 @functor TransformerDecoderBlock
 
 argument_names(b::TransformerDecoderBlock) = Base.merge_names(
-    Base.merge_names(argument_names(b.crossattention), argument_names(b.attention)),
+    #=Base.merge_names(argument_names(b.crossattention),=# argument_names(b.attention),#),
     argument_names(b.feedforward)
 )
 
 (b::TransformerDecoderBlock)(nt::NamedTuple) =
-    apply_on_namedtuple(b.feedforward, apply_on_namedtuple(b.crossattention, apply_on_namedtuple(b.attention, nt)))
+    apply_on_namedtuple(b.feedforward, 
+        #apply_on_namedtuple(b.crossattention,
+            apply_on_namedtuple(b.attention, nt)
+        #)
+    )
 
 struct Residual{L} <: LayerStruct
     layer::L
@@ -97,10 +101,10 @@ end
 
 const  PreNormTransformerBlock{A, LN1, F, LN2} = TransformerBlock{ PreNormResidual{A, LN1},  PreNormResidual{F, LN2}}
 const PostNormTransformerBlock{A, LN1, F, LN2} = TransformerBlock{PostNormResidual{A, LN1}, PostNormResidual{F, LN2}}
-const  PreNormTransformerDecoderBlock{A, LN1, C, LN2, F, LN3} =
-    TransformerDecoderBlock{ PreNormResidual{A, LN1},  PreNormResidual{C, LN2},  PreNormResidual{F, LN3}}
-const PostNormTransformerDecoderBlock{A, LN1, C, LN2, F, LN3} =
-    TransformerDecoderBlock{PostNormResidual{A, LN1}, PostNormResidual{C, LN2}, PostNormResidual{F, LN3}}
+const  PreNormTransformerDecoderBlock{A, LN1, #=C, LN2,=# F, LN3} =
+    TransformerDecoderBlock{ PreNormResidual{A, LN1},  #=PreNormResidual{C, LN2},=#  PreNormResidual{F, LN3}}
+const PostNormTransformerDecoderBlock{A, LN1, #=C, LN2,=# F, LN3} =
+    TransformerDecoderBlock{PostNormResidual{A, LN1}, #=PostNormResidual{C, LN2},=# PostNormResidual{F, LN3}}
 
 function Base.show(io::IO, t::PreNormTransformerBlock)
     print(io, "PreNormTransformerBlock(");
@@ -121,7 +125,7 @@ end
 function Base.show(io::IO, t::PostNormTransformerDecoderBlock)
     print(io, "PostNormTransformerDecoderBlock(")
     show(io, t.attention.layer); print(io, ", "); show(io, t.attention.norm); print(io, ", ");
-    show(io, t.crossattention.layer); print(io, ", "); show(io, t.crossattention.norm); print(io, ", ");
+    #show(io, t.crossattention.layer); print(io, ", "); show(io, t.crossattention.norm); print(io, ", ");
     show(io, t.feedforward.layer); print(io, ", "); show(io, t.feedforward.norm); print(io, ')')
 end
 _show_name(t::PreNormTransformerBlock) = "PreNormTransformerBlock"
@@ -515,16 +519,16 @@ function PostNormTransformerDecoderBlock(
 )
     sa = SelfAttention(head, hidden_size, head_hidden_size;
                        dropout = attention_dropout, causal = true, return_score = return_self_attention_score)
-    ca = CrossAttention(head, hidden_size, head_hidden_size; dropout = cross_attention_dropout, return_score)
+    #ca = CrossAttention(head, hidden_size, head_hidden_size; dropout = cross_attention_dropout, return_score)
     ff1 = Dense(act, hidden_size, intermediate_size)
     ff2 = Dense(intermediate_size, hidden_size)
     return TransformerDecoderBlock(
         PostNormResidual(
             DropoutLayer(sa, dropout),
             LayerNorm(hidden_size)),
-        PostNormResidual(
-            DropoutLayer(ca, dropout),
-            LayerNorm(hidden_size)),
+        #PostNormResidual(
+        #    DropoutLayer(ca, dropout),
+        #    LayerNorm(hidden_size)),
         PostNormResidual(
             DropoutLayer(Chain(ff1, ff2), dropout),
             LayerNorm(hidden_size)))
