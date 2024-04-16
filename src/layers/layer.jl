@@ -54,6 +54,11 @@ argument_names(b::TransformerDecoderBlock) = Base.merge_names(
     argument_names(b.feedforward)
 )
 
+# performs attention on nt, returns the result as an NamedTuple
+# then performs crossattention on the result, returns the result as an NamedTuple
+# then performs feedforward on the result, returns the result as an NamedTuple
+# (b::TransformerDecoderBlock)(nt::NamedTuple) =
+#     apply_on_namedtuple(b.feedforward, apply_on_namedtuple(b.crossattention, apply_on_namedtuple(b.attention, nt)))
 (b::TransformerDecoderBlock)(nt::NamedTuple) =
     apply_on_namedtuple(b.feedforward, apply_on_namedtuple(b.attention, nt))
 
