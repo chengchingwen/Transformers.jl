@@ -4,7 +4,7 @@ using NeuralAttentionlib
 
 function _togpudevice(x, cache)
     # https://github.com/FluxML/Flux.jl/blob/79971741ed8454cdf6a66515799a0c4b864f564a/src/functor.jl#L206-L209
-    Flux.check_use_cuda()
+    # Flux.check_use_cuda()
     return Flux.fmap(
         x -> Flux.adapt(Flux.FluxCUDAAdaptor(), x),
         x; exclude = Flux._isleaf, cache)
