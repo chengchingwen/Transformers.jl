@@ -17,7 +17,7 @@ Load the `state_dict` from the given `model_name` from huggingface hub. By defau
 function load_state_dict(model_name; lazy = false, mmap = true, possible_files = nothing, force_format = :auto, kw...)
     possible_files = ensure_possible_files(possible_files, model_name; kw...)
     weight_format = force_format == :auto ? detect_weight_format(model_name; possible_files, kw...) : force_format
-    status = WeightStatus{format}(model_name; possible_files, kw...)
+    status = WeightStatus{weight_format}(model_name; possible_files, kw...)
     if status isa HasWeightIn
         return load_state_dict_from(status; lazy, mmap, kw...)
     else
