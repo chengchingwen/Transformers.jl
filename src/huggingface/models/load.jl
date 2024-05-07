@@ -51,7 +51,19 @@ getweight(init, ::Type{<:Layers.Embed}, state_dict::OrderedDict{String}, name) =
 getweight(init, state_dict, name) = _getweight(identity, init, state_dict, name)
 function _getweight(process, init, state_dict, name)
     if haskey(state_dict, name)
-        weight = state_dict[name] |> process
+        state = state_dict[name]
+        if Pickle.Torch.islazy(state)
+            lazystate = state
+            if Pickle.Torch.isloaded(lazystate)
+                weight = lazystate.data
+            else
+                state = lazystate()
+                weight = process(state)
+                lazystate.data = weight
+            end
+        else
+            weight = process(state)
+        end
     else
         @debug "$name not found, initialized."
         weight = init()
