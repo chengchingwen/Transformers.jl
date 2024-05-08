@@ -1,4 +1,4 @@
-module TransformersAMDGPUExt.jl
+module TransformersAMDGPUExt
 
 using Transformers
 using Transformers.Flux

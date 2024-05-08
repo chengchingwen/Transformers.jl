@@ -1,4 +1,4 @@
-module TransformersMetalExt.jl
+module TransformersMetalExt
 
 using Transformers
 using Transformers.Flux
