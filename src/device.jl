@@ -19,31 +19,28 @@ function enable_gpu(t::Bool=true)
         return todevice
     end
     if !t
-        return @eval todevice(args...; kws...) = tocpudevice(args...; kws...)
+        return @eval @inline todevice(args...; kws...) = tocpudevice(args...; kws...)
     end
     @static if GPU_BACKEND == "CUDA"
         @eval Main begin
             using CUDA
             CUDA.functional() || error("CUDA not functional")
         end
-        @eval todevice(args...; kws...) = tocudadevice(args...; kws...)
     elseif GPU_BACKEND == "AMDGPU"
         @eval Main begin
             using AMDGPU
             AMDGPU.functional() || error("AMDGPU not functional")
         end
-        @eval todevice(args...; kws...) = toamdgpudevice(args...; kws...)
     elseif GPU_BACKEND == "Metal"
         @eval Main begin
             using Metal
             Metal.functional() || error("Metal not functional")
         end
-        @eval todevice(args...; kws...) = tometaldevice(args...; kws...)
     elseif GPU_BACKEND == "CPU"
-        @eval todevice(args...; kws...) = tocpudevice(args...; kws...)
     else
         error("Unsupported GPU backend: $GPU_BACKEND")
     end
+    @eval @inline todevice(args...; kws...) = togpudevice(args...; kws...)
 end
 
 """
@@ -51,7 +48,26 @@ end
 
 Move data to device, only when gpu is enable with `enable_gpu`, basically equal `Flux.gpu`. Otherwise just `Flux.cpu`.
 """
-todevice(args...; kws...) = tocpudevice(args...; kws...)
+@inline todevice(args...; kws...) = tocpudevice(args...; kws...)
+
+"""
+    togpudevice(x)
+
+Move data to gpu device, backend selected by `Flux.gpu_backend!`.
+"""
+@inline function togpudevice(args...; kws...)
+    @static if GPU_BACKEND == "CUDA"
+        return tocudadevice(args...; kws...)
+    elseif GPU_BACKEND == "AMDGPU"
+        return toamdgpudevice(args...; kws...)
+    elseif GPU_BACKEND == "Metal"
+        return tometaldevice(args...; kws...)
+    elseif GPU_BACKEND == "CPU"
+        return tocpudevice(args...; kws...)
+    else
+        error("Unsupported GPU backend: $GPU_BACKEND")
+    end
+end
 
 const FluxAdaptor = Union{Flux.FluxCPUAdaptor, Flux.FluxCUDAAdaptor, Flux.FluxAMDGPUAdaptor, Flux.FluxMetalAdaptor}
 tocpudevice(args...; cache = IdDict()) = toxdevice(Flux.FluxCPUAdaptor(), args...; cache)
