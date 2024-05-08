@@ -1,5 +1,6 @@
 using Flux
 using Flux: GPU_BACKEND, gpu_backend!
+using Functors
 
 is_precompiling() = ccall(:jl_generating_output, Cint, ()) == 1
 
@@ -67,30 +68,58 @@ toxdevice(adaptor::FluxAdaptor, x::Tuple{Any}; cache = IdDict()) = (toxdevice(ad
 toxdevice(adaptor::FluxAdaptor, x::NamedTuple{name}; cache = IdDict()) where name =
     NamedTuple{name}(toxdevice(adaptor, values(x); cache))
 
-# https://github.com/FluxML/Flux.jl/blob/c442f0ca9ef716dfbc215f2b4422b6c34099f649/src/functor.jl#L182
-# https://github.com/FluxML/Flux.jl/blob/c442f0ca9ef716dfbc215f2b4422b6c34099f649/ext/FluxCUDAExt/functor.jl#L56
-# https://github.com/FluxML/Flux.jl/blob/c442f0ca9ef716dfbc215f2b4422b6c34099f649/ext/FluxAMDGPUExt/functor.jl#L81
-# https://github.com/FluxML/Flux.jl/blob/c442f0ca9ef716dfbc215f2b4422b6c34099f649/ext/FluxMetalExt/functor.jl#L33
-@inline __toxdevice__(adaptor, cache, x) = Flux.fmap(Base.Fix1(Flux.adapt, adaptor), x; exclude = Flux._isleaf, cache)
-@inline __toxdevice__(adaptor, cache, x, warnf) = (warnf(); __toxdevice__(adaptor, cache, x))
-function __toxdevice_generator__(world, source, self, adaptor, cache, x, warnf)
+struct AdaptorCache{A, C} <: AbstractDict{Any, Any}
+    adaptor::A
+    cache::C
+end
+Base.haskey(cache::AdaptorCache, x) = haskey(cache.cache, x)
+Base.iterate(cache::AdaptorCache, state...) = iterate(cache.cache, state...)
+Base.setindex!(cache::AdaptorCache, value, key) = setindex!(cache.cache, value, key)
+function __cacheget_generator__(world, source, self, cache, x)
+    adaptor = cache.parameters[1]
     RT = Core.Compiler.return_type(Flux.adapt, Tuple{adaptor, x}, world)
-    body = warnf <: Nothing ?
-        Expr(:call, :__toxdevice__, :adaptor, :cache, :x) :
-        Expr(:call, :__toxdevice__, :adaptor, :cache, :x, :warnf)
-    if isconcretetype(RT)
-        body = Expr(:(::), body, RT)
-    end
-    expr = Expr(:lambda, [Symbol("#self#"), :adaptor, :cache, :x, :warnf],
+    body = Expr(:call, GlobalRef(Base, :getindex), Expr(:., :cache, QuoteNode(:cache)), :x)
+    body = Expr(:(::), body, RT)
+    expr = Expr(:lambda, [Symbol("#self#"), :cache, :x],
                 Expr(Symbol("scope-block"), Expr(:block, Expr(:return, body))))
     ci = ccall(:jl_expand, Any, (Any, Any), expr, @__MODULE__)
     ci.inlineable = true
     return ci
 end
-@eval function __toxdevice(adaptor, cache, x, warnf)
-    $(Expr(:meta, :generated, __toxdevice_generator__))
+@eval function Base.getindex(cache::AdaptorCache, x)
+    $(Expr(:meta, :generated, __cacheget_generator__))
     $(Expr(:meta, :generated_only))
+end
+# https://github.com/FluxML/Functors.jl/blob/cfc6a608e309c64e4da0f44cd937cb9efa4fd6c7/src/walks.jl#L190
+# CachedWalk + AdaptorCache: CachedWalk only take cache::IdDict, so we made our own
+struct AdaptorWalk{W<:Functors.AbstractWalk, C<:AdaptorCache} <: Functors.AbstractWalk
+    walk::W
+    cache::C
+end
+function (walk::AdaptorWalk)(recurse, x, ys...)
+    should_cache = Functors.usecache(walk.cache, x)
+    if should_cache && haskey(walk.cache, x)
+        return walk.cache[x]
+    else
+        ret = walk.walk(recurse, x, ys...)
+        if should_cache
+            walk.cache[x] = ret
+        end
+        return ret
+    end
+end
+
+# https://github.com/FluxML/Flux.jl/blob/c442f0ca9ef716dfbc215f2b4422b6c34099f649/src/functor.jl#L182
+# https://github.com/FluxML/Flux.jl/blob/c442f0ca9ef716dfbc215f2b4422b6c34099f649/ext/FluxCUDAExt/functor.jl#L56
+# https://github.com/FluxML/Flux.jl/blob/c442f0ca9ef716dfbc215f2b4422b6c34099f649/ext/FluxAMDGPUExt/functor.jl#L81
+# https://github.com/FluxML/Flux.jl/blob/c442f0ca9ef716dfbc215f2b4422b6c34099f649/ext/FluxMetalExt/functor.jl#L33
+# https://github.com/FluxML/Functors.jl/blob/cfc6a608e309c64e4da0f44cd937cb9efa4fd6c7/src/maps.jl#L11
+@inline function __toxdevice(adaptor, cache, x, exclude, warnf)
+    !isnothing(warnf) && warnf()
+    walk = Functors.ExcludeWalk(Functors.DefaultWalk(), Base.Fix1(Flux.adapt, adaptor), exclude)
+    walk = AdaptorWalk(walk, AdaptorCache(adaptor, cache))
+    return Functors.execute(walk, x)
 end
 
 # overload in extensions
-_toxdevice(adaptor::Flux.FluxCPUAdaptor, x, cache) = __toxdevice(adaptor, cache, x, nothing)
+_toxdevice(adaptor::Flux.FluxCPUAdaptor, x, cache) = __toxdevice(adaptor, cache, x, Flux._isleaf, nothing)
