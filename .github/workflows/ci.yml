@@ -21,8 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6' # Replace this with the minimum Julia version that your package supports.
-          - '1'   # automatically expands to the latest stable 1.x release of Julia
+          - '1.10' # Replace this with the minimum Julia version that your package supports.
+          # - '1'   # automatically expands to the latest stable 1.x release of Julia
           # - 'nightly'
         os:
           - ubuntu-latest
