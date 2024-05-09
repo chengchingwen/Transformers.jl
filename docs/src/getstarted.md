@@ -203,5 +203,5 @@ Transformers relies on `CUDA.jl` (or `AMDGPU.jl`/`Metal.jl`) for the GPU stuffs.
 ```@docs
 enable_gpu
 todevice
-togpudevice
+Transformers.togpudevice
 ```
