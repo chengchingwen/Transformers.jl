@@ -192,12 +192,16 @@ julia> bert_model(encode(bertenc, "Peter Piper picked a peck of pickled peppers"
 
 ## GPU
 
-Transformers relies on `CUDA.jl` for the GPU stuffs. In `Flux` we normally use `Flux.gpu` to convert model or data to
- the device. In Transformers, we provide another 2 api (`enable_gpu` and `todevice`) for this. If `enable_gpu(true)` is
- set, `todevice` will be moving data to GPU device, otherwise it is copying data on CPU. *notice*: `enable_gpu` should
- only be called in script, it cannot be used during precompilation.
+Transformers relies on `CUDA.jl` (or `AMDGPU.jl`/`Metal.jl`) for the GPU stuffs.
+ In `Flux` we normally use `Flux.gpu` to convert model or data to the device.
+ In Transformers, we provide another 2 api (`enable_gpu` and `todevice`) for this.
+ If `enable_gpu(true)` is set, `todevice` will be moving data to GPU device, otherwise it is copying data on CPU.
+ The backend is selected by `Flux.gpu_backend!`. When calling `enable_gpu()`, corresponding GPU package (e.g. `CUDA.jl`)
+ will be loaded (equivalent to `using CUDA` in REPL), which requires GPU packages to be installed in the environment.
+ *notice*: `enable_gpu` should only be called in script, it cannot be used during precompilation.
 
 ```@docs
 enable_gpu
 todevice
+Transformers.togpudevice
 ```
