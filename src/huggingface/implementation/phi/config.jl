@@ -1,4 +1,4 @@
-@defaultdef :phi struct HGFPhiConfigDefault
+@hgfcfg :phi struct HGFPhiConfig
     vocab_size::Int = 51200
     hidden_size::Int = 2048
     intermediate_size::Int = 8192
@@ -21,8 +21,6 @@
     bos_token_id::Int = 1
     eos_token_id::Int = 2
 end
-
-const HGFPhiConfig = HGFConfig{:phi}
 
 function HGFConfig{:phi}(cfg, overwrite)
     if !haskey(cfg, :num_key_value_heads)

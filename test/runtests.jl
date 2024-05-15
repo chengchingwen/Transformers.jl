@@ -41,22 +41,29 @@ dzeros(arg...) = zeros(arg...) |> device
 const tests = [
     "tokenizer",
     "huggingface",
+    "loss.jl",
+    "grad.jl",
 ]
 
 Random.seed!(0)
 
 @testset "Transformers" begin
     for t in tests
-        name = titlecase(t)
-        @testset "$name" begin
-            @info "Test $name"
-            for f ∈ readdir(joinpath(@__DIR__, t))
-                endswith(f, ".jl") || continue
-                t == "huggingface" && f == "tokenizer.jl" && !envget("JL_TRF_TEST_TKR") && continue
-                include(joinpath(@__DIR__, t, f))
+        path = joinpath(@__DIR__, t)
+        if isdir(path)
+            name = titlecase(t)
+            @testset "$name" begin
+                @info "Test $name"
+                for f ∈ readdir(path)
+                    endswith(f, ".jl") || continue
+                    t == "huggingface" && f == "tokenizer.jl" && !envget("JL_TRF_TEST_TKR") && continue
+                    include(joinpath(path, f))
+                end
             end
+        else
+            name = titlecase(first(splitext(t)))
+            @info "Test $name"
+            include(path)
         end
     end
-    include("loss.jl")
-    include("grad.jl")
 end

@@ -7,35 +7,12 @@ using Static
 using NeuralAttentionlib
 using NeuralAttentionlib: WithScore
 
-
-abstract type HGFPhiPreTrainedModel <: HGFPreTrainedModel end
-
-struct HGFPhiModel{E, DEC} <: HGFPhiPreTrainedModel
-    embed::E
-    decoder::DEC
-end
-@functor HGFPhiModel
-
-(model::HGFPhiModel)(nt::NamedTuple) = model.decoder(model.embed(nt))
-
-for T in :[
-    HGFPhiForCausalLM,
-    # HGFPhiForSequenceClassification,
-    # HGFPhiForTokenClassification,
-].args
-    @eval begin
-        @hgfdefmodel $T HGFPhiPreTrainedModel
-    end
-end
+@hgfdef Phi (
+    Model => (embed, decoder),
+    ForCausalLM,
+)
 
 basemodelkey(::Type{<:HGFPhiPreTrainedModel}) = :model
-isbasemodel(::Type{<:HGFPhiModel}) = true
-isbasemodel(::Type{<:HGFPhiPreTrainedModel}) = false
-
-get_model_type(::Val{:phi}) = (
-    model = HGFPhiModel,
-    forcausallm = HGFPhiForCausalLM,
-)
 
 function load_model(_type::Type{HGFPhiModel}, cfg, state_dict, prefix)
     embed = load_model(_type, CompositeEmbedding, cfg, state_dict, prefix)
