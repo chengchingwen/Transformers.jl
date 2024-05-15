@@ -63,11 +63,11 @@ function load_model(model_name::AbstractString, task::Symbol, state_dict; trainm
     model_type = getconfigname(config)
     return load_model(model_type, model_name, task, state_dict; trainmode, config, kws...)
 end
-function load_model(model_type, model_name::AbstractString, task; trainmode = false, config = nothing, kws...)
+function load_model(model_type, model_name::AbstractString, task; trainmode = false, config = nothing, mmap = true, lazy = mmap, kws...)
     if isnothing(config)
         config = load_config(model_name; kws...)
     end
-    state_dict = load_state_dict(model_name; kws...)
+    state_dict = load_state_dict(model_name; lazy, mmap, kws...)
     return load_model(model_type, model_name, task, state_dict; trainmode, config, kws...)
 end
 function load_model(model_type, model_name::AbstractString, task, state_dict;

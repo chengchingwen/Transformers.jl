@@ -76,6 +76,7 @@ function load_model(_type::Type{<:HGFLlamaPreTrainedModel}, ::Type{<:SelfAttenti
     @assert head % kv_head == 0 "The number of query is not dividable by the number of key/value groups"
     return_score = cfg[:output_attentions]
     factor = Float32(cfg[:initializer_range])
+    rotary_pe_base = Float64(cfg[:rope_theta])
     @assert isnothing(cfg[:rope_scaling]) "Scaling Rotary Embedding is not support yet"
     q_weight = getweight(weight_init(dims, dims, factor), Array,
                          state_dict, joinname(prefix, "q_proj.weight"))
@@ -87,9 +88,9 @@ function load_model(_type::Type{<:HGFLlamaPreTrainedModel}, ::Type{<:SelfAttenti
     qkv_proj = Layers.Fork(Layers.Dense(q_weight), Layers.Dense(k_weight), Layers.Dense(v_weight))
     o_proj = Layers.Dense(o_weight)
     if grouped_attn
-        op = CausalLlamaRoPEGroupedQueryAttenOp(head, kv_head)
+        op = CausalLlamaRoPEGroupedQueryAttenOp(rotary_pe_base, head, kv_head)
     else
-        op = CausalGPTNeoXRoPEMultiheadQKVAttenOp(head_dims, head)
+        op = CausalGPTNeoXRoPEMultiheadQKVAttenOp(rotary_pe_base, head_dims, head)
     end
     return_score && (op = WithScore(op))
     return SelfAttention(op, qkv_proj, o_proj)

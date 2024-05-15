@@ -15,6 +15,7 @@
     eos_token_id::Int = 2
     pretraining_tp::Int = 1
     tie_word_embeddings::Bool = false
+    rope_theta::Float64 = 1e4
     rope_scaling::Nothing = nothing
     clean_up_tokenization_spaces::Bool = false
 end
