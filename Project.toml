@@ -41,6 +41,7 @@ Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 ValSplit = "0625e100-946b-11ec-09cd-6328dd093154"
 WordTokenizers = "796a5d58-b03d-544a-977e-18100b691f6e"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
 
 [compat]
 BytePairEncoding = "0.4"

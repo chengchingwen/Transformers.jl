@@ -155,7 +155,7 @@ function (sa::SelfAttention)(nt::NamedTuple)
     # NOTE: instead of returning y, we return a copy of y, because 
     # there is some sort of memory leak when using distributed for Jevo specifically,
     # I suspect related to gradients. This cuts off gradient flow.
-    hidden_state = zeros(Float32, 8, 14, 1000) |> Flux.gpu
+    hidden_state = zeros(Float32, size(y.hidden_state)) |> Flux.gpu
     hidden_state .= y.hidden_state 
     return (hidden_state = hidden_state, attention_mask = y.attention_mask)
 end
