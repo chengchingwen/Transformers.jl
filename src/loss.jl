@@ -2,7 +2,7 @@ using Statistics
 using ChainRulesCore
 using Static
 using PrimitiveOneHot
-using NeuralAttentionlib: AbstractSequenceMask, GenericSequenceMask, LengthMask, RevLengthMask
+using NeuralAttentionlib: AbstractSeqMask, GenericSeqMask, LengthMask, RevLengthMask
 
 using NNlib
 import Flux.Losses
@@ -24,10 +24,10 @@ _qlogp(q, p, ϵ, m) = @fastmath m * - Losses.xlogy(q, max(p, ϵ))
 
 _sdiv(a, b) = @fastmath a / oftype(a, b)
 
-Losses.crossentropy(ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask; ϵ = Losses.epseltype(ŷ)) =
+Losses.crossentropy(ŷ::AbstractArray, y::AbstractArray, m::AbstractSeqMask; ϵ = Losses.epseltype(ŷ)) =
     Losses.crossentropy(mean, ŷ, y, m; ϵ)
 function Losses.crossentropy(agg::Union{typeof(sum), typeof(mean)},
-                             ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask;
+                             ŷ::AbstractArray, y::AbstractArray, m::AbstractSeqMask;
                              ϵ = Losses.epseltype(ŷ))
     Losses._check_sizes(ŷ, y)
     M = Broadcast.preprocess(ŷ, m)
@@ -46,7 +46,7 @@ function ∇_qlogp(dy, q, p, ϵ, m)
 end
 
 function ChainRulesCore.rrule(::typeof(crossentropy), agg::Union{typeof(sum), typeof(mean)},
-                              ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask;
+                              ŷ::AbstractArray, y::AbstractArray, m::AbstractSeqMask;
                               ϵ = Losses.epseltype(ŷ))
     Losses._check_sizes(ŷ, y)
     M = Broadcast.preprocess(ŷ, m)
@@ -78,10 +78,10 @@ function ∇_bcglog!(dy, dl, a, c, cid, ϵ, m)
     @fastmath @inbounds dy[I] = m[I] * (dl[lid] * dqlogp)
 end
 
-Losses.crossentropy(ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask; ϵ = Losses.epseltype(ŷ)) =
+Losses.crossentropy(ŷ::AbstractArray, y::OneHotArray, m::AbstractSeqMask; ϵ = Losses.epseltype(ŷ)) =
     Losses.crossentropy(mean, ŷ, y, m; ϵ)
 function Losses.crossentropy(agg::Union{typeof(sum), typeof(mean)},
-                             ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask;
+                             ŷ::AbstractArray, y::OneHotArray, m::AbstractSeqMask;
                              ϵ = Losses.epseltype(ŷ))
     Losses._check_sizes(ŷ, y)
     c = reinterpret(Int32, y)
@@ -98,7 +98,7 @@ end
 _z(a, b) = 0
 
 function ChainRulesCore.rrule(::typeof(crossentropy), agg::Union{typeof(sum), typeof(mean)},
-                              ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask;
+                              ŷ::AbstractArray, y::OneHotArray, m::AbstractSeqMask;
                               ϵ = Losses.epseltype(ŷ))
     Losses._check_sizes(ŷ, y)
     c = reinterpret(Int32, y)
@@ -124,10 +124,10 @@ end
 
 _qp(q, logp, m) = @fastmath m * (- q * logp)
 
-Losses.logitcrossentropy(ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask) =
+Losses.logitcrossentropy(ŷ::AbstractArray, y::AbstractArray, m::AbstractSeqMask) =
     Losses.logitcrossentropy(mean, ŷ, y, m)
 function Losses.logitcrossentropy(agg::Union{typeof(sum), typeof(mean)},
-                                  ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask)
+                                  ŷ::AbstractArray, y::AbstractArray, m::AbstractSeqMask)
     Losses._check_sizes(ŷ, y)
     logp = logsoftmax(ŷ; dims = 1)
     M = Broadcast.preprocess(ŷ, m)
@@ -140,7 +140,7 @@ function Losses.logitcrossentropy(agg::Union{typeof(sum), typeof(mean)},
 end
 
 function ChainRulesCore.rrule(::typeof(logitcrossentropy), agg::Union{typeof(sum), typeof(mean)},
-                              ŷ::AbstractArray, y::AbstractArray, m::AbstractSequenceMask)
+                              ŷ::AbstractArray, y::AbstractArray, m::AbstractSeqMask)
     Losses._check_sizes(ŷ, y)
     logp = logsoftmax(ŷ; dims = 1)
     M = Broadcast.preprocess(ŷ, m)
@@ -172,10 +172,10 @@ end
 _exp(x) = Base.FastMath.exp_fast(x)
 Base.has_fast_linear_indexing(::Broadcast.Broadcasted{<:Union{Nothing, Broadcast.BroadcastStyle}, A, typeof(_exp)}) where {A} = false
 
-Losses.logitcrossentropy(ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask) =
+Losses.logitcrossentropy(ŷ::AbstractArray, y::OneHotArray, m::AbstractSeqMask) =
     Losses.logitcrossentropy(mean, ŷ, y, m)
 function Losses.logitcrossentropy(agg::Union{typeof(sum), typeof(mean)},
-                                  ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask)
+                                  ŷ::AbstractArray, y::OneHotArray, m::AbstractSeqMask)
     Losses._check_sizes(ŷ, y)
     xmax = maximum(ŷ; dims = 1)
     xdiff = instantiate(broadcasted(Base.FastMath.sub_fast, ŷ, xmax))
@@ -196,7 +196,7 @@ end
 ∇logsoftmax_data!(dy, y; dims = 1) = @fastmath dy .-= sum(dy; dims) .* exp.(y)
 
 function ChainRulesCore.rrule(::typeof(logitcrossentropy), agg::Union{typeof(sum), typeof(mean)},
-                              ŷ::AbstractArray, y::OneHotArray, m::AbstractSequenceMask)
+                              ŷ::AbstractArray, y::OneHotArray, m::AbstractSeqMask)
     Losses._check_sizes(ŷ, y)
     xmax = maximum(ŷ; dims = 1)
     xdiff = instantiate(broadcasted(Base.FastMath.sub_fast, ŷ, xmax))
