@@ -34,7 +34,7 @@ HGFConfig{name}(pretrain, overwrite = nothing) where name = HGFConfig(name, pret
 function HGFConfig(cfg::HGFConfig{name}; kws...) where name
     overwrite = getfield(cfg, :overwrite)
     if isnothing(overwrite)
-        overwrite = Dict(kws)
+        overwrite = Dict{Symbol, Any}(kws)
     else
         namemap = getnamemap(HGFConfig{name})
         for k in keys(kws)
@@ -43,7 +43,7 @@ function HGFConfig(cfg::HGFConfig{name}; kws...) where name
                     error("Aliases of the same config entry is set at the same time: $(aliasgroup(namemap, k))")
             end
         end
-        overwrite = merge!(Dict(pairs(overwrite)), kws)
+        overwrite = merge(overwrite, kws)
     end
     pretrain = getfield(cfg, :pretrain)
     return HGFConfig{name, typeof(pretrain)}(pretrain, overwrite)
@@ -85,6 +85,9 @@ function Base.getproperty(cfg::HGFConfig, sym::Symbol)
     !isnothing(overwrite) && haskey(overwrite, sym) && return overwrite[sym]
     pretrain = getfield(cfg, :pretrain)
     haskey(pretrain, sym) && return pretrain[sym]
+    for key in aliasgroup(namemap, sym)
+        haskey(pretrain, key) && return pretrain[key]
+    end
     default = getdefault(cfg)
     haskey(default, sym) && return default[sym]
     haskey(DEFAULT_PRETRAIN_CONFIG, sym) && return DEFAULT_PRETRAIN_CONFIG[sym]

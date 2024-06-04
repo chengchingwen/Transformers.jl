@@ -24,7 +24,7 @@ In `"src/huggingface/implementation/bloom/"`, we open a file `"config.jl"` and d
     vocab_size::Int = 250880
     hidden_size::Int = 64
     [n_layer, num_hidden_layers]::Int = 2
-    [n_head, num_attention_head]::Int = 8
+    [n_head, num_attention_heads]::Int = 8
     layer_norm_epsilon::Float64 = 1e-5
     initializer_range::Float64 = 0.02
     use_cache::Bool = true

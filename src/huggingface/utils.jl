@@ -73,7 +73,7 @@ function aliases(c::AliasNamedTuple)
     return keys(namemap)[length(c)+1:end]
 end
 
-aliasgroup(namemap::NamedTuple{NAME, T}, k::Symbol) where {NAME, T <: Tuple{Int, Vararg{Int}}} = findall(==(namemap[k]), namemap)
+aliasgroup(namemap::NamedTuple{NAME, T}, k::Symbol) where {NAME, T <: Tuple{Int, Vararg{Int}}} = findall(==(get(namemap, k, 0)), namemap)
 aliasgroup(c::AliasNamedTuple, k::Symbol) = aliasgroup(getfield(c, :namemap), k)
 
 function alias_tuplem(ex)
