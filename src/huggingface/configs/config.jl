@@ -99,9 +99,15 @@ Base.getindex(cfg::HGFConfig, sym::Symbol) = getproperty(cfg, sym)
 Base.length(cfg::HGFConfig) = length(keys(cfg))
 
 function Base.keys(cfg::HGFConfig)
+    namemap = getnamemap(cfg)
     overwrite = getfield(cfg, :overwrite)
     pretrain = getfield(cfg, :pretrain)
-    return isnothing(overwrite) ? Tuple(keys(pretrain)) : Tuple(union(keys(pretrain), keys(overwrite)))
+    names = Set{Symbol}()
+    for set in (pretrain, something(overwrite, ())), k in keys(set)
+        haskey(namemap, k) && (k = aliasof(namemap, k)::Symbol)
+        push!(names, k)
+    end
+    return Tuple(names)
 end
 
 Base.haskey(cfg::HGFConfig, k::String) = haskey(cfg, Symbol(k))
@@ -128,6 +134,15 @@ function Base.iterate(cfg::HGFConfig, state = keys(cfg))
     k = state[1]
     v = cfg[k]
     return k=>v, Base.tail(state)
+end
+
+function Base.summary(io::IO, cfg::HGFConfig)
+    print(io, "HGFConfig{")
+    show(io, getconfigname(cfg))
+    print(io, "} with ")
+    len = length(cfg)
+    print(io, len)
+    print(io, len == 1 ? " entry" : " entries")
 end
 
 include("auto.jl")
