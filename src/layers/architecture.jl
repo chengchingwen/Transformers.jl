@@ -273,20 +273,33 @@ struct Parallel{names, L}  <: Architecture
         @assert names isa Tuple{Vararg{Symbol}} "`Parallel{names}` where `names` must be tuple of symbols"
         return new{names, L}(layer)
     end
+    function Parallel{names, L}(layer::L) where {names, L <: NamedTuple{names}}
+        @assert names isa Tuple{Vararg{Symbol}} "`Parallel{names}` where `names` must be tuple of symbols"
+        return new{names, L}(layer)
+    end
 end
 Functors.functor(::Type{<:Parallel{names}}, x) where names = ((layer = x.layer,), y -> Parallel{names}(y.layer))
 
+Parallel{names, L}(layer::L) where {names, L <: Tuple} = Parallel{names, NamedTuple{names, L}}(NamedTuple{names}(layer))
 Parallel{names}(layer) where names = Parallel{names, typeof(layer)}(layer)
 
 argument_names(p::Parallel{names}) where names = names
 
-function (p::Parallel{names})(nt::NamedTuple) where names
+function (p::Parallel{names, L})(nt::NamedTuple) where {names, L}
     if @generated
-        calls = [ :($n = apply_on_namedtuple(p.layer, return_hidden_state(nt.$n))) for n in names ]
+        if L <: NamedTuple
+            calls = [ :($n = apply_on_namedtuple(p.layer.$n, return_hidden_state(nt.$n))) for n in names ]
+        else
+            calls = [ :($n = apply_on_namedtuple(p.layer, return_hidden_state(nt.$n))) for n in names ]
+        end
         expr = Expr(:tuple, calls...)
         return :(merge(nt, $expr))
     else
-        nts = map(Base.Fix1(apply_on_namedtuple, p.layer), return_hidden_state.(values(NamedTuple{argument_names(p)}(nt))))
+        if p.layer isa NamedTuple
+            nts = apply_on_namedtuple.(values(p.layer), return_hidden_state.(values(NamedTuple{argument_names(p)}(nt))))
+        else
+            nts = map(Base.Fix1(apply_on_namedtuple, p.layer), return_hidden_state.(values(NamedTuple{argument_names(p)}(nt))))
+        end
         return merge(nt, NamedTuple{argument_names(p)}(nts))
     end
 end
