@@ -13,14 +13,14 @@ export Layers, TextEncoders, HuggingFace,
 const Container{T} = Union{NTuple{N, T}, Vector{T}} where N
 
 include("./device.jl")
+include("./loss.jl")
+
 include("./layers/Layers.jl")
 include("./tokenizer/tokenizer.jl")
 include("./textencoders/TextEncoders.jl")
 
 include("./datasets/Datasets.jl")
 include("./huggingface/HuggingFace.jl")
-
-include("./loss.jl")
 
 using .Layers
 using .TextEncoders
