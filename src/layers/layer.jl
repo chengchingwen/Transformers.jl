@@ -196,7 +196,7 @@ end
 
 #############################################
 
-struct Transformer{T <: Tuple{Vararg{<:AbstractTransformerBlock}}, F} <: LayerStruct
+struct Transformer{T <: Tuple{Vararg{AbstractTransformerBlock}}, F} <: LayerStruct
     blocks::T
     f::F
 end
