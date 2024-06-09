@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Get Started · Transformers.jl</title><meta name="title" content="Get Started · Transformers.jl"/><meta property="og:title" content="Get Started · Transformers.jl"/><meta property="twitter:title" content="Get Started · Transformers.jl"/><meta name="description" content="Documentation for Transformers.jl."/><meta property="og:description" content="Documentation for Transformers.jl."/><meta property="twitter:description" content="Documentation for Transformers.jl."/><meta property="og:url" content="https://chengchingwen.github.io/Transformers.jl/getstarted/"/><meta property="twitter:url" content="https://chengchingwen.github.io/Transformers.jl/getstarted/"/><link rel="canonical" href="https://chengchingwen.github.io/Transformers.jl/getstarted/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.svg" alt="Transformers.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">Transformers.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Get Started</a><ul class="internal"><li><a class="tocitem" href="#Create-a-N-layered-Transformer-model"><span>Create a N-layered Transformer model</span></a></li><li><a class="tocitem" href="#Create-a-N-layered-Transformer-Decoder-model"><span>Create a N-layered Transformer Decoder model</span></a></li><li><a class="tocitem" href="#Preprocessing-Text"><span>Preprocessing Text</span></a></li><li><a class="tocitem" href="#Using-(HuggingFace)-Pre-trained-Models"><span>Using (HuggingFace) Pre-trained Models</span></a></li><li><a class="tocitem" href="#GPU"><span>GPU</span></a></li></ul></li><li><a class="tocitem" href="../tutorial/">Tutorial</a></li><li><a class="tocitem" href="../layers/">Layers</a></li><li><a class="tocitem" href="../textencoders/">TextEncoders</a></li><li><span class="tocitem">HuggingFace</span><ul><li><a class="tocitem" href="../huggingface/">User Interface</a></li><li><a class="tocitem" href="../huggingface_dev/">Add New Models</a></li></ul></li><li><a class="tocitem" href="../api_ref/">API Reference</a></li><li><a class="tocitem" href="../changelog/">ChangeLogs</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Get Started</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Get Started</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/chengchingwen/Transformers.jl/blob/master/docs/src/getstarted.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Get-Started"><a class="docs-heading-anchor" href="#Get-Started">Get Started</a><a id="Get-Started-1"></a><a class="docs-heading-anchor-permalink" href="#Get-Started" title="Permalink"></a></h1><p>Transformers.jl contain multiple functionalities, from basic building block for a transformer model to using pretrained  model from huggingface. Each of them is put under different submodule in Transformers.jl.</p><p>You should find more examples in the <a href="https://github.com/chengchingwen/Transformers.jl/tree/master/example">example folder</a>.</p><h2 id="Create-a-N-layered-Transformer-model"><a class="docs-heading-anchor" href="#Create-a-N-layered-Transformer-model">Create a N-layered Transformer model</a><a id="Create-a-N-layered-Transformer-model-1"></a><a class="docs-heading-anchor-permalink" href="#Create-a-N-layered-Transformer-model" title="Permalink"></a></h2><p>All model building block are in the <code>Layers</code> module. Here we create a simple 3 layered vanilla transformer  (multi-head self-attention + MLP) model, where each attention have 4 heads:</p><pre><code class="language-julia hljs">using Flux
+using Transformers
+
+num_layer = 3
+hidden_size = 128
+num_head = 4
+head_hidden_size = div(hidden_size, num_head)
+intermediate_size = 4hidden_size
+
+trf_blocks = Transformer(Layers.TransformerBlock,
+    num_layer, relu, num_head, hidden_size, head_hidden_size, intermediate_size)</code></pre><p>The <code>Transformer</code> layer, by default take a <code>NamedTuple</code> as input, and always return a <code>NamedTuple</code>.</p><pre><code class="language-julia-repl hljs">julia&gt; x = randn(Float32, hidden_size, 10 #= sequence length =#, 2 #= batch size =#);
+
+julia&gt; y = trf_blocks(
+    (; hidden_state = x) ); # The model would be apply on the `hidden_state` field.
+
+julia&gt; keys(y)
+(:hidden_state,)</code></pre><p>It also works on high dimension input data:</p><pre><code class="language-julia-repl hljs">julia&gt; x2 = reshape(x, hidden_size, 5, 2 #= width 5 x heigh 2 =#, 2 #= batch size =#);
+
+julia&gt; y2 = trf_blocks( (; hidden_state = x2) );
+
+julia&gt; y.hidden_state ≈ reshape(y2.hidden_state, size(y.hidden_state))
+true</code></pre><p>Some times you might want to see how the attention score looks like, this can be done by creating a model that return  the attention score as well. The attention score would usually be in shape (key length, query length, head,  batch size):</p><pre><code class="language-julia hljs"># creating new model
+trf_blocks_ws = Transformer(Layer.TransformerBlock,
+    num_layer, relu, num_head, hidden_size, head_hidden_size, intermediate_size;
+    return_score = true)
+
+# or transform an old model
+trf_blocks_ws = Layers.WithScore(trf_blocks)</code></pre><pre><code class="language-julia-repl hljs">julia&gt; y = trf_blocks_ws( (; hidden_state = x) );
+
+julia&gt; keys(y)
+(:hidden_state, :attention_score)
+</code></pre><p>The model can also take an attention mask to avoid attention looking at the padding tokens. The attention mask would need  construct with NeuralAttentionlib.Masks:</p><pre><code class="language-julia-repl hljs">julia&gt; mask = Masks.LengthMask([5, 7]); # specify the sequence length of each sample in the batch
+
+julia&gt; y3 = trf_blocks_ws( (; hidden_state = x, attention_mask = mask) );
+
+julia&gt; keys(y3)
+(:hidden_state, :attention_mask, :attention_score)
+</code></pre><h2 id="Create-a-N-layered-Transformer-Decoder-model"><a class="docs-heading-anchor" href="#Create-a-N-layered-Transformer-Decoder-model">Create a N-layered Transformer Decoder model</a><a id="Create-a-N-layered-Transformer-Decoder-model-1"></a><a class="docs-heading-anchor-permalink" href="#Create-a-N-layered-Transformer-Decoder-model" title="Permalink"></a></h2><p>For constructing the transformer decoder in the encoder-decoder architecture:</p><pre><code class="language-julia hljs">trf_dec_blocks_ws = Transformer(Layers.TransformerDecoderBlock,
+    num_layer, relu, num_head, hidden_size, head_hidden_size, intermediate_size;
+    return_score = true)</code></pre><pre><code class="language-julia-repl hljs">julia&gt; x3 = x = randn(Float32, hidden_size, 7 #= sequence length =#, 2 #= batch size =#);
+
+julia&gt; z = trf_dec_blocks_ws( (; hidden_state = x3, memory = y.hidden_state #= encoder output =#) );
+
+julia&gt; keys(z)
+(:hidden_state, :memory, :cross_attention_score)
+
+julia&gt; size(z.cross_attention_score) # (key length, query length, head, batch size)
+(10, 7, 4, 2)
+</code></pre><h2 id="Preprocessing-Text"><a class="docs-heading-anchor" href="#Preprocessing-Text">Preprocessing Text</a><a id="Preprocessing-Text-1"></a><a class="docs-heading-anchor-permalink" href="#Preprocessing-Text" title="Permalink"></a></h2><p>Text processing functionalities are in the <code>TextEncoders</code> module. The <code>TransformerTextEncoder</code> take a tokenize function  and a list of <code>String</code> as the vocabulary. If the tokenize function is omitted, it would use <code>WordTokenizers.tokenize</code>  as the default. Here we create a text encoder that split on every <code>Char</code> and only know 4 characters.</p><pre><code class="language-julia hljs">using Transformers.TextEncoders
+
+char_tenc = TransformerTextEncoder(Base.Fix2(split, &quot;&quot;), map(string, [&#39;A&#39;, &#39;T&#39;, &#39;C&#39;, &#39;G&#39;]))</code></pre><pre><code class="language-julia-repl hljs">julia&gt; char_tenc
+TransformerTextEncoder(
+├─ TextTokenizer(WordTokenization(split_sentences = WordTokenizers.split_sentences, tokenize = Base.Fix2{typeof(split), String}(split, &quot;&quot;))),
+├─ vocab = Vocab{String, SizedArray}(size = 8, unk = &lt;unk&gt;, unki = 6),
+├─ startsym = &lt;s&gt;,
+├─ endsym = &lt;/s&gt;,
+├─ padsym = &lt;pad&gt;,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := TextEncodeBase.with_head_tail(&lt;s&gt;, &lt;/s&gt;)(target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(nothing))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(nothing, &lt;pad&gt;, tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target := (target.token, target.attention_mask)
+)
+
+julia&gt; data = encode(char_tenc, &quot;ATCG&quot;)
+(token = Bool[0 1 … 0 0; 0 0 … 0 0; … ; 1 0 … 0 0; 0 0 … 0 1], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[6]))
+
+julia&gt; data.token
+8x6 OneHotArray{8, 2, Vector{OneHot{0x00000008}}}:
+ 0  1  0  0  0  0
+ 0  0  1  0  0  0
+ 0  0  0  1  0  0
+ 0  0  0  0  1  0
+ 0  0  0  0  0  0
+ 0  0  0  0  0  0
+ 1  0  0  0  0  0
+ 0  0  0  0  0  1
+
+julia&gt; decode(char_tenc, data.token)
+6-element Vector{String}:
+ &quot;&lt;s&gt;&quot;
+ &quot;A&quot;
+ &quot;T&quot;
+ &quot;C&quot;
+ &quot;G&quot;
+ &quot;&lt;/s&gt;&quot;
+
+julia&gt; data2 = encode(char_tenc, [&quot;ATCG&quot;, &quot;AAAXXXX&quot;])
+(token = [0 1 … 0 0; 0 0 … 0 0; … ; 1 0 … 0 0; 0 0 … 0 0;;; 0 1 … 0 0; 0 0 … 0 0; … ; 1 0 … 0 0; 0 0 … 0 1], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[6, 9]))
+
+julia&gt; decode(char_tenc, data2.token)
+9×2 Matrix{String}:
+ &quot;&lt;s&gt;&quot;    &quot;&lt;s&gt;&quot;
+ &quot;A&quot;      &quot;A&quot;
+ &quot;T&quot;      &quot;A&quot;
+ &quot;C&quot;      &quot;A&quot;
+ &quot;G&quot;      &quot;&lt;unk&gt;&quot;
+ &quot;&lt;/s&gt;&quot;   &quot;&lt;unk&gt;&quot;
+ &quot;&lt;pad&gt;&quot;  &quot;&lt;unk&gt;&quot;
+ &quot;&lt;pad&gt;&quot;  &quot;&lt;unk&gt;&quot;
+ &quot;&lt;pad&gt;&quot;  &quot;&lt;/s&gt;&quot;
+</code></pre><h2 id="Using-(HuggingFace)-Pre-trained-Models"><a class="docs-heading-anchor" href="#Using-(HuggingFace)-Pre-trained-Models">Using (HuggingFace) Pre-trained Models</a><a id="Using-(HuggingFace)-Pre-trained-Models-1"></a><a class="docs-heading-anchor-permalink" href="#Using-(HuggingFace)-Pre-trained-Models" title="Permalink"></a></h2><p>Use the <code>HuggingFace</code> module for loading the pretrained model. The <code>@hgf_str</code> return a text encoder of the model, and  the model itself.</p><pre><code class="language-julia-repl hljs">julia&gt; bertenc, bert_model = hgf&quot;bert-base-cased&quot;;
+
+julia&gt; bert_model(encode(bertenc, &quot;Peter Piper picked a peck of pickled peppers&quot;))
+(hidden_state = [0.54055643 -0.3517502 … 0.2955708 1.601667; 0.05538677 -0.1114391 … -0.2139448 0.3692414; … ; 0.34500372 0.38523915 … 0.2224255 0.7384993; -0.18260899 -0.05137573 … -0.2833455 -0.23427412;;;], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[13]), pooled = Float32[-0.6727301; 0.42062035; … ; -0.902852; 0.99214816;;])
+</code></pre><h2 id="GPU"><a class="docs-heading-anchor" href="#GPU">GPU</a><a id="GPU-1"></a><a class="docs-heading-anchor-permalink" href="#GPU" title="Permalink"></a></h2><p>Transformers relies on <code>CUDA.jl</code> (or <code>AMDGPU.jl</code>/<code>Metal.jl</code>) for the GPU stuffs.  In <code>Flux</code> we normally use <code>Flux.gpu</code> to convert model or data to the device.  In Transformers, we provide another 2 api (<code>enable_gpu</code> and <code>todevice</code>) for this.  If <code>enable_gpu(true)</code> is set, <code>todevice</code> will be moving data to GPU device, otherwise it is copying data on CPU.  The backend is selected by <code>Flux.gpu_backend!</code>. When calling <code>enable_gpu()</code>, corresponding GPU package (e.g. <code>CUDA.jl</code>)  will be loaded (equivalent to <code>using CUDA</code> in REPL), which requires GPU packages to be installed in the environment.  <em>notice</em>: <code>enable_gpu</code> should only be called in script, it cannot be used during precompilation.</p><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Transformers.enable_gpu" href="#Transformers.enable_gpu"><code>Transformers.enable_gpu</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">enable_gpu(t=true)</code></pre><p>Enable gpu for <code>todevice</code>, disable with <code>enable_gpu(false)</code>. The backend is selected by <code>Flux.gpu_backend!</code>.  Should only be used in user scripts.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/ca53cc4e095ea4536a0f97a950c63e031d178ee3/src/device.jl#L7-L12">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Transformers.todevice" href="#Transformers.todevice"><code>Transformers.todevice</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">todevice(x)</code></pre><p>Move data to device, only when gpu is enable with <code>enable_gpu</code>, basically equal <code>Flux.gpu</code>. Otherwise just <code>Flux.cpu</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/ca53cc4e095ea4536a0f97a950c63e031d178ee3/src/device.jl#L46-L50">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Transformers.togpudevice" href="#Transformers.togpudevice"><code>Transformers.togpudevice</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">togpudevice(x)</code></pre><p>Move data to gpu device, backend selected by <code>Flux.gpu_backend!</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/chengchingwen/Transformers.jl/blob/ca53cc4e095ea4536a0f97a950c63e031d178ee3/src/device.jl#L53-L57">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../tutorial/">Tutorial »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Sunday 9 June 2024 16:54">Sunday 9 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
