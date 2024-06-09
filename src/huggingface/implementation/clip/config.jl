@@ -30,8 +30,8 @@ end
 end
 
 @hgfcfg :clip struct HGFCLIPConfig
-    text_config::HGFCLIPTextConfigDefault = HGFCLIPTextConfigDefault()
-    vision_config::HGFCLIPVisionConfigDefault = HGFCLIPVisionConfigDefault()
+    text_config::HGFCLIPTextConfig = HGFCLIPTextConfig((;))
+    vision_config::HGFCLIPVisionConfig = HGFCLIPVisionConfig((;))
     text_config_dict::Nothing = nothing
     vision_config_dict::Nothing = nothing
     projection_dim::Int = 512

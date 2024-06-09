@@ -309,7 +309,7 @@ function extract_normalizer(::Val{:BertNormalizer}, normalizer_dict, tokenizatio
 end
 
 extract_normalizer(::Val{:Lowercase}, normalizer_dict, tokenization, tokenizer_dict) =
-    TextEncodeBase.LowercaseNormalizer(tokenization)
+    TextEncodeBase.SentenceReplaceNormalizer(TextEncodeBase.LowercaseNormalizer(tokenization), "İ"=>"İ")
 
 extract_normalizer(::Val{:NFD}, normalizer_dict, tokenization, tokenizer_dict) =
     TextEncodeBase.UnicodeNormalizer(tokenization, :NFD)
@@ -498,12 +498,21 @@ function build_pipeline(fs)
     end |> PipeGet{:token}()
 end
 
-function extract_decoder(decoder_dict, config)
+function extract_decoder(tokenizer_dict, config)
     decodes = Any[identity]
     textprocesses = Any[TextEncodeBase.join_text]
-    decodes, textprocesses = extract_decoder(decoder_dict, decodes, textprocesses)
+    decodes, textprocesses = extract_decoder(tokenizer_dict["decoder"], decodes, textprocesses)
     config[:clean_up_tokenization_spaces] && !(nestedcall(cleanup) in textprocesses) &&
         push!(textprocesses, nestedcall(cleanup))
+    # https://github.com/huggingface/transformers/blob/25245ec26dc29bcf6102e1b4ddd0dfd02e720cf5/src/transformers/models/clip/tokenization_clip_fast.py#L95-L107
+    if getconfigname(config) == :clip
+        suffix = tokenizer_dict["model"]["end_of_word_suffix"]
+        p = suffix => " "
+        remove_suffix(s) = replace(s, p)
+        remove_tail_space(s) = string_strip(' ', s; start=0, stop=1)
+        push!(decodes, nestedcall(remove_suffix))
+        push!(textprocesses, nestedcall(remove_tail_space))
+    end
     decode = build_pipeline(reduce_nestedcall(decodes))
     textprocess = build_pipeline(reduce_nestedcall(textprocesses))
     return decode, textprocess
@@ -608,7 +617,7 @@ function load_fast_tokenizer_components(tokenizer_json, config)
     base_tokenization, match_tokens = extract_base_tokenization(method, match_tokens, tokenizer_dict)
     match_tokens = empty_then_nothing(match_tokens)
     process_config = extract_processor(tokenizer_dict)
-    decode, textprocess = extract_decoder(tokenizer_dict["decoder"], config)
+    decode, textprocess = extract_decoder(tokenizer_dict, config)
     return base_tokenization, match_tokens, vocab_list, unk, tokenization_object, process_config, decode, textprocess
 end
 
