@@ -4,6 +4,7 @@ const artifact_dir = @artifact_str("xnli_dev")
 const xnli = joinpath(artifact_dir, "xnli-dev.txt")
 using PythonCall
 const hgf_trf = pyimport("transformers")
+hgf_trf.file_utils.default_cache_path = nothing
 
 using Transformers
 using TimerOutputs
@@ -28,7 +29,7 @@ function test_tokenizer(name, corpus; to = TimerOutput())
     @info "Load $name configure file in Julia"
     config = @tryrun begin
         @timeit to "jlload cfg" begin
-            cfg = HuggingFace.load_config(name; auth_token = HFHUB_Token)
+            cfg = HuggingFace.load_config(name; auth_token = HFHUB_Token, cache = false)
             HuggingFace.HGFConfig(cfg; layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
         end
     end "Failed to load $name configure file in Julia, probably unsupported"
@@ -50,37 +51,29 @@ function test_tokenizer(name, corpus; to = TimerOutput())
     @info "Python $name tokenizer loaded successfully"
     @info "Loading $name tokenizer in Julia"
     tkr = @tryrun begin
-        @timeit to "jlload tkr" HuggingFace.load_tokenizer(name; config, auth_token = HFHUB_Token)
+        @timeit to "jlload tkr" HuggingFace.load_tokenizer(name; config, auth_token = HFHUB_Token, cache = false)
     end "Failed to load $name tokenizer in Julia"
     @info "Julia $name tokenizer loaded successfully"
     @info "Testing: $name Tokenizer"
+    trunc = !isnothing(get(tkr.config, :trunc, nothing))
     prev_line = nothing
     for line in corpus
         # single input
         isempty(line) && continue
         jl_tokens = @timeit to "jltokenize" TextEncodeBase.getvalue.(TextEncodeBase.tokenize(tkr, line))
-        _py_tokens = @timeit to "pytokenize" hgf_tkr.tokenize(line)
+        _py_tokens = @timeit to "pytokenize" hgf_tkr.tokenize(line; truncation = false)
         py_tokens = pyconvert(Vector{String}, _py_tokens)
         @test jl_tokens == py_tokens
         jl_indices = collect(reinterpret(Int32, encode(tkr, line).token))
-        _py_indices = hgf_tkr(line)["input_ids"]
+        _py_indices = hgf_tkr(line; truncation = trunc)["input_ids"]
         py_indices = pyconvert(Vector{Int}, _py_indices) .+ 1
-        jl_ind_len = length(jl_indices)
-        py_ind_len = length(py_indices)
-        if jl_ind_len > py_ind_len
-            @test jl_indices[begin:py_ind_len] == py_indices
-        elseif py_ind_len > jl_ind_len
-            @test jl_indices == py_indices[begin:jl_ind_len]
-        else
-            @test jl_indices == py_indices
-        end
-
+        @test jl_indices == py_indices
         jl_decoded = @timeit to "jldecode" TextEncodeBase.decode_text(tkr, jl_indices)
         _py_decoded = @timeit to "pydecode" hgf_tkr.decode(_py_indices)
         py_decoded = pyconvert(String, _py_decoded)
         @test jl_decoded == py_decoded
 
-        single_pass = jl_tokens == py_tokens && jl_decoded == py_decoded
+        single_pass = jl_tokens == py_tokens && jl_indices == py_indices && jl_decoded == py_decoded
         if !single_pass
             println("Failed: ", repr(line))
         end
@@ -89,21 +82,17 @@ function test_tokenizer(name, corpus; to = TimerOutput())
             pair_jl_tokens =
                 @timeit to "jltokenize2" vcat(
                     nestedcall(getvalue, TextEncodeBase.tokenize(tkr, [[prev_line, line]]))[]...)
-            _pair_py_tokens = @timeit to "pytokenize2" hgf_tkr.tokenize(prev_line, line)
+            _pair_py_tokens = @timeit to "pytokenize2" hgf_tkr.tokenize(prev_line, line; truncation = false)
             pair_py_tokens = pyconvert(Vector{String}, _pair_py_tokens)
             @test pair_jl_tokens == pair_py_tokens
             pair_jl_indices = reshape(
                 collect(reinterpret(Int32, encode(tkr, [[prev_line, line]]).token)), :)
-            _pair_py_indices = hgf_tkr(prev_line, line)["input_ids"]
+            _pair_py_indices = hgf_tkr(prev_line, line; truncation = trunc)["input_ids"]
             pair_py_indices = pyconvert(Vector{Int}, _pair_py_indices) .+ 1
-            pair_jl_ind_len = length(pair_jl_indices)
-            pair_py_ind_len = length(pair_py_indices)
-            if pair_jl_ind_len > pair_py_ind_len
-                @test pair_jl_indices[begin:pair_py_ind_len] == pair_py_indices
-            elseif pair_py_ind_len > pair_jl_ind_len
-                @test pair_jl_indices == pair_py_indices[begin:pair_jl_ind_len]
-            else
-                @test pair_jl_indices == pair_py_indices
+            @test pair_jl_indices == pair_py_indices
+            pair_pass = pair_jl_tokens == pair_py_tokens && pair_jl_indices == pair_py_indices
+            if !pair_pass
+                println("Failed: ", (prev_line, line))
             end
         end
         single_pass && (prev_line = line)
