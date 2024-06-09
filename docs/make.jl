@@ -23,6 +23,7 @@ makedocs(;
             "User Interface" => "huggingface.md",
             "Add New Models" => "huggingface_dev.md",
         ],
+        "API Reference" => "api_ref.md",
         "ChangeLogs" => "changelog.md",
     ],
 )

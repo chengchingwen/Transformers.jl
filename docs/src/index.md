@@ -1,3 +1,7 @@
+```@meta
+CurrentModule = Transformers
+```
+
 # Transformers.jl
 
 *Julia implementation of Transformers models*
