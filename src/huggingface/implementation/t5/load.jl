@@ -20,7 +20,7 @@ end
       decoder_output = Base.structdiff(outputs.decoder_output, NamedTuple{(:position_bias,)})
       return merge(outputs, (; encoder_output, decoder_output))
     end,
-    ForConditionalGeneration => (model, lm_head),
+    ForConditionalGeneration,
     EncoderModel => begin
       outputs = model.encoder(model.embed(nt))
       return Base.structdiff(outputs, NamedTuple{(:position_bias,)})
@@ -225,7 +225,7 @@ end
 
 function get_state_dict(m::HGFT5ForConditionalGeneration, state_dict, prefix)
     get_state_dict(m.model, state_dict, prefix)
-    embedding = m.lm_head.layer.embed.embeddings
+    embedding = m.cls.layer.embed.embeddings
     state_dict[joinname(prefix, "lm_head.weight")] = embedding'
     return state_dict
 end
