@@ -57,7 +57,7 @@ TransformersMetalExt = "Metal"
 
 [compat]
 AMDGPU = "0.9"
-BangBang = "0.3"
+BangBang = "0.3, 0.4"
 BytePairEncoding = "0.5.1"
 CUDA = "5"
 ChainRulesCore = "1.15"
