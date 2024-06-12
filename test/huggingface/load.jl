@@ -2,6 +2,7 @@
     using Logging
     using Transformers.HuggingFace
     model_list = Dict([
+        :bart => [:Model],
         :bert => :[
             Model, ForPreTraining, LMHeadModel, ForMaskedLM, ForNextSentencePrediction,
             ForSequenceClassification, ForTokenClassification, ForQuestionAnswering,

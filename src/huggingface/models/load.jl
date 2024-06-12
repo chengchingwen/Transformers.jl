@@ -243,7 +243,7 @@ function _load_embed(state_dict, prefix, w_init, pad_idx0 = nothing)
     return Layers.Embed(embedding)
 end
 
-function _load_layernorm(state_dict, prefix, dims, ln_ϵ)
+function _load_layernorm(state_dict, prefix, dims, ln_ϵ = 1e-5)
     old_weight_name = joinname(prefix, "gamma")
     old_bias_name = joinname(prefix, "beta")
     weight_name = haskey(state_dict, old_weight_name) ? old_weight_name : joinname(prefix, "weight")
