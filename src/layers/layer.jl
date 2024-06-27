@@ -633,10 +633,12 @@ Base.length(ce::CompositeEmbedding) = length(getfield(ce, :embeds))
 Base.getindex(ce::CompositeEmbedding, i) = getfield(ce, :embeds)[i]
 
 function Base.getproperty(ce::CompositeEmbedding, sym::Symbol)
+    embeds = getfield(ce, :embeds)
+    sym == :embeds && return embeds
     names = propertynames(ce)
     i = sym_in(sym, names)
     iszero(i) && error("Unknown embeddding name: $sym\nPossible names: $(propertynames(ce))")
-    return getfield(ce, :embeds)[i].layer
+    return embeds[i].layer
 end
 
 function Base.propertynames(ce::CompositeEmbedding)

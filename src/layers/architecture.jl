@@ -231,7 +231,7 @@ function (b::Branch{target, names, L})(nt::NamedTuple) where {target, names, L}
         if target isa Symbol
             call = :(($target = y,))
         elseif target isa Tuple{}
-            call = y
+            call = :y
         else
             call = :(NamedTuple{$target}(values(y)))
         end

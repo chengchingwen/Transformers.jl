@@ -1,10 +1,14 @@
+using ..Transformers: lengthselect, skipfirsttoken, skiplasttoken, safe_logitcrossentropy
 import ..Layers
 
 using Flux
+using Flux: Losses
 using NNlib
 using Tricks
 using StructWalk
+using ChainRulesCore
 using DataStructures: OrderedDict
+using NeuralAttentionlib: NoMask
 
 using LinearAlgebra
 
@@ -64,17 +68,22 @@ function _hgfmodelstruct(model_type, type_name, task_name, field_names, expr = n
     return Expr(:block, st, :($(@__MODULE__).@functor $sname), func)
 end
 
-function _extractfields(ex)
-    field_names = Symbol[]
-    function __extractfields(x)
-        if Meta.isexpr(x, :call)
-            f = x.args[1]
-            Meta.isexpr(f, :.) && f.args[1] == :model &&
-                push!(field_names, f.args[2].value)
+function _extractfields(ex, field_names = Symbol[])
+    if ex isa Expr
+        for arg in ex.args
+            arg isa Expr && !Meta.isexpr(arg, :.) && _extractfields(arg, field_names)
         end
-        return nothing
+        for arg in ex.args
+            if Meta.isexpr(arg, :.) && arg.args[1] == :model
+                sym = arg.args[2].value
+                sym in field_names || push!(field_names, sym)
+            end
+        end
     end
-    StructWalk.scan(__extractfields, identity, __extractfields, StructWalk.WalkStyle, ex)
+    if Meta.isexpr(ex, :.) && ex.args[1] == :model
+        sym = ex.args[2].value
+        sym in field_names || push!(field_names, sym)
+    end
     return field_names
 end
 
@@ -118,12 +127,28 @@ end
 isbasemodel(_) = false
 isbasemodel(::Type{<:HGFPreTrained{T, :model}}) where T = true
 
+# Sadly a really inaccurate gelu but needed to match the value with the python models
+quick_gelu(x) = x * sigmoid_fast(NNlib.oftf(x, 1.702) * x)
+function quick_gelu_forward_backward(x)
+    λ = NNlib.oftf(x, 1.702)
+    λx = λ * x
+    σλx = sigmoid_fast(λx)
+    backward = muladd(Layers._deriv_σ(σλx), λx, σλx)
+    return x * σλx, backward
+end
+Layers.act_pullback(::typeof(quick_gelu)) = quick_gelu_forward_backward
+Layers.require_x(::typeof(quick_gelu)) = true
+
 const ACT2FN = @alias (
-    [gelu, gelu_new, quick_gelu] = gelu,
+    [gelu, gelu_new, gelu_fast, gelu_python, gelu_pytorch_tanh, gelu_accurate] = gelu,
     [swish, silu] = swish,
+    quick_gelu = quick_gelu,
+    leaky_relu = leakyrelu,
     relu = relu,
     mish = mish,
     selu = selu,
+    sigmoid = sigmoid_fast,
+    tanh = tanh_fast,
 )
 
 joinname(prefix, name) = isempty(prefix) ? name : join((prefix, name), '.')
