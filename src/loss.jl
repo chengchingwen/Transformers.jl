@@ -2,7 +2,8 @@ using Statistics
 using ChainRulesCore
 using Static
 using PrimitiveOneHot
-using NeuralAttentionlib: AbstractSeqMask, GenericSeqMask, LengthMask, RevLengthMask
+using PrimitiveOneHot: AbstractOneHotArray
+using NeuralAttentionlib: AbstractSeqMask, GenericSeqMask, LengthMask, RevLengthMask, NoMask
 
 using NNlib
 import Flux.Losses
@@ -110,7 +111,7 @@ function _check_sizes_int(ŷ::AbstractArray, c::AbstractArray{<:Integer})
 end
 ChainRulesCore.@non_differentiable _check_sizes_int(ŷ, c)
 
-_z(a, b) = 0
+_z(a, b) = false
 
 function ChainRulesCore.rrule(::typeof(_unsafe_crossentropy), agg::Union{typeof(sum), typeof(mean)},
                               ŷ::AbstractArray, c::AbstractArray{<:Integer}, m::AbstractSeqMask;
@@ -129,7 +130,7 @@ function ChainRulesCore.rrule(::typeof(_unsafe_crossentropy), agg::Union{typeof(
         dlosses = _sdiv.(Ȳ, ls)
         dy = fill!(similar(ŷ), 0)
         mapreduce(identity, _z, instantiate(broadcasted(
-            ∇_bcglog!, Ref(dy), Ref(dlosses), Ref(ŷ), c, CartesianIndices(c), ϵ, refm)); init = 0)
+            ∇_bcglog!, Ref(dy), Ref(dlosses), Ref(ŷ), c, CartesianIndices(c), ϵ, refm)); init = false)
         return (NoTangent(), NoTangent(), dy, NoTangent(), NoTangent())
     end
     return loss, _unsafe_crossentropy_pullback
@@ -245,7 +246,7 @@ function ChainRulesCore.rrule(::typeof(_unsafe_logitcrossentropy), agg::Union{ty
         dlosses = reshape(_sdiv.(Ȳ, ls), (ntuple(one, static(ndims(m)) - static(1))..., length(ls)))
         dlogp = fill!(similar(ŷ), 0)
         mapreduce(identity, _z, instantiate(broadcasted(
-            ∇_bcg!, Ref(dlogp), Ref(dlosses), c, CartesianIndices(c), refm)); init = 0)
+            ∇_bcg!, Ref(dlogp), Ref(dlosses), c, CartesianIndices(c), refm)); init = false)
         dy = ∇logsoftmax_data!(dlogp, logp; dims = 1)
         return (NoTangent(), NoTangent(), dy, NoTangent(), NoTangent())
     end
@@ -325,25 +326,150 @@ function safe_logitcrossentropy(
     return unsafe_logitcrossentropy(agg, ŷ, c, m)
 end
 
-
-lengthdim(x::AbstractArray) = eltype(x) <: Integer ? 1 : 2
+isidarray(x::AbstractArray) = (eltype(x) <: Bool) ⊻ (eltype(x) <: Union{Integer, AbstractOneHotArray})
+lengthdim(x::AbstractArray) = isidarray(x) ? 1 : 2
 lengthdimlength(x::AbstractArray) = size(x, lengthdim(x))
 lengthdimfirstindex(x::AbstractArray) = firstindex(x, lengthdim(x))
 lengthdimlastindex(x::AbstractArray) = lastindex(x, lengthdim(x))
 
+ChainRulesCore.@non_differentiable isidarray(x)
 ChainRulesCore.@non_differentiable lengthdim(x)
 ChainRulesCore.@non_differentiable lengthdimlength(x)
 ChainRulesCore.@non_differentiable lengthdimfirstindex(x)
 ChainRulesCore.@non_differentiable lengthdimlastindex(x)
+
+function _findbound(f::Union{typeof(min), typeof(max)}, x, m::AbstractSeqMask)
+    if isidarray(x)
+        x = reshape(x, 1, size(x)...)
+    end
+    len_batch = Base.tail(size(x))
+    len = first(len_batch)
+    batch = Base.tail(len_batch)
+    if isidarray(x)
+        R = similar(x, Int32, 1, batch...)
+        R′ = reshape(R, 1, size(R)...)
+    else
+        R = similar(x, Int32, 1, 1, batch...)
+        R′ = R
+    end
+    init = Int32(typeof(f) <: typeof(min) ? len : 1)
+    fill!(R, init)
+    M = Masks.GetIndexer(m, (1, len_batch...))
+    I = reshape(Base.OneTo{Int32}(len), (1, len, ntuple(one, Val(length(batch)))...))
+    A = instantiate(broadcasted(ifelse, M, I, init))
+    Base.mapreducedim!(identity, f, R′, A)
+    return R
+end
+ChainRulesCore.@non_differentiable _findbound(f, x, m)
+
+function _unsafe_tokenselect(x::OneHotArray, i)
+    @assert isone(size(i, 1))
+    return OneHotArray(_unsafe_tokenselect(parent(x), reshape(i, Base.tail(size(i)))))
+end
+function _unsafe_tokenselect(x::AbstractArray, i)
+    if isidarray(x)
+        len_batch = size(x)
+    else
+        @assert isone(size(i, 1))
+        s = size(x)
+        fdim = first(s)
+        len_batch = Base.tail(s)
+    end
+    len = first(len_batch)
+    batch = Base.tail(len_batch)
+    bs = ntuple(Val(length(batch))) do bi
+        b = batch[bi]
+        reshape(Base.OneTo{Int32}(b), ntuple(one, Val(lengthdim(x)))..., ntuple(bj -> bi == bj ? b : 1, Val(length(batch)))...)
+    end
+    if isidarray(x)
+        shape = size(i)
+        indices = (i, bs...)
+    else
+        shape = (fdim, Base.tail(size(i))...)
+        indices = (Base.OneTo{Int32}(fdim), i, bs...)
+    end
+    y = similar(x, shape)
+    broadcast!(getindex, y, Ref(x), indices...)
+    return y
+end
+ChainRulesCore.@non_differentiable _unsafe_tokenselect(x::OneHotArray, i)
+function _unsafe_singletokenselect(x::AbstractArray, i)
+    @assert isone(size(i, lengthdim(x)))
+    y = _unsafe_tokenselect(x, i)
+    if isidarray(x)
+        shape = Base.tail(size(x))
+    else
+        shape = (size(y, 1), Base.tail(Base.tail(size(i)))...)
+    end
+    return reshape(y, shape)
+end
+function ∇_getindex!(dx, dy, i1, i, is...)
+    @inbounds dx[i1, i, is...] = dy
+end
+function ChainRulesCore.rrule(::typeof(_unsafe_tokenselect), x::AbstractArray, i)
+    if isidarray(x)
+        len_batch = size(x)
+    else
+        @assert isone(size(i, 1))
+        s = size(x)
+        fdim = first(s)
+        len_batch = Base.tail(s)
+    end
+    len = first(len_batch)
+    batch = Base.tail(len_batch)
+    bs = ntuple(Val(length(batch))) do bi
+        b = batch[bi]
+        reshape(Base.OneTo{Int32}(b), ntuple(one, Val(lengthdim(x)))..., ntuple(bj -> bi == bj ? b : 1, Val(length(batch)))...)
+    end
+    if isidarray(x)
+        shape = size(i)
+        indices = (i, bs...)
+    else
+        shape = (fdim, Base.tail(size(i))...)
+        indices = (Base.OneTo{Int32}(fdim), i, bs...)
+    end
+    y = similar(x, shape)
+    broadcast!(getindex, y, Ref(x), indices...)
+    function _unsafe_tokenselect_pullback(Ybar)
+        if isidarray(x)
+            dx = NoTangent()
+        else
+            Ȳ = unthunk(Ybar)
+            dx = @thunk begin
+                dx = similar(x)
+                fill!(dx, zero(eltype(dx)))
+                mapreduce(identity, _z,
+                          instantiate(broadcasted(∇_getindex!, Ref(dx), Ȳ, Base.OneTo{Int32}(fdim), i, bs...)); init = false)
+                return dx
+            end
+        end
+        return (NoTangent(), dx, NoTangent())
+    end
+    return y, _unsafe_tokenselect_pullback
+end
+ChainRulesCore.@non_differentiable _unsafe_singletokenselect(x::OneHotArray, i)
+function ChainRulesCore.rrule(::typeof(_unsafe_singletokenselect), x::AbstractArray, i)
+    @assert isone(size(i, lengthdim(x)))
+    y, _unsafe_tokenselect_pullback = rrule(_unsafe_tokenselect, x, i)
+    if isidarray(x)
+        shape = Base.tail(size(x))
+        return reshape(y, shape), _unsafe_tokenselect_pullback
+    else
+        s = size(y)
+        _unsafe_singletokenselect_pullback(Ybar) = _unsafe_tokenselect_pullback(reshape(unthunk(Ybar), s))
+        shape = (size(y, 1), Base.tail(Base.tail(size(i)))...)
+        return reshape(y, shape), _unsafe_singletokenselect_pullback
+    end
+end
 
 """
     lengthselect(x, i)
 
 `selectdim` on the "length" dimension (2 for most array and 1 for integer array).
 """
-lengthselect(x::AbstractArray, i) = selectdim(x, 2, i)
-lengthselect(x::AbstractArray{<:Integer}, i) = ChainRulesCore.ignore_derivatives(()->selectdim(x, 1, i))
-lengthselect(x::OneHotArray, i) = ChainRulesCore.ignore_derivatives(()->OneHotArray(selectdim(parent(x), 1, i)))
+lengthselect(x::AbstractArray, i) = selectdim(x, lengthdim(x), i)
+lengthselect(x::AbstractArray{<:Union{Integer, AbstractOneHotArray}}, i) = ignore_derivatives(()->selectdim(x, lengthdim(x), i))
+lengthselect(x::OneHotArray, i) = ignore_derivatives(()->OneHotArray(lengthselect(parent(x), i)))
 
 """
     skipboundarytoken(x; first=1, last=1)
@@ -370,11 +496,36 @@ end
 """
     firsttoken(x)
 
-Slice the first tokens from the hidden states, normally equivalent to `x[:, 1, :]`.
+Slice the first tokens from the hidden states, normally equivalent to `x[:, begin, :]`.
 
 See also: [`lengthselect`](@ref), [`skipboundarytoken`](@ref)
 """
 firsttoken(x) = lengthselect(x, lengthdimfirstindex(x))
+
+"""
+    firsttoken(x, m::AbstractSeqMask)
+
+Slice the first token from the hidden states. The "first" token is defined by the sequence mask.
+"""
+firsttoken(x, m::Union{LengthMask, NoMask}) = firsttoken(x)
+firsttoken(x, m::AbstractSeqMask) = _unsafe_singletokenselect(x, _findbound(min, x, m))
+
+"""
+    lasttoken(x)
+
+Slice the first tokens from the hidden states, normally equivalent to `x[:, end, :]`.
+
+See also: [`lengthselect`](@ref), [`skipboundarytoken`](@ref)
+"""
+lasttoken(x) = lengthselect(x, lengthdimlastindex(x))
+
+"""
+    lasttoken(x, m::AbstractSeqMask)
+
+Slice the last token from the hidden states. The "last" token is defined by the sequence mask.
+"""
+lasttoken(x, m::Union{RevLengthMask, NoMask}) = lasttoken(x)
+lasttoken(x, m::AbstractSeqMask) = _unsafe_singletokenselect(x, _findbound(max, x, m))
 
 """
     skipfirsttoken(x)
