@@ -156,19 +156,23 @@ joinname(prefix, n1, n2...) = joinname(prefix, join((n1, n2...), '.'))
 
 haskeystartswith(dict, prefix) = any(startswith("$prefix."), keys(dict))
 
+function _normal0(std, s...) # normal(mean = 0, std)
+    weight = randn(Float32, s...)
+    if !isone(std)
+        weight .*= std
+    end
+    return weight
+end
 zero_init(dims) = () -> zeros(Float32, dims)
 one_init(dims) = () -> ones(Float32, dims)
-function weight_init(din, dout, factor = true)
-    function weight_init_f() # normal(mean = 0, std = factor)
-        weight = randn(Float32, dout, din)
-        if !isone(factor)
-            weight .*= factor
-        end
-        return weight
-    end
-    return weight_init_f
-end
+bias_init(d, factor = true) = bias_init_f() = _normal0(factor, d)
+weight_init(din, dout, factor = true) = weight_init_f() = _normal0(factor, dout, din)
+filter_init(kh, kw, in, out, factor = true) = filter_init_f() = _normal0(factor, out, in, kw, kh)
 
+_reverseperm(x) = reverse(ntuple(identity, Val(ndims(x))))
+_reversedims(x) = PermutedDimsArray(x, _reverseperm(x))
+reversedims(x) = _reversedims(x)
+reversedims(x::PermutedDimsArray{T,N,perm}) where {T,N,perm} = perm == _reversedims(x) ? parent(x) : _reversedims(x)
 collect32(x) = collect(Float32, x)
 
 getweight(init, ::Type, ::Symbol) = init()
@@ -178,6 +182,8 @@ getweight(init, ::Type{<:Array}, state_dict, name) = _getweight(collect32, init,
 getweight(init, ::Type{<:Array}, state_dict::OrderedDict{String}, name) = getweight(init, state_dict, name)
 getweight(init, ::Type{<:Layers.Embed}, state_dict, name) = _getweight(collect32 ∘ adjoint, init, state_dict, name)
 getweight(init, ::Type{<:Layers.Embed}, state_dict::OrderedDict{String}, name) = _getweight(adjoint, init, state_dict, name)
+getweight(init, ::Type{<:Flux.CrossCor}, state_dict, name) = _getweight(collect32 ∘ reversedims, init, state_dict, name)
+getweight(init, ::Type{<:Flux.CrossCor}, state_dict::OrderedDict{String}, name) = _getweight(reversedims, init, state_dict, name)
 
 getweight(init, state_dict, name) = _getweight(identity, init, state_dict, name)
 function _getweight(process, init, state_dict, name)
@@ -227,6 +233,13 @@ get_state_dict(_, m::Layers.Dense, state_dict, prefix) = get_state_dict(m, state
 function get_state_dict(m::Layers.Dense, state_dict, prefix)
     state_dict[joinname(prefix, "weight")] = m.W
     !isnothing(m.b) && (state_dict[joinname(prefix, "bias")] = m.b)
+    return state_dict
+end
+
+get_state_dict(_, m::Flux.CrossCor, state_dict, prefix) = get_state_dict(m, state_dict, prefix)
+function get_state_dict(m::Flux.CrossCor, state_dict, prefix)
+    state_dict[joinname(prefix, "weight")] = reversedims(m.weight)
+    !isnothing(m.bias) && (state_dict[joinname(prefix, "bias")] = m.bias)
     return state_dict
 end
 

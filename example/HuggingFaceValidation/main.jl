@@ -101,11 +101,35 @@ try
         @info "Load configure file in Julia"
         global config = @tryrun begin
             cfg = HuggingFace.load_config(model_name)
-            HuggingFace.HGFConfig(cfg; layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
+            cfg = HuggingFace.HGFConfig(cfg; layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
+            if cfg.model_type == "clip"
+                if haskey(cfg, "text_config")
+                    cfg = HuggingFace.HGFConfig(
+                        cfg; text_config = HuggingFace.HGFConfig(cfg.text_config;
+                                                                 layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9))
+                end
+                if haskey(cfg, "vision_config")
+                    cfg = HuggingFace.HGFConfig(
+                        cfg; vision_config = HuggingFace.HGFConfig(cfg.vision_config;
+                                                                   layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9))
+                end
+            end
+            cfg
         end "Failed to load configure file in Julia, probably unsupported"
         @info "Load configure file in Python"
         global pyconfig = @tryrun begin
-            hgf_trf.AutoConfig.from_pretrained(model_name, layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
+            cfg = hgf_trf.AutoConfig.from_pretrained(model_name, layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
+            if cfg.model_type == "clip"
+                if haskey(cfg, "text_config")
+                    cfg.text_config.layer_norm_eps = 1e-9
+                    cfg.text_config.layer_norm_epsilon = 1e-9
+                end
+                if haskey(cfg, "vision_config")
+                    cfg.vision_config.layer_norm_eps = 1e-9
+                    cfg.vision_config.layer_norm_epsilon = 1e-9
+                end
+            end
+            cfg
         end "Failed to load configure file in Python, probably unsupported"
 
         global vocab_size = if haskey(config, :vocab_size)

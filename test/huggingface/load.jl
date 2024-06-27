@@ -17,6 +17,7 @@
         :gpt_neox => [:Model, :ForCausalLM],
         :bloom => [:Model, :ForCausalLM],
         :phi => [:Model, :ForCausalLM], 
+        :clip => [:Model],
         # :llama => [:Model, :ForCausalLM], No hf-internal-testing/tiny-random-$hgf_type_name
     ])
 
