@@ -275,8 +275,10 @@ function TransformerTextEncoder(tkr::AbstractTokenizer, v::WList;
             Pipeline{:token}(truncf, :token) |>
             # convert to dense array
             Pipeline{:token}(nested2batch, :token) |>
+            # sequence mask
+            Pipeline{:sequence_mask}(identity, :attention_mask) |>
             # return token and mask
-            PipeGet{(:token, :attention_mask)}()
+            PipeGet{(:token, :attention_mask, :sequence_mask)}()
     end
 end
 

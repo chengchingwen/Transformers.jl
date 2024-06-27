@@ -193,8 +193,10 @@ function gpt_default_preprocess(; startsym = "_start_", sepsym = "_delimiter_", 
         Pipeline{:token}(truncf, :token) |>
         # convert to dense array
         Pipeline{:token}(nested2batch, :token) |>
-        # return input and mask
-        PipeGet{(:token, :attention_mask)}()
+        # sequence mask
+        Pipeline{:sequence_mask}(identity, :attention_mask) |>
+        # return token and mask
+        PipeGet{(:token, :attention_mask, :sequence_mask)}()
 end
 
 function gpt2_default_preprocess(; startsym = "<|endoftext|>", endsym = "<|endoftext|>", padsym = "<|endoftext|>",
@@ -218,6 +220,8 @@ function gpt2_default_preprocess(; startsym = "<|endoftext|>", endsym = "<|endof
         Pipeline{:token}(truncf, :token) |>
         # convert to dense array
         Pipeline{:token}(nested2batch, :token) |>
-        # return input and mask
-        PipeGet{(:token, :attention_mask)}()
+        # sequence mask
+        Pipeline{:sequence_mask}(identity, :attention_mask) |>
+        # return token and mask
+        PipeGet{(:token, :attention_mask, :sequence_mask)}()
 end

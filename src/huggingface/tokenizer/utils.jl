@@ -121,7 +121,8 @@ function _hgf_preprocess(
         Pipeline{:attention_mask}(maskf, :token) |>
         Pipeline{:token}(truncf(padsym), :token) |>
         Pipeline{:token}(nested2batch, :token) |>
-        (has_segment ? PipeGet{(:token, :segment, :attention_mask)}() : PipeGet{(:token, :attention_mask)}())
+        Pipeline{:sequence_mask}(identity, :attention_mask) |>
+        (has_segment ? PipeGet{(:token, :segment, :attention_mask, :sequence_mask)}() : PipeGet{(:token, :attention_mask, :sequence_mask)}())
 end
 
 function heuristic_encoder_construct(tokenizer, vocab, kwargs)

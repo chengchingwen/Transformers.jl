@@ -112,6 +112,8 @@ function bert_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym 
         # truncate & pad segment
         Pipeline{:segment}(truncf(1), :segment) |>
         Pipeline{:segment}(nested2batch, :segment) |>
-        # return input and mask
-        PipeGet{(:token, :segment, :attention_mask)}()
+        # sequence mask
+        Pipeline{:sequence_mask}(identity, :attention_mask) |>
+        # return token and mask
+        PipeGet{(:token, :segment, :attention_mask, :sequence_mask)}()
 end

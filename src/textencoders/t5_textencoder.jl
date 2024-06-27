@@ -60,6 +60,8 @@ function t5_default_preprocess(; startsym = "[CLS]", endsym = "[SEP]", padsym = 
         Pipeline{:token}(truncf, :token) |>
         # convert to dense array
         Pipeline{:token}(nested2batch, :token) |>
-        # return input and mask
-        PipeGet{(:token, :attention_mask)}()
+        # sequence mask
+        Pipeline{:sequence_mask}(identity, :attention_mask) |>
+        # return token and mask
+        PipeGet{(:token, :attention_mask, :sequence_mask)}()
 end
