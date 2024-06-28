@@ -1,6 +1,6 @@
 <div align="center"> <img src="images/transformerslogo.png" alt="Transformers.jl" width="512"></img></div>
 
-[![Build status](https://github.com/chengchingwen/Transformers.jl/workflows/CI/badge.svg)](https://github.com/chengchingwen/Transformers.jl/actions)
+[![Build status](https://github.com/chengchingwen/Transformers.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/chengchingwen/Transformers.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 [![codecov](https://codecov.io/gh/chengchingwen/Transformers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/chengchingwen/Transformers.jl)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://chengchingwen.github.io/Transformers.jl/dev/)
 
