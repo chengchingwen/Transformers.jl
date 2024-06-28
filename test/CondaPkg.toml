@@ -1,3 +1,5 @@
+[deps]
+python = "==3.10"
 
 [pip.deps]
 transformers = ""

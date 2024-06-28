@@ -4,7 +4,7 @@ const artifact_dir = @artifact_str("xnli_dev")
 const xnli = joinpath(artifact_dir, "xnli-dev.txt")
 using PythonCall
 const hgf_trf = pyimport("transformers")
-hgf_trf.file_utils.default_cache_path = nothing
+const hgf_cache_dir = mktempdir(; prefix = "JL_TRF_TEST_HGF_CAHCE_", cleanup = true)
 
 using Transformers
 using TimerOutputs
@@ -35,7 +35,8 @@ function test_tokenizer(name, corpus; to = TimerOutput())
     end "Failed to load $name configure file in Julia, probably unsupported"
     @info "Load $name configure file in Python"
     pyconfig = @tryrun begin
-        @timeit to "pyload cfg" hgf_trf.AutoConfig.from_pretrained(name, token = HFHUB_Token,
+        @timeit to "pyload cfg" hgf_trf.AutoConfig.from_pretrained(name, token = HFHUB_Token, force_download = true,
+                                                                   cache_dir = hgf_cache_dir,
                                                                    layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
     end "Failed to load $name configure file in Python, probably unsupported"
     vocab_size = if haskey(config, :vocab_size)
@@ -46,7 +47,9 @@ function test_tokenizer(name, corpus; to = TimerOutput())
     end
     @info "Loading $name tokenizer in Python"
     hgf_tkr = @tryrun begin
-        @timeit to "pyload tkr" hgf_trf.AutoTokenizer.from_pretrained(name, config = pyconfig, token = HFHUB_Token)
+        @timeit to "pyload tkr" hgf_trf.AutoTokenizer.from_pretrained(name, config = pyconfig, token = HFHUB_Token,
+                                                                      force_download = true,
+                                                                      cache_dir = hgf_cache_dir)
     end "Failed to load $name tokenizer in Python"
     @info "Python $name tokenizer loaded successfully"
     @info "Loading $name tokenizer in Julia"
