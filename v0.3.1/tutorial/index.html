@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tutorial · Transformers.jl</title><meta name="title" content="Tutorial · Transformers.jl"/><meta property="og:title" content="Tutorial · Transformers.jl"/><meta property="twitter:title" content="Tutorial · Transformers.jl"/><meta name="description" content="Documentation for Transformers.jl."/><meta property="og:description" content="Documentation for Transformers.jl."/><meta property="twitter:description" content="Documentation for Transformers.jl."/><meta property="og:url" content="https://chengchingwen.github.io/Transformers.jl/tutorial/"/><meta property="twitter:url" content="https://chengchingwen.github.io/Transformers.jl/tutorial/"/><link rel="canonical" href="https://chengchingwen.github.io/Transformers.jl/tutorial/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.svg" alt="Transformers.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">Transformers.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../getstarted/">Get Started</a></li><li class="is-active"><a class="tocitem" href>Tutorial</a><ul class="internal"><li><a class="tocitem" href="#Transformer-model"><span>Transformer model</span></a></li><li><a class="tocitem" href="#Transformers.jl"><span>Transformers.jl</span></a></li></ul></li><li><a class="tocitem" href="../layers/">Layers</a></li><li><a class="tocitem" href="../textencoders/">TextEncoders</a></li><li><span class="tocitem">HuggingFace</span><ul><li><a class="tocitem" href="../huggingface/">User Interface</a></li><li><a class="tocitem" href="../huggingface_dev/">Add New Models</a></li></ul></li><li><a class="tocitem" href="../api_ref/">API Reference</a></li><li><a class="tocitem" href="../changelog/">ChangeLogs</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Tutorial</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tutorial</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/chengchingwen/Transformers.jl/blob/master/docs/src/tutorial.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Tutorial"><a class="docs-heading-anchor" href="#Tutorial">Tutorial</a><a id="Tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#Tutorial" title="Permalink"></a></h1><p>The following content will cover the basic introductions about the Transformer model and the implementation.</p><h2 id="Transformer-model"><a class="docs-heading-anchor" href="#Transformer-model">Transformer model</a><a id="Transformer-model-1"></a><a class="docs-heading-anchor-permalink" href="#Transformer-model" title="Permalink"></a></h2><p>The Transformer model was proposed in the paper: <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a>. In that paper they provide a new way of handling the sequence transduction problem (like the machine translation task) without complex recurrent or convolutional structure. Simply use a stack of attention mechanisms to get the latent structure in the input sentences and a special embedding (positional embedding) to get the locationality. The whole model architecture looks like this:</p><p>The Transformer model architecture (picture from the origin paper)<img src="../assets/transformerblocks.png" alt="transformer"/></p><h3 id="Multi-Head-Attention"><a class="docs-heading-anchor" href="#Multi-Head-Attention">Multi-Head Attention</a><a id="Multi-Head-Attention-1"></a><a class="docs-heading-anchor-permalink" href="#Multi-Head-Attention" title="Permalink"></a></h3><p>Instead of using the regular attention mechanism, they split the input vector to several pairs of subvector and perform a dot-product attention on each subvector pairs.</p><p>Regular attention v.s. Multi-Head attention (picture from the origin paper)<img src="../assets/mhatten.png" alt="mhatten"/></p><p>For those who like mathematical expression, here is the formula:</p><p class="math-container">\[Attention(Q, K, V) = softmax(\frac{QK^T}{\sqrt{d_k}})V\]</p><p class="math-container">\[MultiHead(Q, K, V) = Concat(head_1,..., head_h)W^O
+\text{where }head_i = Attention(QW^Q_i, KW^K_i, VW^V_i)\]</p><h3 id="Positional-Embedding"><a class="docs-heading-anchor" href="#Positional-Embedding">Positional Embedding</a><a id="Positional-Embedding-1"></a><a class="docs-heading-anchor-permalink" href="#Positional-Embedding" title="Permalink"></a></h3><p>As we mentioned above, transformer model didn&#39;t depend on the recurrent or convolutional structure. On the other hand, we still need a way to differentiate two sequence with same words but different order. Therefore, they add the locational information on the embedding, i.e. the origin word embedding plus a special embedding that indicate the order of that word. The special embedding can be computed by some equations or just use another trainable embedding matrix. In the paper, the positional embedding use this formula:</p><p class="math-container">\[PE_{(pos, k)} = \begin{cases}
+sin(\frac{pos}{10^{4k/d_k}}),&amp; \text{if }k \text{ is even}\\
+cos(\frac{pos}{10^{4k/d_k}}), &amp; \text{if }k \text{ is odd}
+\end{cases}\]</p><p>where <span>$pos$</span> is the locational information that tells you the given word is the <span>$pos$</span>-th word, and <span>$k$</span> is the <span>$k$</span>-th dimension of the input vector. <span>$d\_k$</span> is the total length of the word/positional embedding. So the new embedding will be computed as:</p><p class="math-container">\[Embedding_k(word) = WordEmbedding_k(word) + PE(pos\_of\_word, k)\]</p><h2 id="Transformers.jl"><a class="docs-heading-anchor" href="#Transformers.jl">Transformers.jl</a><a id="Transformers.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Transformers.jl" title="Permalink"></a></h2><p>Now we know how the transformer model looks like, let&#39;s take a look at the Transformers.jl.</p><h3 id="Example"><a class="docs-heading-anchor" href="#Example">Example</a><a id="Example-1"></a><a class="docs-heading-anchor-permalink" href="#Example" title="Permalink"></a></h3><div class="admonition is-info"><header class="admonition-header">Info</header><div class="admonition-body"><p>This tutorial is just for demonstrating how the Transformer model looks like, not for using in real task.  The example code can be found in the  <a href="https://github.com/chengchingwen/Transformers.jl/tree/master/example/AttentionIsAllYouNeed">example folder</a>.</p></div></div><p>To best illustrate the usage of Transformers.jl, we will start with building a two layer Transformer model on a sequence copy task. Before we start, we need to install all the package we need:</p><pre><code class="language-julia hljs">using Pkg
+Pkg.add(&quot;CUDA&quot;)
+Pkg.add(&quot;Flux&quot;)
+Pkg.add(&quot;Transformers&quot;)</code></pre><p>We use <a href="https://github.com/JuliaGPU/CUDA.jl">CUDA.jl</a> for the GPU support.</p><pre><code class="language-julia hljs">using Flux
+using CUDA
+using Transformers
+using Transformers.Layers
+using Transformers.TextEncoders
+
+enable_gpu(CUDA.functional()) # make `todevice` work on gpu if available</code></pre><h3 id="Copy-task"><a class="docs-heading-anchor" href="#Copy-task">Copy task</a><a id="Copy-task-1"></a><a class="docs-heading-anchor-permalink" href="#Copy-task" title="Permalink"></a></h3><p>The copy task is a toy test case of a sequence transduction problem that simply return the same sequence as the output. Here we define the input as a random sequence of white space separable number from 1~10 and length 10. we will also need a start and end symbol to indicate where is the begin and end of the sequence. We can use <code>Transformers.TextEncoders.TransformerTextEncoder</code> to preprocess the input (add start/end symbol, convert to one-hot encoding, ...).</p><pre><code class="language-julia hljs">labels = map(string, 1:10)
+startsym = &quot;&lt;s&gt;&quot;
+endsym = &quot;&lt;/s&gt;&quot;
+unksym = &quot;&lt;unk&gt;&quot;
+labels = [unksym, startsym, endsym, labels...]
+
+textenc = TransformerTextEncoder(split, labels; startsym, endsym, unksym, padsym = unksym)</code></pre><pre><code class="language-julia hljs"># function for generate training datas
+sample_data() = (d = join(map(string, rand(1:10, 10)), &#39; &#39;); (d,d))
+
+@show sample = sample_data()
+# encode single sentence
+@show encoded_sample_1 = encode(textenc, sample[1])
+# encode for both encoder and decoder input
+@show encoded_sample = encode(textenc, sample[1], sample[2])</code></pre><pre><code class="nohighlight hljs">sample = sample_data() = (&quot;5 1 10 10 7 3 3 4 9 6&quot;, &quot;5 1 10 10 7 3 3 4 9 6&quot;)
+encoded_sample_1 = encode(textenc, sample[1]) = (token = Bool[0 0 0 0 0 0 0 0 0 0 0 0; 1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 1 0 0 0; 0 1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0; 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 0 0; 0 0 0 1 1 0 0 0 0 0 0 0], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[12]))
+encoded_sample = encode(textenc, sample[1], sample[2]) = (encoder_input = (token = Bool[0 0 0 0 0 0 0 0 0 0 0 0; 1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 1 0 0 0; 0 1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0; 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 0 0; 0 0 0 1 1 0 0 0 0 0 0 0], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[12])), decoder_input = (token = Bool[0 0 0 0 0 0 0 0 0 0 0 0; 1 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 1 0 0 0; 0 1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0; 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 0 0; 0 0 0 1 1 0 0 0 0 0 0 0], attention_mask = NeuralAttentionlib.LengthMask{1, Vector{Int32}}(Int32[12]), cross_attention_mask = NeuralAttentionlib.BiLengthMask{1, Vector{Int32}}(Int32[12], Int32[12])))</code></pre><h3 id="Defining-the-model"><a class="docs-heading-anchor" href="#Defining-the-model">Defining the model</a><a id="Defining-the-model-1"></a><a class="docs-heading-anchor-permalink" href="#Defining-the-model" title="Permalink"></a></h3><p>With the Transformers.jl and Flux.jl, we can define the model easily. We use a Transformer with 512 hidden size and 8 head.</p><pre><code class="language-julia hljs"># model setting
+N = 2
+hidden_dim = 512
+head_num = 8
+head_dim = 64
+ffn_dim = 2048
+
+# define a Word embedding layer which turn word index to word vector
+word_embed = Embed(hidden_dim, length(textenc.vocab)) |&gt; todevice
+
+# define a position embedding layer metioned above
+# since sin/cos position embedding does not have any parameter, `todevice` is not needed.
+pos_embed = SinCosPositionEmbed(hidden_dim)
+
+# define 2 layer of transformer
+encoder_trf = Transformer(TransformerBlock, N, head_num, hidden_dim, head_dim, ffn_dim) |&gt; todevice
+
+# define 2 layer of transformer decoder
+decoder_trf = Transformer(TransformerDecoderBlock, N, head_num, hidden_dim, head_dim, ffn_dim) |&gt; todevice
+
+# define the layer to get the final output probabilities
+# sharing weights with `word_embed`, don&#39;t/can&#39;t use `todevice`.
+embed_decode = EmbedDecoder(word_embed)
+
+function embedding(input)
+    we = word_embed(input.token)
+    pe = pos_embed(we)
+    return we .+ pe
+end
+
+function encoder_forward(input)
+    attention_mask = get(input, :attention_mask, nothing)
+    e = embedding(input)
+    t = encoder_trf(e, attention_mask) # return a NamedTuples (hidden_state = ..., ...)
+    return t.hidden_state
+end
+
+function decoder_forward(input, m)
+    attention_mask = get(input, :attention_mask, nothing)
+    cross_attention_mask = get(input, :cross_attention_mask, nothing)
+    e = embedding(input)
+    t = decoder_trf(e, m, attention_mask, cross_attention_mask) # return a NamedTuple (hidden_state = ..., ...)
+    p = embed_decode(t.hidden_state)
+    return p
+end</code></pre><p>Then run the model on the sample</p><pre><code class="language-julia hljs">enc = encoder_forward(todevice(encoded_sample.encoder_input))
+logits = decoder_forward(todevice(encoded_sample.decoder_input), enc)</code></pre><p>The whole model can be defined without those <em>forward</em> functions. See the example folder and <a href="../layers/">docs of the Layer API</a> for more information.</p><h3 id="define-the-loss-and-training-loop"><a class="docs-heading-anchor" href="#define-the-loss-and-training-loop">define the loss and training loop</a><a id="define-the-loss-and-training-loop-1"></a><a class="docs-heading-anchor-permalink" href="#define-the-loss-and-training-loop" title="Permalink"></a></h3><p>For the last step, we need to define the loss function and training loop. We use the kl divergence for the output probability.</p><pre><code class="language-julia hljs">using Flux.Losses # for logitcrossentropy
+
+# define loss function
+function shift_decode_loss(logits, trg, trg_mask)
+    label = trg[:, 2:end, :]
+    return logitcrossentropy(@view(logits[:, 1:end-1, :]), label, trg_mask - 1)
+end
+
+function loss(input)
+    enc = encoder_forward(input.encoder_input)
+    logits = decoder_forward(input.decoder_input, enc)
+    ce_loss = shift_decode_loss(logits, input.decoder_input.token, input.decoder_input.attention_mask)
+    return ce_loss
+end
+
+# collect all the parameters
+ps = Flux.params(word_embed, encoder_trf, decoder_trf)
+opt = ADAM(1e-4)
+
+# function for created batched data
+using Transformers.Datasets: batched
+
+# flux function for update parameters
+using Flux: gradient
+using Flux.Optimise: update!
+
+preprocess(sample) = todevice(encode(textenc, sample[1], sample[2]))
+
+# define training loop
+function train!()
+    @info &quot;start training&quot;
+    for i = 1:2000
+        sample = batched([sample_data() for i = 1:32]) # create 32 random sample and batched
+        input = preprocess(sample)
+        grad = gradient(()-&gt;loss(input), ps)
+        if i % 8 == 0
+            l = loss(input)
+            println(&quot;loss = $l&quot;)
+        end
+        update!(opt, ps, grad)
+    end
+end</code></pre><pre><code class="language-julia hljs">train!()</code></pre><h3 id="Test-our-model"><a class="docs-heading-anchor" href="#Test-our-model">Test our model</a><a id="Test-our-model-1"></a><a class="docs-heading-anchor-permalink" href="#Test-our-model" title="Permalink"></a></h3><p>After training, we can try to test the model.</p><pre><code class="language-julia hljs">function translate(x::AbstractString)
+    ix = todevice(encode(textenc, x).token)
+    seq = [startsym]
+
+    encoder_input = (token = ix,)
+    enc = encoder_forward(encoder_input)
+
+    len = size(ix, 2)
+    for i = 1:2len
+        decoder_input = (token = todevice(lookup(textenc, seq)),)
+        logit = decoder_forward(decoder_input, enc)
+        ntok = decode(textenc, argmax(logit[:, end]))
+        push!(seq, ntok)
+        ntok == endsym &amp;&amp; break
+    end
+    return seq
+end</code></pre><pre><code class="language-julia hljs">translate(&quot;5 5 6 6 1 2 3 4 7 10&quot;)</code></pre><pre><code class="nohighlight hljs">10-element Vector{String}:
+ &quot;5&quot;
+ &quot;5&quot;
+ &quot;6&quot;
+ &quot;6&quot;
+ &quot;1&quot;
+ &quot;2&quot;
+ &quot;3&quot;
+ &quot;4&quot;
+ &quot;7&quot;
+ &quot;10&quot;
+</code></pre><p>The result looks good!</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../getstarted/">« Get Started</a><a class="docs-footer-nextpage" href="../layers/">Layers »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Friday 28 June 2024 08:42">Friday 28 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
