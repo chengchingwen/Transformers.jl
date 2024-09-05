@@ -7,7 +7,8 @@ export Seq2Seq, Transformer,
     TransformerBlock, TransformerDecoderBlock,
     PreNormTransformerBlock, PostNormTransformerBlock,
     PreNormTransformerDecoderBlock, PostNormTransformerDecoderBlock,
-    Embed, EmbedDecoder, FixedLenPositionEmbed, SinCosPositionEmbed
+    Embed, EmbedDecoder, FixedLenPositionEmbed, SinCosPositionEmbed,
+    RotaryPositionEmbed
 
 include("./utils.jl")
 include("./architecture.jl")

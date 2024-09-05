@@ -227,6 +227,10 @@ function Base.show(io::IO, embed::SinCosPositionEmbed)
 end
 @fluxlayershow SinCosPositionEmbed false
 
+struct RotaryPositionEmbed <: AbstractEmbedding end
+(embed::RotaryPositionEmbed)(x) = NeuralAttentionlib.with_rotary_position_embedding(x)
+@fluxlayershow RotaryPositionEmbed false
+
 """
     ApplyEmbed([apply = .+,] embed)
 
