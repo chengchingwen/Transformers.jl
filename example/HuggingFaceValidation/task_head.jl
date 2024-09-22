@@ -17,7 +17,7 @@ function test_task_head(name, n; max_error = 1e-1, mean_error = 1e-2)
             @info "Loading model with $task_type head in Julia"
             global model = @tryrun begin
                 jl_task_type = chop(task_type, head=length(config.model_type) - count('_', config.model_type), tail=0) |> lowercase |> Symbol
-                HuggingFace.load_model(model_type, name, jl_task_type; config)
+				HuggingFace.load_model(model_type, name, jl_task_type; config)
             end "Failed to load the model in Julia"
             @info "Julia model loaded successfully"
 

@@ -4,19 +4,19 @@ using HuggingFaceApi
 
 include("default.jl")
 
-abstract type AbstractHGFConfig <: AbstractDict{Symbol, Any} end
+abstract type AbstractHGFConfig <: AbstractDict{Symbol,Any} end
 
-struct HGFConfig{name, C, E <: Union{Nothing, NamedTuple}} <: AbstractHGFConfig
+struct HGFConfig{name,C,E<:Union{Nothing,NamedTuple}} <: AbstractHGFConfig
     pretrain::C
     overwrite::E
-    function HGFConfig{name, C}(pretrain::C, overwrite::Union{Nothing, NamedTuple}) where {name, C}
-        return new{name, C, typeof(overwrite)}(pretrain, overwrite)
+    function HGFConfig{name,C}(pretrain::C, overwrite::Union{Nothing,NamedTuple}) where {name,C}
+        return new{name,C,typeof(overwrite)}(pretrain, overwrite)
     end
-    function HGFConfig{name, C}(pretrain::C, overwrite::AbstractDict{Symbol}) where {name, C}
-        isempty(overwrite) && return HGFConfig{name, C}(pretrain, nothing)
+    function HGFConfig{name,C}(pretrain::C, overwrite::AbstractDict{Symbol}) where {name,C}
+        isempty(overwrite) && return HGFConfig{name,C}(pretrain, nothing)
         namemap = getnamemap(HGFConfig{name})
         if !isempty(aliases(namemap))
-            rewrite = Dict{Symbol, Any}()
+            rewrite = Dict{Symbol,Any}()
             for (k, val) in overwrite
                 key = haskey(namemap, k) ? aliasof(namemap, k) : k
                 haskey(rewrite, key) &&
@@ -26,15 +26,15 @@ struct HGFConfig{name, C, E <: Union{Nothing, NamedTuple}} <: AbstractHGFConfig
             overwrite = rewrite
         end
         overwrite = NamedTuple(overwrite)
-        return new{name, C, typeof(overwrite)}(pretrain, overwrite)
+        return new{name,C,typeof(overwrite)}(pretrain, overwrite)
     end
 end
-@inline HGFConfig(name::Symbol, pretrain, overwrite) = HGFConfig{name, typeof(pretrain)}(pretrain, overwrite)
-HGFConfig{name}(pretrain, overwrite = nothing) where name = HGFConfig(name, pretrain, overwrite)
-function HGFConfig(cfg::HGFConfig{name}; kws...) where name
+@inline HGFConfig(name::Symbol, pretrain, overwrite) = HGFConfig{name,typeof(pretrain)}(pretrain, overwrite)
+HGFConfig{name}(pretrain, overwrite=nothing) where {name} = HGFConfig(name, pretrain, overwrite)
+function HGFConfig(cfg::HGFConfig{name}; kws...) where {name}
     overwrite = getfield(cfg, :overwrite)
     if isnothing(overwrite)
-        overwrite = Dict{Symbol, Any}(kws)
+        overwrite = Dict{Symbol,Any}(kws)
     else
         namemap = getnamemap(HGFConfig{name})
         for k in keys(kws)
@@ -46,7 +46,7 @@ function HGFConfig(cfg::HGFConfig{name}; kws...) where name
         overwrite = merge(overwrite, kws)
     end
     pretrain = getfield(cfg, :pretrain)
-    return HGFConfig{name, typeof(pretrain)}(pretrain, overwrite)
+    return HGFConfig{name,typeof(pretrain)}(pretrain, overwrite)
 end
 
 getconfigname(::HGFConfig{name}) where name = name
@@ -129,11 +129,11 @@ function Base.get(cfg::HGFConfig, k::Symbol, v)
     return haskey(pretrain, k) ? pretrain[k] : v
 end
 
-function Base.iterate(cfg::HGFConfig, state = keys(cfg))
+function Base.iterate(cfg::HGFConfig, state=keys(cfg))
     isempty(state) && return nothing
     k = state[1]
     v = cfg[k]
-    return k=>v, Base.tail(state)
+    return k => v, Base.tail(state)
 end
 
 function Base.summary(io::IO, cfg::HGFConfig)

@@ -6,13 +6,13 @@ function test_based_model(name, n; max_error = 1e-2, mean_error = 1e-4)
     @testset "Based Model" begin
         @info "Loading based model in Python"
         global hgf_model = @tryrun begin
-            @timeit to "pyload" hgf_trf.AutoModel.from_pretrained(name, config = pyconfig)
+            hgf_trf.AutoModel.from_pretrained(name, config = pyconfig)
         end "Failed to load the model in Python"
         @info "Python model loaded successfully"
 
         @info "Loading based model in Julia"
         global model = @tryrun begin
-            @timeit to "jlload" HuggingFace.load_model(name; config = config)
+			HuggingFace.load_model(name; config = config)
         end "Failed to load the model in Julia"
         @info "Julia model loaded successfully"
 
@@ -89,9 +89,9 @@ function test_based_model(name, n; max_error = 1e-2, mean_error = 1e-4)
                 len = rand(50:100)
                 indices = rand(1:vocab_size, len)
                 pyindices = torch.tensor(indices .- 1).reshape(1, len)
-                py_results = @timeit to "pyforward" hgf_model(pyindices)
+                py_results = hgf_model(pyindices)
                 py_result = rowmaj2colmaj(py_results["last_hidden_state"].detach().numpy())
-                jl_results = @timeit to "jlforward" model((token = reshape(indices, len, 1),))
+                jl_results = model((token = reshape(indices, len, 1),))
                 jl_result = jl_results.hidden_state
                 diff = (py_result .- jl_result) .^ 2
                 @debug "diff" mean = mean(diff) max = maximum(diff)

@@ -17,31 +17,31 @@ function parse_commandline()
 
     @add_arg_table! s begin
         "--subject", "-s"
-            help = "a specific testing subject, should be one of $allowed_subject"
-            arg_type = String
-            default = "all"
+        help = "a specific testing subject, should be one of $allowed_subject"
+        arg_type = String
+        default = "all"
         "--number", "-n"
-            help = "the number of random sample for testing the model"
-            arg_type = Int
-            default = 100
+        help = "the number of random sample for testing the model"
+        arg_type = Int
+        default = 100
         "--max-error"
-            help = "the error bound for the square error"
-            arg_type = Float64
-            default = 0.1
+        help = "the error bound for the square error"
+        arg_type = Float64
+        default = 0.1
         "--mean-error"
-            help = "the error bound for the mean square error"
-            arg_type = Float64
-            default = 0.01
+        help = "the error bound for the mean square error"
+        arg_type = Float64
+        default = 0.01
         "--output", "-o"
-            help = "file name where the failed sample would be write to (for testing tokenizer only)."
-            default = nothing
+        help = "file name where the failed sample would be write to (for testing tokenizer only)."
+        default = nothing
         "name"
-            help = "model name"
-            required = true
+        help = "model name"
+        required = true
         "corpus"
-            help = "corpus for testing, must specified if you are testing with tokenizer"
-            required = false
-            default = nothing
+        help = "corpus for testing, must specified if you are testing with tokenizer"
+        required = false
+        default = nothing
     end
     return parse_args(ARGS, s)
 end
@@ -72,13 +72,39 @@ end
 const to = TimerOutput()
 
 using PyCall
+
+include("utils.jl")
+
+@info "Loading python packages"
+global torch = @tryrun begin
+    pyimport("torch")
+end "Importing pytorch result in error. Make sure pytorch is installed correctly."
+global hgf_trf = @tryrun begin
+    pyimport("transformers")
+end "Importing huggingface transformers result in error. Make sure transformers is installed correctly."
+@info "Python packages loaded successfully"
+@info "Load configure file in Python"
+global pyconfig = @tryrun begin
+    cfg = hgf_trf.AutoConfig.from_pretrained(model_name, layer_norm_eps=1e-9, layer_norm_epsilon=1e-9)
+    if cfg.model_type == "clip"
+        if haskey(cfg, "text_config")
+            cfg.text_config.layer_norm_eps = 1e-9
+            cfg.text_config.layer_norm_epsilon = 1e-9
+        end
+        if haskey(cfg, "vision_config")
+            cfg.vision_config.layer_norm_eps = 1e-9
+            cfg.vision_config.layer_norm_epsilon = 1e-9
+        end
+    end
+    cfg
+end "Failed to load configure file in Python, probably unsupported"
+
 using HuggingFaceApi
 using Flux
 using TextEncodeBase
 using Transformers
 using Transformers.HuggingFace
 
-include("utils.jl")
 include("based_model.jl")
 include("task_head.jl")
 include("tokenizer.jl")
@@ -89,48 +115,24 @@ try
             HuggingFaceApi.model_info(model_name)
         end "Cannot find $model_name: Does this model really exist on huginggface hub?"
 
-        @info "Loading python packages"
-        global torch = @tryrun begin
-            pyimport("torch")
-        end "Importing pytorch result in error. Make sure pytorch is installed correctly."
-        global hgf_trf = @tryrun begin
-            pyimport("transformers")
-        end "Importing huggingface transformers result in error. Make sure transformers is installed correctly."
-        @info "Python packages loaded successfully"
-
         @info "Load configure file in Julia"
         global config = @tryrun begin
             cfg = HuggingFace.load_config(model_name)
-            cfg = HuggingFace.HGFConfig(cfg; layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
+            cfg = HuggingFace.HGFConfig(cfg; layer_norm_eps=1e-9, layer_norm_epsilon=1e-9)
             if cfg.model_type == "clip"
                 if haskey(cfg, "text_config")
                     cfg = HuggingFace.HGFConfig(
-                        cfg; text_config = HuggingFace.HGFConfig(cfg.text_config;
-                                                                 layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9))
+                        cfg; text_config=HuggingFace.HGFConfig(cfg.text_config;
+                            layer_norm_eps=1e-9, layer_norm_epsilon=1e-9))
                 end
                 if haskey(cfg, "vision_config")
                     cfg = HuggingFace.HGFConfig(
-                        cfg; vision_config = HuggingFace.HGFConfig(cfg.vision_config;
-                                                                   layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9))
+                        cfg; vision_config=HuggingFace.HGFConfig(cfg.vision_config;
+                            layer_norm_eps=1e-9, layer_norm_epsilon=1e-9))
                 end
             end
             cfg
         end "Failed to load configure file in Julia, probably unsupported"
-        @info "Load configure file in Python"
-        global pyconfig = @tryrun begin
-            cfg = hgf_trf.AutoConfig.from_pretrained(model_name, layer_norm_eps = 1e-9, layer_norm_epsilon = 1e-9)
-            if cfg.model_type == "clip"
-                if haskey(cfg, "text_config")
-                    cfg.text_config.layer_norm_eps = 1e-9
-                    cfg.text_config.layer_norm_epsilon = 1e-9
-                end
-                if haskey(cfg, "vision_config")
-                    cfg.vision_config.layer_norm_eps = 1e-9
-                    cfg.vision_config.layer_norm_epsilon = 1e-9
-                end
-            end
-            cfg
-        end "Failed to load configure file in Python, probably unsupported"
 
         global vocab_size = if haskey(config, :vocab_size)
             config.vocab_size
@@ -146,7 +148,7 @@ try
                 @timeit to "task_head" test_task_head(model_name, num; max_error, mean_error)
 
             !isnothing(corpus) && (subject == "all" || subject == "tokenizer") &&
-                @timeit to "tokenizer" test_tokenizer(model_name, corpus; output = output_file)
+                @timeit to "tokenizer" test_tokenizer(model_name, corpus; output=output_file)
             !isnothing(corpus) && (subject == "all" || subject == "whole_model") &&
                 @timeit to "whole_model" test_whole_model(model_name, corpus; max_error, mean_error)
         end

@@ -38,7 +38,7 @@ function _get_model_type(model_type::Symbol)
 end
 
 @valsplit get_model_type(Val(model_type::Symbol)) = _get_model_type(model_type)
-function get_model_type(model_type, task::Union{Symbol, String})
+function get_model_type(model_type, task::Union{Symbol,String})
     task = Symbol(lowercase(String(task)))
     tasks = get_model_type(_symbol(model_type))
     if haskey(tasks, task)
@@ -49,21 +49,21 @@ function get_model_type(model_type, task::Union{Symbol, String})
 end
 
 load_model(model_name; kws...) = load_model(model_name, :model; kws...)
-function load_model(model_name, task; config = nothing, kws...)
+function load_model(model_name, task; config=nothing, kws...)
     if isnothing(config)
         config = load_config(model_name; kws...)
     end
     model_type = getconfigname(config)
     return load_model(model_type, model_name, task; config, kws...)
 end
-function load_model(model_name::AbstractString, task::Symbol, state_dict; trainmode = false, config = nothing, kws...)
+function load_model(model_name::AbstractString, task::Symbol, state_dict; trainmode=false, config=nothing, kws...)
     if isnothing(config)
         config = load_config(model_name; kws...)
     end
     model_type = getconfigname(config)
     return load_model(model_type, model_name, task, state_dict; trainmode, config, kws...)
 end
-function load_model(model_type, model_name::AbstractString, task; trainmode = false, config = nothing, mmap = true, lazy = mmap, kws...)
+function load_model(model_type, model_name::AbstractString, task; trainmode=false, config=nothing, mmap=true, lazy=mmap, kws...)
     if isnothing(config)
         config = load_config(model_name; kws...)
     end
@@ -71,7 +71,7 @@ function load_model(model_type, model_name::AbstractString, task; trainmode = fa
     return load_model(model_type, model_name, task, state_dict; trainmode, config, kws...)
 end
 function load_model(model_type, model_name::AbstractString, task, state_dict;
-                    trainmode = false, config = nothing, kws...)
+    trainmode=false, config=nothing, kws...)
     if isnothing(config)
         config = load_config(model_name; kws...)
     end
@@ -82,7 +82,7 @@ function load_model(model_type, model_name::AbstractString, task, state_dict;
     else
         prefix = ""
         if !haskeystartswith(state_dict, basekey)
-            new_state_dict = OrderedDict{Any, Any}()
+            new_state_dict = OrderedDict{Any,Any}()
             for (key, val) in state_dict
                 new_state_dict[joinname(basekey, key)] = val
             end
@@ -100,7 +100,7 @@ end
 save the `model` state_dict at `<path>/<model_name>/<weight_name>`. This would error out if the file already exists
  but `force` not set.
 """
-function save_model(model_name, model; path = pwd(), weight_name = PYTORCH_WEIGHTS_NAME)
+function save_model(model_name, model; path=pwd(), weight_name=PYTORCH_WEIGHTS_NAME)
     model_path = joinpath(path, model_name)
     mkpath(model_path)
     model_file = joinpath(model_path, weight_name)
