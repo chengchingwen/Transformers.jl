@@ -65,6 +65,7 @@ ChainRulesCore.@non_differentiable bert_ones_like(x)
 
 load_model(_type::Type{HGFBertModel}, cfg, state_dict, prefix) =
     load_model(_type, _type, cfg, state_dict, prefix)
+	
 function load_model(_type::Type, ::Type{HGFBertModel}, cfg, state_dict, prefix)
     embed = load_model(_type, CompositeEmbedding, cfg, state_dict, joinname(prefix, "embeddings"))
     encoder = load_model(_type, TransformerBlock,  cfg, state_dict, joinname(prefix, "encoder"))
@@ -75,6 +76,7 @@ function load_model(_type::Type, ::Type{HGFBertModel}, cfg, state_dict, prefix)
     pooler = BertPooler(Layers.Dense(NNlib.tanh_fast, weight, bias))
     return HGFBertModel(embed, encoder, Layers.Branch{(:pooled,), (:hidden_state,)}(pooler))
 end
+
 function load_model(
     _type::Type{<:Union{
         HGFBertLMHeadModel, HGFBertForMaskedLM,

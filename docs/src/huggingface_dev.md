@@ -220,4 +220,10 @@ end
 
 ### Validation
 
-After implementing the model, we use the same [script](https://github.com/chengchingwen/Transformers.jl/tree/master/example/HuggingFaceValidation) mentioned in the tokenizer part to check if our model perform the same computation as Python.
+After implementing the model, we use the same [script](https://github.com/chengchingwen/Transformers.jl/tree/master/example/HuggingFaceValidation) mentioned in the tokenizer part to check if our model perform the same computation as Python. Before running the script, remember to dev your local Transformers package using Pkg.dev() in the HugginFaceValidation env.
+
+```
+some/path/to/this/HuggingFaceValidation$ julia --project
+julia
+(HuggingFaceValidation) pkg> dev ../../
+```

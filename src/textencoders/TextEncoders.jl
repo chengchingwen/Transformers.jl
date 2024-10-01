@@ -79,9 +79,9 @@ The general text encoder. `TrfTextEncoder` has multiple fields that can modify t
 
 """
 struct TrfTextEncoder{
-    T <: AbstractTokenizer,
-    V <: AbstractVocabulary{String},
-    C, A, EP, OP, DP, TP
+    T<:AbstractTokenizer,
+    V<:AbstractVocabulary{String},
+    C,A,EP,OP,DP,TP
 } <: AbstractTransformerTextEncoder
     tokenizer::T
     vocab::V
@@ -115,24 +115,26 @@ TrfTextEncoder(tokenizer::AbstractTokenizer, vocab::AbstractVocabulary{String}, 
 TrfTextEncoder(tokenizer::AbstractTokenizer, vocab::AbstractVocabulary{String}, annotate, process, onehot; kws...) =
     TrfTextEncoder(tokenizer, vocab, annotate, process, onehot, identity; kws...)
 TrfTextEncoder(tokenizer::AbstractTokenizer, vocab::AbstractVocabulary{String}, annotate, process, onehot, decode;
-               kws...) = TrfTextEncoder(tokenizer, vocab, annotate, process, onehot, decode, join_text; kws...)
+    kws...) = TrfTextEncoder(tokenizer, vocab, annotate, process, onehot, decode, join_text; kws...)
 function TrfTextEncoder(tokenizer::AbstractTokenizer, vocab::AbstractVocabulary{String},
-                        annotate, process, onehot, decode, textprocess; kws...)
+    annotate, process, onehot, decode, textprocess; kws...)
     return TrfTextEncoder(tokenizer, vocab, values(kws), annotate, process, onehot, decode, textprocess)
 end
 
 for name in fieldnames(TrfTextEncoder)
     (name == :tokenizer || name == :vocab) && continue
-    @eval $(quote
-        """
-            set_$($(QuoteNode(name)))(builder, e::TrfTextEncoder)
+    @eval $(
+        quote
+            """
+                set_$($(QuoteNode(name)))(builder, e::TrfTextEncoder)
 
-        Return a new text encoder with the `$($(QuoteNode(name)))` field replaced with `builder(e)`.
-        """
-        function $(Symbol(:set_, name))(builder, e::TrfTextEncoder)
-            setproperty!!(e, $(QuoteNode(name)), builder(e))
+            Return a new text encoder with the `$($(QuoteNode(name)))` field replaced with `builder(e)`.
+            """
+            function $(Symbol(:set_, name))(builder, e::TrfTextEncoder)
+                setproperty!!(e, $(QuoteNode(name)), builder(e))
+            end
         end
-    end)
+    )
 end
 
 """
@@ -176,7 +178,7 @@ function Base.getproperty(e::TrfTextEncoder, sym::Symbol)
     end
 end
 
-@inline _membercall(f, e, x) = !(f isa Pipelines) && static_hasmethod(f, Tuple{typeof(e), typeof(x)}) ? f(e, x) : f(x)
+@inline _membercall(f, e, x) = !(f isa Pipelines) && static_hasmethod(f, Tuple{typeof(e),typeof(x)}) ? f(e, x) : f(x)
 
 TextEncodeBase.process(::Type{<:TrfTextEncoder}) = nestedcall(string_getvalue)
 TextEncodeBase.tokenize(e::TrfTextEncoder, x) = getfield(e, :tokenizer)(_membercall(getfield(e, :annotate), e, x))
@@ -186,7 +188,7 @@ TextEncodeBase.decode(e::TrfTextEncoder, x) = _membercall(getfield(e, :decode), 
 TextEncodeBase.decode_text(e::TrfTextEncoder, x) = _membercall(getfield(e, :textprocess), e, TextEncodeBase.decode(e, x))
 
 TextEncodeBase.decode_indices(e::TrfTextEncoder, x) = decode_indices(e, x)
-decode_indices(e::TrfTextEncoder, i::Union{Integer, OneHotArray, AbstractArray{<:Integer}}) =
+decode_indices(e::TrfTextEncoder, i::Union{Integer,OneHotArray,AbstractArray{<:Integer}}) =
     lookup(String, getfield(e, :vocab), i)
 function decode_indices(e::TrfTextEncoder, x::AbstractArray)
     if ndims(x) < 2
@@ -207,20 +209,20 @@ TextEncodeBase.onehot_encode(e::TrfTextEncoder, x) = lookup(OneHot, getfield(e, 
 
 lookup_first(e::TrfTextEncoder, x) = TextEncodeBase.onehot_encode(e, x)
 lookup_first(e::TrfTextEncoder, x::Tuple) = (TextEncodeBase.onehot_encode(e, x[1]), Base.tail(x)...)
-function lookup_first(e::TrfTextEncoder, x::NamedTuple{name}) where name
+function lookup_first(e::TrfTextEncoder, x::NamedTuple{name}) where {name}
     xt = Tuple(x)
     return NamedTuple{name}((TextEncodeBase.onehot_encode(e, xt[1]), Base.tail(xt)...))
 end
 
 # encoder constructor
 
-const WList = Union{AbstractVector, AbstractVocabulary}
+const WList = Union{AbstractVector,AbstractVocabulary}
 
 function TransformerTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary{String}, process,
-                                startsym::String, endsym::String, padsym::String, trunc::Union{Nothing, Int})
+    startsym::String, endsym::String, padsym::String, trunc::Union{Nothing,Int})
     return TrfTextEncoder(
         tkr, vocab,
-        @NamedTuple{startsym::String, endsym::String, padsym::String, trunc::Union{Nothing, Int}}(
+        @NamedTuple{startsym::String, endsym::String, padsym::String, trunc::Union{Nothing,Int}}(
             (startsym, endsym, padsym, trunc)),
         annotate_strings,
         process,
@@ -239,8 +241,8 @@ TransformerTextEncoder(t::AbstractTokenization, v::WList, args...; kws...) =
 TransformerTextEncoder(tkr::AbstractTokenizer, v::WList, args...; kws...) =
     throw(MethodError(TransformerTextEncoder, (tkr, v, args...)))
 
-function TransformerTextEncoder(tkr::AbstractTokenizer, words::AbstractVector, process; trunc = nothing,
-                                startsym = "<s>", endsym = "</s>", unksym = "<unk>", padsym = "<pad>")
+function TransformerTextEncoder(tkr::AbstractTokenizer, words::AbstractVector, process; trunc=nothing,
+    startsym="<s>", endsym="</s>", unksym="<unk>", padsym="<pad>")
     vocab_list = copy(words)
     for sym in (padsym, unksym, startsym, endsym)
         sym ∉ vocab_list && push!(vocab_list, sym)
@@ -249,8 +251,8 @@ function TransformerTextEncoder(tkr::AbstractTokenizer, words::AbstractVector, p
     return TransformerTextEncoder(tkr, vocab, process, startsym, endsym, padsym, trunc)
 end
 
-function TransformerTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process; trunc = nothing,
-                                startsym = "<s>", endsym = "</s>", unksym = "<unk>", padsym = "<pad>")
+function TransformerTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabulary, process; trunc=nothing,
+    startsym="<s>", endsym="</s>", unksym="<unk>", padsym="<pad>")
     check_vocab(vocab, startsym) || @warn "startsym $startsym not in vocabulary, this might cause problem."
     check_vocab(vocab, endsym) || @warn "endsym $endsym not in vocabulary, this might cause problem."
     check_vocab(vocab, unksym) || @warn "unksym $unksym not in vocabulary, this might cause problem."
@@ -259,7 +261,7 @@ function TransformerTextEncoder(tkr::AbstractTokenizer, vocab::AbstractVocabular
 end
 
 function TransformerTextEncoder(tkr::AbstractTokenizer, v::WList;
-                                fixedsize = false, trunc_end = :tail, pad_end = :tail, kws...)
+    fixedsize=false, trunc_end=:tail, pad_end=:tail, kws...)
     enc = TransformerTextEncoder(tkr, v, identity; kws...)
     # default processing pipeline
     return TransformerTextEncoder(enc) do e
@@ -267,18 +269,18 @@ function TransformerTextEncoder(tkr::AbstractTokenizer, v::WList;
         maskf = get_mask_func(e.trunc, :tail)
         # get token and convert to string
         Pipeline{:token}(nestedcall(string_getvalue), 1) |>
-            # add start & end symbol
-            Pipeline{:token}(with_head_tail(e.startsym, e.endsym), :token) |>
-            # get mask with specific length
-            Pipeline{:attention_mask}(maskf, :token) |>
-            # truncate input that exceed length limit and pad them to have equal length
-            Pipeline{:token}(truncf, :token) |>
-            # convert to dense array
-            Pipeline{:token}(nested2batch, :token) |>
-            # sequence mask
-            Pipeline{:sequence_mask}(identity, :attention_mask) |>
-            # return token and mask
-            PipeGet{(:token, :attention_mask, :sequence_mask)}()
+        # add start & end symbol
+        Pipeline{:token}(with_head_tail(e.startsym, e.endsym), :token) |>
+        # get mask with specific length
+        Pipeline{:attention_mask}(maskf, :token) |>
+        # truncate input that exceed length limit and pad them to have equal length
+        Pipeline{:token}(truncf, :token) |>
+        # convert to dense array
+        Pipeline{:token}(nested2batch, :token) |>
+        # sequence mask
+        Pipeline{:sequence_mask}(identity, :attention_mask) |>
+        # return token and mask
+        PipeGet{(:token, :attention_mask, :sequence_mask)}()
     end
 end
 
@@ -289,7 +291,7 @@ function TextEncodeBase.encode(e::AbstractTransformerTextEncoder, src, trg)
     psrc = encode(e, src)
     ptrg = encode(e, trg)
     cross_attention_mask = AttenMask(ptrg.attention_mask, psrc.attention_mask)
-    return (encoder_input = psrc, decoder_input = merge(ptrg, (; cross_attention_mask)))
+    return (encoder_input=psrc, decoder_input=merge(ptrg, (; cross_attention_mask)))
 end
 
 include("bert_textencoder.jl")

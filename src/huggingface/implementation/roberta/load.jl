@@ -68,7 +68,7 @@ end
 
 function load_model(_type::Type{<:Union{HGFRobertaForCausalLM, HGFRobertaForMaskedLM}}, cfg, state_dict, prefix)
     model = load_model(_type, HGFRobertaModel, cfg, state_dict, joinname(prefix, "roberta"))
-    dims, vocab_size = cfg[:hidden_size], cfg[:vocab_size]
+    dims, vocab_size, pad_id = cfg[:hidden_size], cfg[:vocab_size], cfg[:pad_token_id]
     factor = Float32(cfg[:initializer_range])
     head_weight = getweight(weight_init(dims, dims, factor), Array, state_dict, joinname(prefix, "lm_head.dense.weight"))
     head_bias = getweight(zero_init(dims), Array, state_dict, joinname(prefix, "lm_head.dense.bias"))
@@ -83,8 +83,7 @@ function load_model(_type::Type{<:Union{HGFRobertaForCausalLM, HGFRobertaForMask
         end
     end
     bias = getweight(zero_init(vocab_size), Array, state_dict, joinname(prefix, "lm_head.bias"))
-    lmhead = Layers.Chain(Layers.Dense(gelu, head_weight, head_bias), head_ln,
-                          Layers.EmbedDecoder(Layers.Embed(embedding), bias))
+    lmhead = Layers.Chain(Layers.Dense(gelu, head_weight, head_bias), head_ln, Layers.EmbedDecoder(Layers.Embed(embedding), bias))
     return _type(model, Layers.Branch{(:logit,), (:hidden_state,)}(lmhead))
 end
 

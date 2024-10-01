@@ -1,11 +1,11 @@
 using ..TextEncoders: BertUnCasedPreTokenization, BertCasedPreTokenization, BertTextEncoder
 using ..Transformers.WordPieceModel: WordPiece, WordPieceTokenization
 
-tokenizer_type(T::Val{:bert}) = T
-encoder_construct(::Val{:bert}, tokenizer, vocab; kwargs...) = BertTextEncoder(tokenizer, vocab; kwargs...)
-slow_tkr_files(::Val{:bert}) = (VOCAB_FILE,)
+tokenizer_type(T::Val{:distilbert}) = T
+encoder_construct(::Val{:distilbert}, tokenizer, vocab; kwargs...) = BertTextEncoder(tokenizer, vocab; kwargs...)
+slow_tkr_files(::Val{:distilbert}) = (VOCAB_FILE,)
 
-function load_slow_tokenizer(::Val{:bert}, vocab_file, added_tokens_file=nothing, special_tokens=nothing;
+function load_slow_tokenizer(::Val{:distilbert}, vocab_file, added_tokens_file=nothing, special_tokens=nothing;
     unk_token="[UNK]", max_char=200, lower=true)
     vocab_list = readlines(vocab_file)
     match_tokens = load_and_add_tokens(added_tokens_file, vocab_list, special_tokens)
@@ -18,7 +18,7 @@ function load_slow_tokenizer(::Val{:bert}, vocab_file, added_tokens_file=nothing
 end
 
 function extract_fast_tkr_kwargs(
-    ::Val{:bert}, config, special_tokens;
+    ::Val{:distilbert}, config, special_tokens;
     cls_token="[CLS]", sep_token="[SEP]", pad_token="[PAD]",
     model_max_length=get(config, :max_position_embeddings, 512), kw...
 )
@@ -35,7 +35,7 @@ function extract_fast_tkr_kwargs(
     return kwargs
 end
 
-function extract_slow_tkr_kwargs(::Val{:bert}, config, special_tokens; unk_token="[UNK]", do_lower_case=true, kw...)
+function extract_slow_tkr_kwargs(::Val{:distilbert}, config, special_tokens; unk_token="[UNK]", do_lower_case=true, kw...)
     if !isnothing(special_tokens)
         unk_token = get(special_tokens, :unk_token, unk_token)
     end

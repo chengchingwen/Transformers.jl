@@ -2,7 +2,7 @@
 
 julia_version = "1.10.1"
 manifest_format = "2.0"
-project_hash = "b8c638f0138c0cadcbd00f93e1f86706daabc69b"
+project_hash = "c1ad8a423a0c6e0cf6033f7a0d60f0a3d1397cf3"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -54,6 +54,12 @@ weakdeps = ["StaticArrays"]
 git-tree-sha1 = "a3a402a35a2f7e0b87828ccabbd5ebfbebe356b4"
 uuid = "dce04be8-c92d-5529-be00-80e4d2c0e197"
 version = "2.3.0"
+
+[[deps.ArgParse]]
+deps = ["Logging", "TextWrap"]
+git-tree-sha1 = "22cf435ac22956a7b45b0168abbc871176e7eecc"
+uuid = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+version = "1.2.0"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -1096,6 +1102,17 @@ deps = ["DataStructures", "DoubleArrayTries", "FuncPipelines", "PartialFunctions
 git-tree-sha1 = "66f827fa54c38cb7a7b174d3a580075b10793f5a"
 uuid = "f92c20c0-9f2a-4705-8116-881385faba05"
 version = "0.8.3"
+
+[[deps.TextWrap]]
+git-tree-sha1 = "43044b737fa70bc12f6105061d3da38f881a3e3c"
+uuid = "b718987f-49a8-5099-9789-dcd902bef87d"
+version = "1.0.2"
+
+[[deps.TimerOutputs]]
+deps = ["ExprTools", "Printf"]
+git-tree-sha1 = "5a13ae8a41237cff5ecf34f73eb1b8f42fff6531"
+uuid = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
+version = "0.5.24"
 
 [[deps.TranscodingStreams]]
 git-tree-sha1 = "e84b3a11b9bece70d14cce63406bbc79ed3464d2"

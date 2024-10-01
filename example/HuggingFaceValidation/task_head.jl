@@ -2,7 +2,7 @@ function test_task_head(name, n; max_error = 1e-1, mean_error = 1e-2)
     global torch, hgf_trf, config, pyconfig, vocab_size
     @info "Validate $name task head"
     @testset "Task Head" begin
-        @info "Found task type in confingure file" tasks = config.architectures
+        @info "Found task type in configure file" tasks = config.architectures
         model_type = config.model_type |> Symbol
 
         for task_type in config.architectures
