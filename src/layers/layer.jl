@@ -151,13 +151,13 @@ function (sa::SelfAttention)(nt::NamedTuple)
     qkv = apply_on_namedtuple(sa.qkv_proj, nt)
     a = apply_on_namedtuple(sa.attention_op, qkv)
     y = apply_on_namedtuple(sa.o_proj, a)
-    # return y 
+    return y 
     # NOTE: instead of returning y, we return a copy of y, because 
     # there is some sort of memory leak when using distributed for Jevo specifically,
     # I suspect related to gradients. This cuts off gradient flow.
-    hidden_state = zeros(Float32, size(y.hidden_state)) |> Flux.gpu
-    hidden_state .= y.hidden_state 
-    return (hidden_state = hidden_state, attention_mask = y.attention_mask)
+    #hidden_state = zeros(Float32, size(y.hidden_state)) |> Flux.gpu
+    #hidden_state .= y.hidden_state 
+    #return (hidden_state = hidden_state, attention_mask = y.attention_mask)
 end
 
 struct CrossAttention{A, Q, KV, O} <: LayerStruct
