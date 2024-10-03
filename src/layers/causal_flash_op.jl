@@ -77,13 +77,13 @@ function causal_flash_attention_kernel(Q, K, V, O)
 
         # compute s=Q^TK
         # s = (Bs, Bs)
-        inf_block = true
+        #inf_block = true
         for n in 1:Bs
             if Q_offset + tx < K_offset + n
                 s[tx, n] = -Inf
                 continue
             end
-            inf_block = false
+            #inf_block = false
 
             tmp = zero(T)
             for m in 1:d
@@ -92,7 +92,7 @@ function causal_flash_attention_kernel(Q, K, V, O)
             s[tx, n] = tmp
             @inbounds mᵢⱼ = max(mᵢⱼ, s[tx, n])
         end
-        inf_block && return nothing
+        #inf_block && return nothing
 
         sync_threads()
 
