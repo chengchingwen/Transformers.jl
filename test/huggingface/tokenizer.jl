@@ -108,7 +108,7 @@ end
     for name in [
         "bert-base-cased", "bert-base-uncased", "roberta-base", "gpt2", "t5-small", "google/flan-t5-xl",
         "EleutherAI/pythia-70m", "databricks/dolly-v2-3b", "bigscience/bloom-560m", "meta-llama/Llama-2-7b-chat-hf",
-        "facebook/bart-base", "openai/clip-vit-base-patch32"
+        "facebook/bart-base", "openai/clip-vit-base-patch32", "distilbert/distilbert-base-cased"
     ]
         @testset "$name Tokenizer" begin
             to = TimerOutput()
