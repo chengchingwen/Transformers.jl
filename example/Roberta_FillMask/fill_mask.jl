@@ -18,8 +18,6 @@ input = Transformers.TextEncoders.encode(new_tkr, query)
 
 input_ids = input.masked_position
 
-Transformers.TextEncoders.decode(new_tkr, input.token)
-
 model_output = model(input)
 mask_logits = model_output.logit[:, :, 1]
 
