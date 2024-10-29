@@ -8,7 +8,7 @@ tkr = Transformers.TextEncoders.BertTextEncoder(tkr) do e
     e.process[1:5] |> Pipeline{:masked_position}(nested2batch ∘ nestedcall(isequal("[MASK]")), :token) |> e.process[6:end-1] |> PipeGet{(:token, :attention_mask, :masked_position)}()
 end
 
-model = Transformers.HuggingFace.load_model("distilbert/distilbert-base-cased", :ForCausalLM)
+model = Transformers.HuggingFace.load_model("distilbert/distilbert-base-cased", :ForMaskedLM)
 
 query = "[MASK] is the Capital of France"
 input = Transformers.TextEncoders.encode(tkr, query)
