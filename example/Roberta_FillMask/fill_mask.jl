@@ -6,11 +6,7 @@ using Flux, StatsBase
 conf = Transformers.HuggingFace.load_config("distilbert/distilroberta-base")
 
 tkr = Transformers.HuggingFace.load_tokenizer("distilbert/distilroberta-base")
-model = Transformers.HuggingFace.hgf"distilbert/distilroberta-base:formaskedlm"
-
-tkr.tokenizer.tokenization
-
-tkr.tokenizer.tokenization.patterns
+model = Transformers.HuggingFace.load_model("distilbert/distilroberta-base", :ForMaskedLM)
 
 new_tkr = Transformers.TextEncoders.BertTextEncoder(tkr) do e
 	e.process[1:5] |> Pipeline{:masked_position}(nested2batch ∘ nestedcall(isequal("<mask>")), :token) |> e.process[6:end-1] |> PipeGet{(:token, :segment, :attention_mask, :masked_position)}()
