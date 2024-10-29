@@ -10,10 +10,6 @@ end
 
 model = Transformers.HuggingFace.load_model("distilbert/distilbert-base-cased", :ForCausalLM)
 
-tkr.tokenizer.tokenization
-
-tkr.tokenizer.tokenization.patterns
-
 query = "[MASK] is the Capital of France"
 input = Transformers.TextEncoders.encode(tkr, query)
 
