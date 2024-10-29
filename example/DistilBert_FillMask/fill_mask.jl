@@ -3,9 +3,6 @@ using FuncPipelines, TextEncodeBase
 using TextEncodeBase: nested2batch, nestedcall
 using Flux, StatsBase
 
-# conf = Transformers.HuggingFace.load_config("distilbert/distilbert-base-cased")
-# state_dict = Transformers.HuggingFace.load_state_dict("distilbert/distilbert-base-cased")
-
 tkr = Transformers.HuggingFace.load_tokenizer("distilbert/distilbert-base-cased")
 tkr = Transformers.TextEncoders.BertTextEncoder(tkr) do e
     e.process[1:5] |> Pipeline{:masked_position}(nested2batch ∘ nestedcall(isequal("[MASK]")), :token) |> e.process[6:end-1] |> PipeGet{(:token, :attention_mask, :masked_position)}()
