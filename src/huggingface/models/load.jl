@@ -144,10 +144,11 @@ Layers.require_x(::typeof(quick_gelu)) = true
 gelu_noapprox(x) = x*NNlib.oftf(x,0.5)*(NNlib.oftf(x,1) + erf(x/sqrt(NNlib.oftf(x,2))))
 function gelu_noapprox_forward_backward(x)
     SQRT2 = sqrt(NNlib.oftf(x,2))
-    λ = (1 + erf(x/SQRT2))/2
+    SQRTPI = sqrt(NNlib.oftf(x,π))
+    Φ = (1 + erf(x/SQRT2))/2
 
-    backward = λ + x/SQRT2*exp(-(x^2)/2)/sqrt(NNlib.oftf(x,π))
-    return x*λ, backward
+    backward = Φ + x/SQRT2*exp(-(x^2)/2)/SQRTPI
+    return x*Φ, backward
 end
 Layers.act_pullback(::typeof(gelu_noapprox)) = gelu_noapprox_forward_backward
 Layers.require_x(::typeof(gelu_noapprox)) = true
