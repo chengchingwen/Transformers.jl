@@ -140,8 +140,21 @@ end
 Layers.act_pullback(::typeof(quick_gelu)) = quick_gelu_forward_backward
 Layers.require_x(::typeof(quick_gelu)) = true
 
+# full gelu without approximation
+gelu_noapprox(x) = x*NNlib.oftf(x,0.5)*(NNlib.oftf(x,1) + erf(x/sqrt(NNlib.oftf(x,2))))
+function gelu_noapprox_forward_backward(x)
+    SQRT2 = sqrt(NNlib.oftf(x,2))
+    λ = (1 + erf(x/SQRT2))/2
+
+    backward = λ + x/SQRT2*exp(-(x^2)/2)/sqrt(NNlib.oftf(x,π))
+    return x*λ, backward
+end
+Layers.act_pullback(::typeof(gelu_noapprox)) = gelu_noapprox_forward_backward
+Layers.require_x(::typeof(gelu_noapprox)) = true
+
 const ACT2FN = @alias (
     [gelu, gelu_new, gelu_fast, gelu_python, gelu_pytorch_tanh, gelu_accurate] = gelu,
+    gelu_noapprox = gelu_noapprox,
     [swish, silu] = swish,
     quick_gelu = quick_gelu,
     leaky_relu = leakyrelu,
