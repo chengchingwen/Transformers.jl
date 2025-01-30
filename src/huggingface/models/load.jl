@@ -9,6 +9,7 @@ using StructWalk
 using ChainRulesCore
 using DataStructures: OrderedDict
 using NeuralAttentionlib: NoMask
+using SpecialFunctions: erf
 
 using LinearAlgebra
 
