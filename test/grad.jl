@@ -15,7 +15,7 @@ end
     using Flux
     using Flux.Zygote
     @testset "dense" begin
-        for act in (gelu, relu, elu, NNlib.sigmoid_fast, NNlib.tanh_fast, swish, nothing, identity)
+        for act in (gelu_tanh, gelu_erf, relu, elu, NNlib.sigmoid_fast, NNlib.tanh_fast, swish, nothing, identity)
             for b in (drandn(Float32, 5), nothing)
                 W = drandn(Float32, 5, 4)
                 for x in (drandn(Float32, 4, 3, 2), drandn(Float32, 4, 2), drandn(Float32, 4))
@@ -36,7 +36,7 @@ end
     end
 
     @testset "fork/nsplit" begin
-        for act in (gelu, relu, elu, NNlib.sigmoid_fast, NNlib.tanh_fast, swish, nothing, identity)
+        for act in (gelu_tanh, gelu_erf, relu, elu, NNlib.sigmoid_fast, NNlib.tanh_fast, swish, nothing, identity)
             for b in (drandn(Float32, 6), nothing)
                 W = drandn(Float32, 6, 4)
                 W1 = W[1:3, :]
