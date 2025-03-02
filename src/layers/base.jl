@@ -3,6 +3,7 @@ using Functors
 using Static
 using NeuralAttentionlib
 using NeuralAttentionlib: $, layer_norm, rms_layer_norm
+using SpecialFunctions: erf 
 
 function init_weight(::Type{T}, s...) where T
     weight = randn(T, s)
@@ -173,8 +174,21 @@ function gelu_tanh_forward_backward(x)
     backward = muladd(dσ * λλ * muladd(x2, α2, t), x, Ω)
     return (forward, backward)
 end
+ 
+const gelu_sqrt2 = sqrt(2)  
+const gelu_sqrtπ = sqrt(π)  
 
-gelu_erf_forward_backward(x) = (gelu_erf(x), NNlib.deriv_gelu_erf(x))
+function gelu_erf_forward_backward(x)  
+    TWO = NNlib.oftf(x,2)
+    SQRT2 = NNlib.oftf(x, gelu_sqrt2)
+    X_RSQRT2 = x / SQRT2
+    ERF_SQRT1 = one(x) + erf(X_RSQRT2)
+    Φ = ERF_SQRT1 / TWO
+    HALF_X = x / TWO
+    forward = HALF_X * ERF_SQRT1  
+    backward = Φ + X_RSQRT2 * exp(-x * HALF_X) / NNlib.oftf(x, gelu_sqrtπ)
+    return (forward, backward)
+end
 
 function swish_forward_backward(x)
     t = sigmoid_fast(x)
