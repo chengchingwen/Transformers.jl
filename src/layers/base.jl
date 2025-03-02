@@ -161,7 +161,7 @@ function dense(act, W, b, x, s = true)
     return bias_and_act!(act, b, y, y)
 end
 
-function gelu_forward_backward(x)
+function gelu_tanh_forward_backward(x)
     α = NNlib.oftf(x, 0.044715)
     α2 = NNlib.oftf(x, 0.08943)
     λλ = NNlib.oftf(x, NNlib.gelu_2λ)
@@ -174,6 +174,8 @@ function gelu_forward_backward(x)
     return (forward, backward)
 end
 
+gelu_erf_forward_backward(x) = (gelu_erf(x), NNlib.deriv_gelu_erf(x))
+
 function swish_forward_backward(x)
     t = sigmoid_fast(x)
     Ω = x * t
@@ -185,7 +187,8 @@ _deriv_σ(Ω) = conj(Ω * (1 - Ω))
 _deriv_relu(Ω) = Ω > 0
 _deriv_tanh(Ω) = conj(1 - Ω^2)
 act_pullback(act) = nothing
-act_pullback(::typeof(gelu)) = gelu_forward_backward
+act_pullback(::typeof(gelu_tanh)) = gelu_tanh_forward_backward
+act_pullback(::typeof(gelu_erf)) = gelu_erf_forward_backward
 act_pullback(::typeof(swish)) = swish_forward_backward
 act_pullback(::typeof(relu)) = _deriv_relu
 act_pullback(::typeof(elu)) = NNlib.deriv_elu
@@ -195,7 +198,8 @@ act_pullback(::typeof(σ)) = _deriv_σ
 act_pullback(::typeof(NNlib.sigmoid_fast)) = _deriv_σ
 
 require_x(pb) = false
-require_x(::typeof(gelu_forward_backward)) = true
+require_x(::typeof(gelu_tanh_forward_backward)) = true
+require_x(::typeof(gelu_erf_forward_backward)) = true
 require_x(::typeof(swish_forward_backward)) = true
 
 function _run_fw_bw!(act_fw_bw, x, dx, cidx)
