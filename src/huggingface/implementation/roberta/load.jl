@@ -83,7 +83,7 @@ function load_model(_type::Type{<:Union{HGFRobertaForCausalLM, HGFRobertaForMask
         end
     end
     bias = getweight(zero_init(vocab_size), Array, state_dict, joinname(prefix, "lm_head.bias"))
-    lmhead = Layers.Chain(Layers.Dense(gelu, head_weight, head_bias), head_ln,
+    lmhead = Layers.Chain(Layers.Dense(gelu_erf, head_weight, head_bias), head_ln,
                           Layers.EmbedDecoder(Layers.Embed(embedding), bias))
     return _type(model, Layers.Branch{(:logit,), (:hidden_state,)}(lmhead))
 end

@@ -3,6 +3,7 @@ using Functors
 using Static
 using NeuralAttentionlib
 using NeuralAttentionlib: $, layer_norm, rms_layer_norm
+using SpecialFunctions: erf 
 
 function init_weight(::Type{T}, s...) where T
     weight = randn(T, s)
@@ -161,7 +162,7 @@ function dense(act, W, b, x, s = true)
     return bias_and_act!(act, b, y, y)
 end
 
-function gelu_forward_backward(x)
+function gelu_tanh_forward_backward(x)
     α = NNlib.oftf(x, 0.044715)
     α2 = NNlib.oftf(x, 0.08943)
     λλ = NNlib.oftf(x, NNlib.gelu_2λ)
@@ -171,6 +172,21 @@ function gelu_forward_backward(x)
     dσ = conj(Ω * (1 - Ω))
     forward = x * Ω
     backward = muladd(dσ * λλ * muladd(x2, α2, t), x, Ω)
+    return (forward, backward)
+end
+ 
+const gelu_sqrt2 = sqrt(2)  
+const gelu_sqrtπ = sqrt(π)  
+
+function gelu_erf_forward_backward(x)  
+    TWO = NNlib.oftf(x,2)
+    SQRT2 = NNlib.oftf(x, gelu_sqrt2)
+    X_RSQRT2 = x / SQRT2
+    ERF_SQRT1 = one(x) + erf(X_RSQRT2)
+    Φ = ERF_SQRT1 / TWO
+    HALF_X = x / TWO
+    forward = HALF_X * ERF_SQRT1  
+    backward = Φ + X_RSQRT2 * exp(-x * HALF_X) / NNlib.oftf(x, gelu_sqrtπ)
     return (forward, backward)
 end
 
@@ -185,7 +201,8 @@ _deriv_σ(Ω) = conj(Ω * (1 - Ω))
 _deriv_relu(Ω) = Ω > 0
 _deriv_tanh(Ω) = conj(1 - Ω^2)
 act_pullback(act) = nothing
-act_pullback(::typeof(gelu)) = gelu_forward_backward
+act_pullback(::typeof(gelu_tanh)) = gelu_tanh_forward_backward
+act_pullback(::typeof(gelu_erf)) = gelu_erf_forward_backward
 act_pullback(::typeof(swish)) = swish_forward_backward
 act_pullback(::typeof(relu)) = _deriv_relu
 act_pullback(::typeof(elu)) = NNlib.deriv_elu
@@ -195,7 +212,8 @@ act_pullback(::typeof(σ)) = _deriv_σ
 act_pullback(::typeof(NNlib.sigmoid_fast)) = _deriv_σ
 
 require_x(pb) = false
-require_x(::typeof(gelu_forward_backward)) = true
+require_x(::typeof(gelu_tanh_forward_backward)) = true
+require_x(::typeof(gelu_erf_forward_backward)) = true
 require_x(::typeof(swish_forward_backward)) = true
 
 function _run_fw_bw!(act_fw_bw, x, dx, cidx)

@@ -140,7 +140,8 @@ Layers.act_pullback(::typeof(quick_gelu)) = quick_gelu_forward_backward
 Layers.require_x(::typeof(quick_gelu)) = true
 
 const ACT2FN = @alias (
-    [gelu, gelu_new, gelu_fast, gelu_python, gelu_pytorch_tanh, gelu_accurate] = gelu,
+    [gelu_new, gelu_fast, gelu_pytorch_tanh, gelu_accurate] = gelu_tanh,
+    [gelu, gelu_python] = gelu_erf,
     [swish, silu] = swish,
     quick_gelu = quick_gelu,
     leaky_relu = leakyrelu,
