@@ -10,6 +10,7 @@
         :roberta => :[
             Model, ForMaskedLM, ForCausalLM, ForSequenceClassification, ForTokenClassification, ForQuestionAnswering,
         ].args,
+        :distilbert => :[Model, ForMaskedLM].args,
         :gpt2 => [:Model, :LMHeadModel],
         :t5 => [:Model, :ForConditionalGeneration],
         :gpt_neo => [:Model, :ForCausalLM],
