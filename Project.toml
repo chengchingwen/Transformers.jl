@@ -1,7 +1,7 @@
 name = "Transformers"
 uuid = "21ca0261-441d-5938-ace7-c90938fde4d4"
-authors = ["chengchingwen <adgjl5645@hotmail.com>"]
 version = "0.3.1"
+authors = ["chengchingwen <adgjl5645@hotmail.com>"]
 
 [deps]
 BangBang = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
@@ -71,7 +71,7 @@ FillArrays = "0.13, 1"
 Flux = "0.14"
 FuncPipelines = "0.2.3"
 Functors = "0.2, 0.3, 0.4"
-HTTP = "0.9, 1"
+HTTP = "0.9, 1, 2"
 HuggingFaceApi = "0.1"
 JSON3 = "1.12"
 LRUCache = "1.5"
